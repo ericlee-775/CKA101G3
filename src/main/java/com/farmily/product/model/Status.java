@@ -1,5 +1,5 @@
 package com.farmily.product.model;
 
-public class Status {
-
+public enum Status {
+	active,inactive;
 }
