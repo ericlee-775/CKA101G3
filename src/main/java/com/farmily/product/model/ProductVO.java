@@ -2,6 +2,8 @@ package com.farmily.product.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -45,6 +47,7 @@ public class ProductVO {
 	private String description;
 	
 	@Column(name="status")
+	@Enumerated(EnumType.STRING)
 	private Status status;
 	
 	@Column(name="product_name")

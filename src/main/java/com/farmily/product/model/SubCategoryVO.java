@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 public class SubCategoryVO {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name="sub_cat_class_id)")
+	@Column(name="sub_cat_class_id")
 	private Integer subCatClassId;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
