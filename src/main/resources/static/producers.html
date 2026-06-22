@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>農場清單｜農鮮平台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="producers">
+  <div id="headerHost"></div>
+
+  <section class="page-header producer-page-header">
+    <span class="eyebrow">producers</span>
+    <h1>農場清單</h1>
+    <p>從產地、商品、團購、體驗與日記找到你想認識的小農。</p>
+  </section>
+
+  <div id="app" data-page-kind="list">
+    <div class="toolbar producer-toolbar">
+      <div class="category-pills">
+        <button v-for="scope in scopes" :key="scope.key" type="button"
+                class="category-pill" :class="{ 'is-active': activeScope === scope.key }"
+                @click="selectScope(scope.key)">
+          {{ scope.label }}
+        </button>
+      </div>
+      <form class="search" role="search" @submit.prevent="submitSearch">
+        <input type="search" v-model="keyword" placeholder="搜尋農場 / 商品 / 產地" aria-label="搜尋農場">
+        <button class="secondary-button" type="submit">搜尋</button>
+      </form>
+    </div>
+
+    <main class="section-block producer-list-wrap" style="padding-top:0">
+      <div class="producer-grid">
+        <div v-if="loadState === 'loading'" class="empty-state" style="grid-column:1/-1;margin:0;">載入中…</div>
+        <div v-else-if="!filteredProducers.length" class="empty-state" style="grid-column:1/-1;margin:0;">目前沒有符合條件的農場</div>
+        <article v-else v-for="producer in filteredProducers" :key="producer.id" class="producer-card">
+          <a class="producer-card-image" :href="`producer-detail.html?id=${producer.id}`"
+             :style="{ backgroundImage: `url('${producer.heroImage}')` }" :aria-label="producer.name"></a>
+          <div class="producer-card-body">
+            <div class="producer-card-top">
+              <span class="eyebrow">{{ producer.origins[0] || "local producer" }}</span>
+              <span>{{ contentCount(producer) }} 則公開內容</span>
+            </div>
+            <h2><a :href="`producer-detail.html?id=${producer.id}`">{{ producer.name }}</a></h2>
+            <p>{{ producer.intro || "把當季收成、產地活動與日常紀錄整理在這裡。" }}</p>
+            <div class="producer-tags"><span v-for="tag in producer.tags" :key="tag">{{ tag }}</span></div>
+            <div class="producer-card-stats">
+              <span><strong>{{ producer.products.length }}</strong> 商品</span>
+              <span><strong>{{ producer.groupBuys.length }}</strong> 團購</span>
+              <span><strong>{{ producer.trips.length }}</strong> 體驗</span>
+              <span><strong>{{ producer.blogs.length }}</strong> 日記</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>農鮮平台</strong><p>from soil to table</p></div>
+      <div class="footer-links">
+        <a href="products.html">商品</a>
+        <a href="group-buys.html">團購</a>
+        <a href="farm-trips.html">體驗活動</a>
+        <a href="blogs.html">產地日記</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/producers.js"></script>
+</body>
+</html>

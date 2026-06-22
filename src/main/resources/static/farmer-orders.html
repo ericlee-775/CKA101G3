@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訂單管理｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="orders">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">incoming orders</span>
+          <h2>訂單管理</h2>
+          <p>消費者下的訂單，已付款後可以標記為已出貨。資料來自 GET /api/orders/farmer。</p>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>訂單編號</th><th>消費者</th><th>金額</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="6" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="6" style="text-align:center;color:var(--muted)">還沒收到訂單。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="6" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="o in orders" :key="o.id">
+              <td><a :href="`order-detail.html?id=${o.id}`" style="color:var(--leaf);font-weight:600">{{ o.orderNo }}</a></td>
+              <td>{{ o.consumerName || "" }}<div style="color:var(--muted);font-size:12px">{{ o.recipientPhone || "" }}</div></td>
+              <td>{{ currency(o.totalAmount) }}</td>
+              <td><span class="status" :class="statusOf(o).cls">{{ statusOf(o).text }}</span></td>
+              <td>{{ fmt(o.createdAt) }}</td>
+              <td>
+                <a class="user-btn ghost" :href="`order-detail.html?id=${o.id}`">查看</a>
+                <button v-if="o.status === 'PAID'" class="user-btn ghost" @click="ship(o)">出貨</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  const ORDER_STATUS = {
+    PENDING_PAYMENT: { text: "待付款", cls: "warning" },
+    PAID:            { text: "已付款・待出貨", cls: "" },
+    SHIPPED:         { text: "已出貨", cls: "" },
+    COMPLETED:       { text: "已完成", cls: "" },
+    CANCELLED:       { text: "已取消", cls: "warning" }
+  };
+  createApp({
+    data() {
+      return {
+        orders: [],
+        loadState: "loading",
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/orders/farmer?size=30");
+          this.orders = page.content || [];
+          this.loadState = this.orders.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async ship(o) {
+        try {
+          await NongAuth.request(`/api/orders/${o.id}/ship`, { method: "POST" });
+          this.showToast("已標記為已出貨");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      statusOf(o) {
+        return ORDER_STATUS[o.status] || { text: o.status, cls: "warning" };
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

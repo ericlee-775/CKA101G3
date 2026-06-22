@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>部落格｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="blogs">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-seal">儂</span><span><strong>你儂我農</strong><small>from soil to table</small></span></a>
+    <button class="mobile-menu" id="mobileMenu" type="button" aria-label="開啟選單">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-item"><a href="index.html"      data-nav-key="home">首頁</a></div>
+      <div class="nav-item"><a href="products.html"   data-nav-key="products">全部商品</a></div>
+      <div class="nav-item"><a href="group-buys.html" data-nav-key="group-buys">團購</a></div>
+      <div class="nav-item"><a href="farm-trips.html" data-nav-key="farm-trips">體驗活動</a></div>
+      <div class="nav-item"><a href="blogs.html"      data-nav-key="blogs">部落格</a></div>
+      <div class="nav-item"><a href="farm-map.html"   data-nav-key="farm-map">產地地圖</a></div>
+      <div class="user-zone" id="userZone"></div>
+    </nav>
+  </header>
+
+  <section class="page-header">
+    <span class="eyebrow">blog</span>
+    <h1>部落格</h1>
+    <p>把蔬果知識、食譜與產地故事放在購物流程旁邊，增加停留與回訪。</p>
+  </section>
+
+  <div id="app">
+    <div class="toolbar">
+      <div class="category-pills">
+        <button v-for="p in pills" :key="p.id == null ? 'all' : p.id" type="button"
+                class="category-pill" :class="{ 'is-active': same(p.id, activeTypeId) }"
+                @click="selectType(p.id)">{{ p.name }}</button>
+      </div>
+      <form class="search" role="search" @submit.prevent="submitSearch">
+        <input type="search" v-model="keyword" placeholder="搜尋文章…" aria-label="搜尋">
+        <button class="secondary-button" type="submit">搜尋</button>
+      </form>
+    </div>
+
+    <main class="section-block" style="padding-top:0">
+      <div class="journal-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <p v-if="listState === 'loading'" style="grid-column:1/-1;color:var(--muted);text-align:center;">載入中…</p>
+        <div v-else-if="listState === 'empty'" class="empty-state" style="grid-column:1/-1;margin:0;">沒有符合的文章。</div>
+        <div v-else-if="listState.startsWith('error')" class="empty-state" style="grid-column:1/-1;margin:0;">{{ errorText(listState) }}</div>
+        <article v-else v-for="b in blogs" :key="b.id">
+          <span>{{ b.blogTypeName || "" }}</span>
+          <h3><a :href="`blog-detail.html?id=${b.id}`">{{ b.title }}</a></h3>
+          <p>{{ truncate(b.content || "", 100) }}</p>
+          <div class="card-meta" style="margin-top:10px">
+            <span>{{ b.authorName || "" }}</span>
+            <span>👁 {{ b.viewCount || 0 }} ｜ ♡ {{ b.likeCount || 0 }} ｜ 💬 {{ b.commentCount || 0 }}</span>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CKA101 第三組專題</p></div>
+      <div class="footer-links">
+        <a href="index.html">首頁</a><a href="products.html">全部商品</a><a href="group-buys.html">團購</a><a href="farm-trips.html">體驗活動</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js?v=20260613-mapnav"></script>
+  <script src="js/blogs.js"></script>
+</body>
+</html>

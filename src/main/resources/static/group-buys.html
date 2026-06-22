@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>團購專區｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="group-buys">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-seal">儂</span><span><strong>你儂我農</strong><small>from soil to table</small></span></a>
+    <button class="mobile-menu" id="mobileMenu" type="button" aria-label="開啟選單">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-item"><a href="index.html"      data-nav-key="home">首頁</a></div>
+      <div class="nav-item"><a href="products.html"   data-nav-key="products">全部商品</a></div>
+      <div class="nav-item"><a href="group-buys.html" data-nav-key="group-buys">團購</a></div>
+      <div class="nav-item"><a href="farm-trips.html" data-nav-key="farm-trips">體驗活動</a></div>
+      <div class="nav-item"><a href="blogs.html"      data-nav-key="blogs">部落格</a></div>
+      <div class="user-zone" id="userZone"></div>
+    </nav>
+  </header>
+
+  <section class="page-header">
+    <span class="eyebrow">group buy</span>
+    <h1>團購專區</h1>
+    <p>由團主發起、達標即出貨。可以開團也可以加入別人開的團。</p>
+  </section>
+
+  <div id="app">
+    <main class="section-block" style="padding-top:0">
+      <div class="product-grid">
+        <p v-if="listState === 'loading'" style="grid-column:1/-1;color:var(--muted);text-align:center;">載入中…</p>
+        <div v-else-if="listState === 'empty'" class="empty-state" style="grid-column:1/-1;margin:0;">目前沒有進行中的團購。小農或團主可以從商品頁發起。</div>
+        <div v-else-if="listState.startsWith('error')" class="empty-state" style="grid-column:1/-1;margin:0;">{{ errorText(listState) }}</div>
+        <article v-else v-for="g in groupBuys" :key="g.id" class="product-card">
+          <a :href="`group-buy-detail.html?id=${g.id}`" class="product-image" :style="{ backgroundImage: `url('${groupImage(g)}')` }" role="img" :aria-label="`${g.productName} 團購圖片`"></a>
+          <div class="product-body">
+            <div class="product-meta"><span>團主 {{ g.hostName || "" }}</span><span>截止 {{ fmt(g.deadlineDate) }}</span></div>
+            <h3><a :href="`group-buy-detail.html?id=${g.id}`">{{ g.productName }}</a></h3>
+            <p>原價 {{ currency(g.productPrice) }}　團購價 <strong class="price">{{ currency(g.groupPrice) }}</strong>　省 {{ currency(g.saving) }}</p>
+            <div class="progress-bar" aria-label="團購進度"><span :style="{ width: (g.percent || 0) + '%' }"></span></div>
+            <div class="product-meta" style="margin-top:10px">
+              <span>{{ g.currentQuantity || 0 }} / {{ g.targetQuantity || 0 }} 份（剩 {{ g.remainingQuantity || 0 }}）</span>
+              <a class="secondary-button" :href="`group-buy-detail.html?id=${g.id}`">{{ g.joined ? "我已參加" : "查看 / 加入" }}</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CKA101 第三組專題</p></div>
+      <div class="footer-links">
+        <a href="index.html">首頁</a><a href="products.html">全部商品</a><a href="farm-trips.html">體驗活動</a><a href="blogs.html">部落格</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/group-buys.js"></script>
+</body>
+</html>

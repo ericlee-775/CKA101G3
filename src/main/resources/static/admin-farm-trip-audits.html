@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>體驗活動審核｜管理員後台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="admin" data-active-side="trip-audits">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">trip audits</span>
+          <h2>體驗活動審核</h2>
+          <p>處理小農送審的活動。通過後活動才會在前台上架，並可由小農進入「管理場次」開放預約。</p>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>活動</th><th>類別</th><th>計價</th><th>單價</th><th>小農</th><th>送審時間</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">目前沒有待審核活動</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="t in trips" :key="t.id">
+              <td><strong>{{ t.title }}</strong><div style="color:var(--muted);font-size:12px">{{ t.location || "" }}</div></td>
+              <td>{{ typeLabels[t.tripType] || t.tripType }}</td>
+              <td>{{ pricingLabels[t.pricingMode] || "" }}</td>
+              <td>NT$ {{ Number(t.price).toLocaleString("zh-TW") }}</td>
+              <td>{{ t.farmerName || "" }}</td>
+              <td>{{ fmt(t.createdAt) }}</td>
+              <td><button class="user-btn ghost" style="color:var(--leaf)" @click="openModal(t)">審核</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="modal-backdrop" :class="{ 'is-open': modalOpen }" @click.self="modalOpen = false">
+        <div class="modal-card">
+          <h2>{{ activeTrip ? `審核：${activeTrip.title}` : "審核活動" }}</h2>
+          <form @submit.prevent="submit">
+            <label class="field"><span>結果</span>
+              <select v-model="form.decision">
+                <option value="APPROVED">通過上架</option>
+                <option value="REJECTED">退回</option>
+              </select>
+            </label>
+            <label class="field"><span>意見（退回時必填，≤200 字）</span><textarea maxlength="200" style="min-height:80px" v-model="form.reason"></textarea></label>
+            <div class="modal-foot">
+              <button class="user-btn ghost" type="button" @click="modalOpen = false">取消</button>
+              <button class="primary-button" type="submit">送出</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        trips: [],
+        loadState: "loading",
+        modalOpen: false,
+        activeTrip: null,
+        form: { decision: "APPROVED", reason: "" },
+        typeLabels: { FARM_EXPERIENCE: "農場體驗", FIELD_VISIT: "產地參訪" },
+        pricingLabels: { PER_PERSON: "每人", PER_WEIGHT: "每公斤" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/admin/farm-trips/pending?size=30");
+          this.trips = page.content || [];
+          this.loadState = this.trips.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      openModal(t) {
+        this.activeTrip = t;
+        this.form = { decision: "APPROVED", reason: "" };
+        this.modalOpen = true;
+      },
+      async submit() {
+        const payload = { decision: this.form.decision, reason: this.form.reason.trim() || null };
+        if (payload.decision === "REJECTED" && !payload.reason) { this.showToast("退回需填寫意見", true); return; }
+        try {
+          await NongAuth.request(`/api/admin/farm-trips/${this.activeTrip.id}/audit`, { method: "POST", body: JSON.stringify(payload) });
+          this.modalOpen = false;
+          this.showToast("已處理");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

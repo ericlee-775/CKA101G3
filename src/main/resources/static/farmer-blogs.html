@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的部落格｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="blogs">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">my blogs</span>
+          <h2>我的部落格文章</h2>
+          <p>「產地日記」只有小農可以寫，是小農工作台限定的內容類別。</p>
+        </div>
+        <a class="primary-button" href="farmer-blog-form.html">+ 新增文章</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>標題</th><th>分類</th><th>狀態</th><th>瀏覽</th><th>讚</th><th>留言</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">還沒有文章。<a href="farmer-blog-form.html" style="color:var(--leaf);margin-left:8px">+ 寫第一篇</a></td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="b in blogs" :key="b.id">
+              <td><a :href="`blog-detail.html?id=${b.id}`" target="_blank" style="color:var(--leaf);font-weight:600">{{ b.title || "" }}</a></td>
+              <td>{{ b.blogTypeName || "" }}</td>
+              <td><span class="status" :class="{ warning: b.status !== 'PUBLISHED' }">{{ b.status }}</span></td>
+              <td>{{ b.viewCount || 0 }}</td>
+              <td>{{ b.likeCount || 0 }}</td>
+              <td>{{ b.commentCount || 0 }}</td>
+              <td>
+                <a class="user-btn ghost" :href="`farmer-blog-form.html?id=${b.id}`">編輯</a>
+                <button class="user-btn ghost" style="color:var(--clay)" @click="remove(b)">刪除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        blogs: [],
+        loadState: "loading",
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/blogs/mine?size=30");
+          this.blogs = page.content || [];
+          this.loadState = this.blogs.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async remove(b) {
+        if (!confirm("確定要刪除這篇文章嗎？")) return;
+        try {
+          await NongAuth.request(`/api/blogs/${b.id}`, { method: "DELETE" });
+          this.showToast("已刪除");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

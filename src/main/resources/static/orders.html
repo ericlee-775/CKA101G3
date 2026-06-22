@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的訂單｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+
+  <section class="page-header">
+    <span class="eyebrow">my orders</span>
+    <h1>我的訂單</h1>
+    <p>所有曾經下過的訂單（依小農拆單後各為一張）；點訂單編號看詳情。</p>
+  </section>
+
+  <div id="app">
+    <main class="detail-body">
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState === 'empty'" class="empty-state">還沒有任何訂單。<br><br><a class="primary-button" href="products.html">去逛商品</a></div>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <table v-else class="cart-table">
+        <thead><tr><th>訂單編號</th><th>小農</th><th>狀態</th><th>金額</th><th>建立時間</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="o in orders" :key="o.id">
+            <td><a :href="`order-detail.html?id=${o.id}`" style="color:var(--leaf);font-weight:600">{{ o.orderNo }}</a></td>
+            <td>{{ o.farmerName || "" }}</td>
+            <td><span class="status-tag" :class="statusOf(o).cls">{{ statusOf(o).text }}</span></td>
+            <td>{{ currency(o.totalAmount) }}</td>
+            <td>{{ fmt(o.createdAt) }}</td>
+            <td><a class="user-btn ghost" :href="`order-detail.html?id=${o.id}`">查看</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="products.html">逛商品</a><a href="index.html">回首頁</a></div>
+    </footer>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/orders.js"></script>
+</body>
+</html>

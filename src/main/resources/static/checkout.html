@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>結帳｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+
+  <section class="page-header">
+    <span class="eyebrow">checkout</span>
+    <h1>結帳</h1>
+    <p>請確認商品與寄送資訊；按下「確認下單」後系統會依小農自動拆單。</p>
+  </section>
+
+  <div id="app">
+    <main class="detail-layout">
+      <p v-if="gate === 'loading'" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="gate === 'non-member'" class="empty-state" style="grid-column:1/-1;">目前身份不是會員，無法結帳。</div>
+      <div v-else-if="gate.startsWith('error')" class="empty-state" style="grid-column:1/-1;">{{ errorText(gate) }}</div>
+      <div v-else-if="gate === 'empty'" class="empty-state" style="grid-column:1/-1;">購物車是空的。<br><br><a class="primary-button" href="products.html">去逛商品</a></div>
+      <template v-else>
+        <section>
+          <div class="section-heading compact"><span class="eyebrow">order summary</span><h2>訂單摘要</h2></div>
+          <table class="cart-table">
+            <thead><tr><th>商品</th><th>數量</th><th>小計</th></tr></thead>
+            <tbody>
+              <tr v-for="it in cart.items" :key="it.productId">
+                <td>
+                  <div style="font-weight:600">{{ it.name }}</div>
+                  <div style="color:var(--muted);font-size:12px">{{ it.farmerName || "" }} ｜ {{ currency(it.price) }} × {{ it.quantity }}</div>
+                </td>
+                <td>{{ it.quantity }}</td>
+                <td>{{ currency(it.subtotal) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="cart-summary"><span>共 {{ cart.totalQuantity }} 件</span><strong>合計：{{ currency(cart.totalAmount) }}</strong></div>
+        </section>
+
+        <section>
+          <div class="section-heading compact"><span class="eyebrow">recipient</span><h2>收件與付款</h2></div>
+          <form class="auth-card" style="box-shadow:none;width:100%;padding:22px" @submit.prevent="submit">
+            <div class="form-grid">
+              <label class="field"><span>收件人姓名</span><input type="text" maxlength="50" required v-model="form.recipientName"></label>
+              <label class="field"><span>收件人電話</span><input type="text" maxlength="20" required v-model="form.recipientPhone"></label>
+            </div>
+            <label class="field"><span>收件地址</span><input type="text" maxlength="200" required v-model="form.shippingAddress"></label>
+            <label class="field"><span>備註（選填）</span><textarea maxlength="500" style="min-height:60px" v-model="form.note"></textarea></label>
+            <label class="field"><span>付款方式</span>
+              <select required v-model="form.paymentMethod">
+                <option value="CREDIT_CARD_SIM">模擬信用卡（按下即視為已付款）</option>
+                <option value="BANK_TRANSFER_SIM">模擬 ATM 轉帳</option>
+                <option value="CASH_ON_DELIVERY">貨到付款</option>
+              </select>
+            </label>
+            <button class="primary-button" type="submit" :disabled="submitting" style="width:100%;margin-top:8px">{{ submitting ? "送出中…" : "確認下單" }}</button>
+          </form>
+        </section>
+      </template>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CKA101 第三組專題</p></div>
+      <div class="footer-links"><a href="cart.html">回購物車</a><a href="products.html">繼續逛商品</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/checkout.js"></script>
+</body>
+</html>

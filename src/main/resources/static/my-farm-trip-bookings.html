@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的體驗預約｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+  <div id="app">
+    <section class="page-header">
+      <span class="eyebrow">my bookings</span>
+      <h1>我的體驗預約</h1>
+      <p>所有報名過的體驗活動；未開始前可以取消。</p>
+    </section>
+    <main class="detail-body">
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState === 'empty'" class="empty-state">還沒預約過活動。<a class="primary-button" href="farm-trips.html" style="margin-left:8px">去看活動</a></div>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <table v-else class="cart-table">
+        <thead><tr><th>編號</th><th>活動 / 計價</th><th>場次</th><th>人數</th><th>金額</th><th>狀態</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="b in bookings" :key="b.id">
+            <td><strong>{{ b.bookingNo || "" }}</strong></td>
+            <td>{{ b.farmTripTitle || "" }}<div style="color:var(--muted);font-size:12px">{{ b.farmerName || "" }} ｜ {{ b.farmTripLocation || "" }}</div><div style="color:var(--muted);font-size:12px">{{ pricingLabels[b.pricingMode] || "" }}</div></td>
+            <td>{{ fmt(b.sessionTripStart) }}</td>
+            <td>{{ b.numPeople || 0 }}</td>
+            <td><span v-if="b.pricingMode === 'PER_WEIGHT' && b.status !== 'COMPLETED'" style="color:var(--muted)">現場結算</span><template v-else>{{ currency(b.totalAmount || 0) }}</template></td>
+            <td><span class="status-tag" :class="tagCls(b.status)">{{ b.status || "" }}</span></td>
+            <td>
+              <a class="user-btn ghost" :href="`farm-trip-detail.html?id=${b.farmTripId}`">查看</a>
+              <button v-if="b.status === 'CONFIRMED'" class="user-btn ghost" style="color:var(--clay)" @click="cancel(b)">取消</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="farm-trips.html">看更多活動</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script><script src="js/header.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        bookings: [],
+        loadState: "loading", // loading / empty / ready / error:訊息
+        pricingLabels: { PER_PERSON: "每人計價", PER_WEIGHT: "按重量計價（現場結算）" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      if (!NongAuth.getConsumerUser()) { location.href = "login.html?reason=auth"; return; }
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/farm-trips/orders/mine?size=30");
+          this.bookings = page.content || [];
+          this.loadState = this.bookings.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async cancel(b) {
+        if (!confirm("確定要取消這個預約嗎？")) return;
+        try {
+          await NongAuth.request(`/api/farm-trips/orders/${b.id}/cancel`, { method: "POST" });
+          this.showToast("已取消");
+          await this.reload();
+        } catch (e) {
+          this.showToast(e.message || "取消失敗", true);
+        }
+      },
+      tagCls(s) {
+        if (s === "CONFIRMED" || s === "BOOKED") return "";
+        if (s === "COMPLETED") return "success";
+        if (s === "CANCELLED") return "muted";
+        return "warning";
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

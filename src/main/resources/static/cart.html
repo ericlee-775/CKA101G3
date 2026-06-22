@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>購物車｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-seal">儂</span><span><strong>你儂我農</strong><small>from soil to table</small></span></a>
+    <button class="mobile-menu" id="mobileMenu" type="button" aria-label="開啟選單">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-item"><a href="index.html"      data-nav-key="home">首頁</a></div>
+      <div class="nav-item"><a href="products.html"   data-nav-key="products">全部商品</a></div>
+      <div class="nav-item"><a href="group-buys.html" data-nav-key="group-buys">團購</a></div>
+      <div class="nav-item"><a href="farm-trips.html" data-nav-key="farm-trips">體驗活動</a></div>
+      <div class="nav-item"><a href="blogs.html"      data-nav-key="blogs">部落格</a></div>
+      <div class="user-zone" id="userZone"></div>
+    </nav>
+  </header>
+
+  <section class="page-header">
+    <span class="eyebrow">cart</span>
+    <h1>購物車</h1>
+    <p>檢查商品與數量；按下結帳會帶入小農出貨資訊。</p>
+  </section>
+
+  <div id="app">
+    <main class="section-block" style="padding-top:0">
+      <div class="empty-state" v-if="gate === 'guest'">尚未登入。<br><br><a class="primary-button" href="login.html?reason=auth">前往登入</a></div>
+      <div class="empty-state" v-else-if="gate === 'non-member'">目前身份不是會員，無法購物。</div>
+      <div class="empty-state" v-else-if="gate === 'loading' || gate === 'loading-cart'">載入中…</div>
+      <div class="empty-state" v-else-if="gate.startsWith('error')">{{ errorText(gate) }}</div>
+      <div class="empty-state" v-else-if="!items.length">購物車是空的。<br><br><a class="primary-button" href="products.html">去逛商品</a></div>
+      <template v-else>
+        <table class="cart-table">
+          <thead><tr><th></th><th>商品</th><th>單價</th><th>數量</th><th>小計</th><th></th></tr></thead>
+          <tbody>
+            <tr v-for="it in items" :key="it.productId">
+              <td><div class="cart-thumb" :style="{ backgroundImage: `url('${itemImage(it)}')` }"></div></td>
+              <td>
+                <div style="font-weight:600">{{ it.name }}</div>
+                <div style="color:var(--muted);font-size:12px">{{ it.farmerName || "" }} ｜ {{ it.unit || "" }}</div>
+                <div v-if="it.available === false" style="color:var(--clay);font-size:12px;margin-top:4px">已下架或庫存不足</div>
+              </td>
+              <td>{{ currency(it.price) }}</td>
+              <td>
+                <input type="number" min="1" :max="it.stock || 99" v-model.number="it.quantity" class="qty-input" @change="onQtyChange(it)">
+              </td>
+              <td><strong>{{ currency(it.subtotal) }}</strong></td>
+              <td><button class="user-btn ghost" :disabled="it._busy" style="color:var(--clay)" @click="removeItem(it)">移除</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="cart-summary">
+          <span>共 {{ cart.totalQuantity }} 件</span>
+          <strong>合計：{{ currency(cart.totalAmount) }}</strong>
+          <button class="user-btn ghost" style="color:var(--clay)" @click="clearCart">清空</button>
+          <a class="primary-button" href="checkout.html">前往結帳</a>
+        </div>
+      </template>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links">
+        <a href="index.html">首頁</a><a href="products.html">全部商品</a>
+      </div>
+    </footer>
+
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/cart.js"></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品管理｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="products">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">products</span>
+          <h2>商品管理</h2>
+          <p>上下架、修改、刪除你自己的商品。資料由 GET /api/farmer/products 載入。</p>
+        </div>
+        <a class="primary-button" href="farmer-product-form.html">+ 新增商品</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead>
+            <tr><th>商品</th><th>分類</th><th>價格</th><th>庫存</th><th>狀態</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="6" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="6" style="text-align:center;color:var(--muted)">還沒有商品。<a href="farmer-product-form.html" style="color:var(--leaf);margin-left:8px">+ 新增第一個</a></td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="6" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="p in products" :key="p.id">
+              <td><strong>{{ p.name }}</strong><div style="color:var(--muted);font-size:12px">{{ p.origin || "" }} {{ p.shippingMethod ? " ｜ " + p.shippingMethod : "" }}</div></td>
+              <td>{{ p.categoryName || "" }}</td>
+              <td>{{ currency(p.price) }} / {{ p.unit || "" }}</td>
+              <td>{{ p.stock }}</td>
+              <td><span class="status" :class="{ warning: p.status !== 'ACTIVE' }">{{ p.status }}</span></td>
+              <td>
+                <a class="user-btn ghost" :href="`farmer-product-form.html?id=${p.id}`">編輯</a>
+                <button class="user-btn ghost" @click="toggle(p)">{{ p.status === "ACTIVE" ? "下架" : "上架" }}</button>
+                <button class="user-btn ghost" style="color:var(--clay)" @click="remove(p)">刪除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        products: [],
+        loadState: "loading", // loading / empty / ready / error:訊息
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const list = await NongAuth.request("/api/farmer/products");
+          this.products = list || [];
+          this.loadState = this.products.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async toggle(p) {
+        try {
+          await NongAuth.request(`/api/farmer/products/${p.id}/toggle-status`, { method: "PATCH" });
+          this.showToast("狀態已切換");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      async remove(p) {
+        if (!confirm("確定刪除這個商品嗎？")) return;
+        try {
+          await NongAuth.request(`/api/farmer/products/${p.id}`, { method: "DELETE" });
+          this.showToast("已刪除");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "刪除失敗", true);
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

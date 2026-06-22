@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增 / 編輯商品｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="products">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">product form</span>
+          <h2>{{ isEdit ? "編輯商品" : "新增商品" }}</h2>
+          <p>請填寫商品資訊；按下儲存後會立即上架（除非你手動下架）。</p>
+        </div>
+        <a class="user-btn ghost" href="farmer-products.html">← 回列表</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <form @submit.prevent="submit">
+          <div class="form-grid">
+            <label class="field"><span>商品名稱</span><input type="text" maxlength="100" required v-model="form.name"></label>
+            <label class="field"><span>商品分類</span>
+              <select required v-model="form.categoryId">
+                <option value="">請選擇分類</option>
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+            </label>
+            <label class="field"><span>單價</span><input type="number" min="0.01" step="0.01" required v-model.number="form.price"></label>
+            <label class="field"><span>計價單位</span><input type="text" maxlength="20" placeholder="例：斤 / 箱 / 公斤" required v-model="form.unit"></label>
+            <label class="field"><span>庫存</span><input type="number" min="0" required v-model.number="form.stock"></label>
+            <label class="field"><span>產地</span><input type="text" maxlength="100" v-model="form.origin"></label>
+            <label class="field"><span>出貨方式</span><input type="text" maxlength="50" placeholder="冷藏宅配 / 常溫 ..." v-model="form.shippingMethod"></label>
+            <label class="field"><span>圖片網址</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.imageUrl"></label>
+          </div>
+          <label class="field"><span>商品描述（最多 2000 字）</span><textarea maxlength="2000" style="min-height:120px" v-model="form.description"></textarea></label>
+          <label class="field" style="flex-direction:row;align-items:center;gap:10px">
+            <input type="checkbox" v-model="form.groupBuyEnabled"> <span>允許消費者對此商品發起團購</span>
+          </label>
+          <div class="action-row" style="justify-content:flex-end">
+            <a class="user-btn ghost" href="farmer-products.html">取消</a>
+            <button class="primary-button" type="submit" :disabled="saving">{{ saving ? "儲存中…" : "儲存商品" }}</button>
+          </div>
+        </form>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        id: null,
+        isEdit: false,
+        categories: [],
+        form: { name: "", categoryId: "", price: null, unit: "", stock: null, origin: "", shippingMethod: "", imageUrl: "", description: "", groupBuyEnabled: false },
+        saving: false,
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.id = new URLSearchParams(location.search).get("id");
+      this.isEdit = !!this.id;
+      this.loadCategories();
+      if (this.isEdit) this.loadProduct();
+    },
+    methods: {
+      async loadCategories() {
+        try {
+          this.categories = await NongAuth.request("/api/public/categories");
+        } catch (e) {
+          this.showToast("分類載入失敗：" + e.message, true);
+        }
+      },
+      async loadProduct() {
+        try {
+          const p = await NongAuth.request(`/api/public/products/${this.id}`);
+          this.form = {
+            name: p.name || "",
+            categoryId: p.categoryId || "",
+            price: p.price,
+            unit: p.unit || "",
+            stock: p.stock,
+            origin: p.origin || "",
+            shippingMethod: p.shippingMethod || "",
+            imageUrl: p.imageUrl || "",
+            description: p.description || "",
+            groupBuyEnabled: !!p.groupBuyEnabled
+          };
+        } catch (e) {
+          this.showToast("商品載入失敗：" + e.message, true);
+        }
+      },
+      async submit() {
+        const payload = {
+          name: this.form.name.trim(),
+          description: this.form.description.trim() || null,
+          price: Number(this.form.price),
+          unit: this.form.unit.trim(),
+          stock: Number(this.form.stock),
+          origin: this.form.origin.trim() || null,
+          shippingMethod: this.form.shippingMethod.trim() || null,
+          imageUrl: this.form.imageUrl.trim() || null,
+          groupBuyEnabled: this.form.groupBuyEnabled,
+          categoryId: Number(this.form.categoryId) || null
+        };
+        this.saving = true;
+        try {
+          const url = this.isEdit ? `/api/farmer/products/${this.id}` : "/api/farmer/products";
+          const method = this.isEdit ? "PUT" : "POST";
+          await NongAuth.request(url, { method, body: JSON.stringify(payload) });
+          this.showToast("已儲存");
+          setTimeout(() => (location.href = "farmer-products.html"), 600);
+        } catch (err) {
+          this.showToast(err.message || "儲存失敗", true);
+          this.saving = false;
+        }
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

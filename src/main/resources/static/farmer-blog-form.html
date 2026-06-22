@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增 / 編輯文章｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="blogs">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">write</span>
+          <h2>{{ isEdit ? "編輯文章" : "新增文章" }}</h2>
+          <p>小農可以寫產地日記、食材料理、營養知識等所有分類，並把自家上架商品連結到文章。</p>
+        </div>
+        <a class="user-btn ghost" href="farmer-blogs.html">← 回我的文章</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <form @submit.prevent="submit">
+          <div class="form-grid">
+            <label class="field"><span>分類</span>
+              <select v-model="form.blogTypeId" required disabled style="background:#f7f4ec;cursor:not-allowed">
+                <option v-if="diary" :value="diary.id">🌾 {{ diary.name }}（小農限定）</option>
+              </select>
+            </label>
+            <label class="field"><span>標題（≤60 字）</span><input type="text" maxlength="60" required v-model="form.title"></label>
+            <label class="field" style="grid-column:1/-1"><span>封面圖網址</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.coverImageUrl"></label>
+          </div>
+          <label class="field"><span>內文</span><textarea maxlength="50000" required style="min-height:280px" v-model="form.content"></textarea></label>
+
+          <div class="field">
+            <span>文中介紹的商品（你自家上架的，最多 6 項；讀者可從文章內加入購物車）</span>
+            <div style="max-height:220px;overflow:auto;background:#f7f4ec;border-radius:8px;padding:10px 12px;font-size:14px">
+              <p v-if="pickerState === 'loading'" style="color:var(--muted);margin:4px 0">載入商品中…</p>
+              <p v-else-if="pickerState === 'error'" style="color:var(--muted)">商品載入失敗：{{ pickerError }}</p>
+              <p v-else-if="!products.length" style="color:var(--muted);margin:4px 0">尚無上架商品可介紹。</p>
+              <label v-else v-for="p in products" :key="p.id" style="display:flex;align-items:center;gap:10px;padding:4px 0;cursor:pointer">
+                <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleSelect(p.id, $event)">
+                <span>{{ p.name }} <small style="color:var(--muted)">NT$ {{ Number(p.price).toLocaleString("zh-TW") }} / {{ p.unit || "件" }}</small></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="action-row" style="justify-content:flex-end">
+            <a class="user-btn ghost" href="farmer-blogs.html">取消</a>
+            <button class="primary-button" type="submit" :disabled="saving">{{ saving ? "儲存中…" : "儲存" }}</button>
+          </div>
+        </form>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        id: null,
+        isEdit: false,
+        diary: null,
+        products: [],
+        pickerState: "loading", // loading / ready / error
+        pickerError: "",
+        selectedIds: [],
+        form: { blogTypeId: "", title: "", coverImageUrl: "", content: "" },
+        saving: false,
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      if (!NongAuth.getBackofficeUser()) return;
+      this.id = new URLSearchParams(location.search).get("id");
+      this.isEdit = !!this.id;
+      this.loadTypes();
+      this.loadProducts();
+      if (this.isEdit) this.loadBlog();
+    },
+    methods: {
+      async loadTypes() {
+        try {
+          const types = await NongAuth.request("/api/blogs/types");
+          const diary = (types || []).find((t) => t.name === "產地日記" || t.farmerOnly);
+          if (!diary) { this.showToast("找不到產地日記類別，請聯絡管理員", true); return; }
+          this.diary = diary;
+          this.form.blogTypeId = diary.id;
+        } catch (e) {
+          this.showToast("分類載入失敗：" + e.message, true);
+        }
+      },
+      async loadProducts() {
+        try {
+          const list = await NongAuth.request("/api/farmer/products");
+          this.products = (Array.isArray(list) ? list : []).filter((p) => p.status === "ACTIVE");
+          this.pickerState = "ready";
+        } catch (e) {
+          this.pickerState = "error";
+          this.pickerError = e.message;
+        }
+      },
+      async loadBlog() {
+        try {
+          const b = await NongAuth.request(`/api/blogs/${this.id}`);
+          this.form.blogTypeId = b.blogTypeId || this.form.blogTypeId;
+          this.form.title = b.title || "";
+          this.form.coverImageUrl = b.coverImageUrl || "";
+          this.form.content = b.content || "";
+          this.selectedIds = (b.featuredProducts || []).map((p) => p.id);
+        } catch (e) {
+          this.showToast("文章載入失敗：" + e.message, true);
+        }
+      },
+      toggleSelect(pid, e) {
+        if (e.target.checked) {
+          if (this.selectedIds.length >= 6) { e.target.checked = false; this.showToast("最多選 6 項", true); return; }
+          if (!this.selectedIds.includes(pid)) this.selectedIds.push(pid);
+        } else {
+          this.selectedIds = this.selectedIds.filter((x) => x !== pid);
+        }
+      },
+      async submit() {
+        const payload = {
+          blogTypeId: Number(this.form.blogTypeId) || null,
+          title: this.form.title.trim(),
+          content: this.form.content.trim(),
+          coverImageUrl: this.form.coverImageUrl.trim() || null,
+          productIds: [...this.selectedIds]
+        };
+        this.saving = true;
+        try {
+          const url = this.isEdit ? `/api/blogs/${this.id}` : "/api/blogs";
+          const method = this.isEdit ? "PUT" : "POST";
+          await NongAuth.request(url, { method, body: JSON.stringify(payload) });
+          this.showToast("已儲存");
+          setTimeout(() => (location.href = "farmer-blogs.html"), 600);
+        } catch (err) {
+          this.showToast(err.message || "儲存失敗", true);
+          this.saving = false;
+        }
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

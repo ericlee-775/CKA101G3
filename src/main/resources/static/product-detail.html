@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品詳情｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="products">
+  <div id="headerHost"></div>
+  <div id="app">
+    <main>
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <template v-else>
+        <section class="detail-layout">
+          <div class="detail-cover" :style="{ backgroundImage: `url('${coverImage}')` }" role="img" :aria-label="`${product.name} 商品圖片`"></div>
+          <div class="detail-info">
+            <span class="eyebrow">product</span>
+            <h1>{{ product.name }}</h1>
+            <div class="meta-row">
+              <span>小農：{{ product.farmerName || "" }}</span>
+              <span>分類：{{ product.categoryName || "" }}</span>
+              <span v-if="product.origin">產地：{{ product.origin }}</span>
+              <span v-if="product.shippingMethod">出貨：{{ product.shippingMethod }}</span>
+            </div>
+            <div class="price-big">{{ currency(product.price) }} <small style="font-size:14px;color:var(--muted)">/ {{ product.unit || "件" }}</small></div>
+            <div class="desc">{{ product.description || "" }}</div>
+            <div class="action-row">
+              <label class="field" style="margin:0">
+                <span>數量</span>
+                <input type="number" class="qty-input" v-model.number="qty" min="1" :max="product.stock || 99">
+              </label>
+              <button class="primary-button" :disabled="addBusy" @click="addToCart">{{ addBusy ? "加入中…" : "加入購物車" }}</button>
+              <button class="secondary-button" title="加入收藏" :disabled="wishBusy"
+                      :style="{ color: inWishlist ? 'var(--clay)' : '' }" @click="toggleWishlist">
+                <span>{{ inWishlist ? "♥" : "♡" }}</span> <span>{{ inWishlist ? "已收藏" : "收藏" }}</span>
+              </button>
+              <button v-if="product.groupBuyEnabled" class="secondary-button" @click="openGroupBuyModal">我要發起團購</button>
+              <span style="color:var(--muted);font-size:14px">剩餘庫存 {{ product.stock ?? "—" }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-body">
+          <div class="section-heading compact">
+            <span class="eyebrow">about the farmer</span>
+            <h2>關於小農</h2>
+          </div>
+          <p style="color:var(--muted);line-height:1.9">由 {{ product.farmerName || "小農" }} 上架，平台保留產銷履歷與檢驗欄位。如有問題可透過後台聯絡客服。</p>
+        </section>
+      </template>
+    </main>
+
+    <!-- 發起團購 modal -->
+    <div class="modal-backdrop" :class="{ 'is-open': modalOpen }" @click.self="closeModal">
+      <div class="modal-card">
+        <h2>發起團購</h2>
+        <p style="color:var(--muted);margin:4px 0 16px">設定目標數量、團購價與截止時間，送出後由小農審核。</p>
+        <form @submit.prevent="submitGroupBuy">
+          <div class="form-grid">
+            <label class="field"><span>目標數量（≥2）</span><input type="number" min="2" v-model.number="gb.target" required></label>
+            <label class="field"><span>團購價 / 單位</span><input type="number" min="1" step="0.01" v-model.number="gb.price" required></label>
+            <label class="field"><span>開團時間</span><input type="datetime-local" v-model="gb.open" required></label>
+            <label class="field"><span>截止時間</span><input type="datetime-local" v-model="gb.deadline" required></label>
+          </div>
+          <label class="field"><span>給小農的訊息（選填）</span><textarea v-model="gb.message" maxlength="500"></textarea></label>
+          <div class="modal-foot">
+            <button class="user-btn ghost" type="button" @click="closeModal">取消</button>
+            <button class="primary-button" type="submit">送出申請</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links">
+        <a href="products.html">逛商品</a><a href="group-buys.html">團購</a>
+      </div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/product-detail.js"></script>
+</body>
+</html>

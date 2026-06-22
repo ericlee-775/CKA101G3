@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我發起的團購｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+  <div id="app">
+    <section class="page-header">
+      <span class="eyebrow">my group buy requests</span>
+      <h1>我發起的團購申請</h1>
+      <p>由你向小農發起、等待審核或已成立的團購記錄。</p>
+    </section>
+    <main class="detail-body">
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState === 'empty'" class="empty-state">還沒發起過團購。<a class="primary-button" href="products.html" style="margin-left:8px">去找商品發起</a></div>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <table v-else class="cart-table">
+        <thead><tr><th>商品</th><th>目標數量</th><th>團購價</th><th>截止</th><th>狀態</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="(r, i) in requests" :key="i">
+            <td><strong>{{ r.productName || "" }}</strong></td>
+            <td>{{ r.targetQuantity || "—" }}</td>
+            <td>{{ currency(r.groupPrice) }}</td>
+            <td>{{ fmt(r.deadlineDate) }}</td>
+            <td><span class="status-tag" :class="tagCls(r.status)">{{ r.status || "" }}</span></td>
+            <td><a v-if="r.groupBuyId" class="user-btn ghost" :href="`group-buy-detail.html?id=${r.groupBuyId}`">看團購</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="group-buys.html">看公開團購</a><a href="products.html">逛商品</a></div>
+    </footer>
+  </div>
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script><script src="js/header.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return { requests: [], loadState: "loading" };
+    },
+    mounted() {
+      if (!NongAuth.getConsumerUser()) { location.href = "login.html?reason=auth"; return; }
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        try {
+          const page = await NongAuth.request("/api/group-buys/requests/mine?size=30");
+          this.requests = page.content || [];
+          this.loadState = this.requests.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      tagCls(s) {
+        if (s === "APPROVED" || s === "ACCEPTED") return "success";
+        if (s === "REJECTED" || s === "WITHDRAWN") return "danger";
+        return "warning";
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`;
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

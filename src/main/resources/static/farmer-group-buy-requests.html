@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>團購審核｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="gb-requests">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">group buy requests</span>
+          <h2>團購審核</h2>
+          <p>消費者向你提出的團購申請。通過後會立刻開放給其他人加入。</p>
+        </div>
+        <div class="action-row">
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === '' }" @click="setFilter('')">全部</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'PENDING' }" @click="setFilter('PENDING')">待審核</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'APPROVED' }" @click="setFilter('APPROVED')">已通過</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'REJECTED' }" @click="setFilter('REJECTED')">已退回</button>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>商品</th><th>團主</th><th>目標數量</th><th>團購價</th><th>截止</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">沒有符合的請求。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="r in requests" :key="r.id">
+              <td><strong>{{ r.productName || "" }}</strong></td>
+              <td>{{ r.hostName || "" }}</td>
+              <td>{{ r.targetQuantity || "—" }}</td>
+              <td>{{ currency(r.groupPrice) }} <small style="color:var(--muted)">/ 原價 {{ currency(r.productPrice) }}</small></td>
+              <td>{{ fmt(r.deadlineDate) }}</td>
+              <td><span class="status" :class="{ warning: r.status !== 'APPROVED' }">{{ r.status }}</span></td>
+              <td>
+                <template v-if="r.status === 'PENDING'">
+                  <button class="user-btn primary" style="background:var(--leaf);color:#fff;border-color:var(--leaf)" @click="review(r, true)">通過</button>
+                  <button class="user-btn ghost" style="color:var(--clay)" @click="review(r, false)">退回</button>
+                </template>
+                <a v-if="r.groupBuyId" class="user-btn ghost" :href="`group-buy-detail.html?id=${r.groupBuyId}`">看團</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        requests: [],
+        currentFilter: "",
+        loadState: "loading",
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      setFilter(f) {
+        this.currentFilter = f;
+        this.reload();
+      },
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const url = "/api/farmer/group-buy-requests?size=30" + (this.currentFilter ? `&status=${this.currentFilter}` : "");
+          const page = await NongAuth.request(url);
+          this.requests = page.content || [];
+          this.loadState = this.requests.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async review(r, approved) {
+        const rejectReason = approved ? null : (prompt("退回原因？") || "規格不符");
+        try {
+          await NongAuth.request(`/api/farmer/group-buy-requests/${r.id}/review`, {
+            method: "POST", body: JSON.stringify({ approved, rejectReason })
+          });
+          this.showToast(approved ? "已通過並開團" : "已退回");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "送出失敗", true);
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

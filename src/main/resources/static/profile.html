@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會員中心｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+  <div id="app">
+    <section class="page-header">
+      <span class="eyebrow">profile</span>
+      <h1>會員中心</h1>
+      <p>查看與編輯你的帳號資訊，或修改登入密碼。(Phase A 僅開放會員;小農 / 管理員 Phase B 補)</p>
+    </section>
+    <main class="detail-body">
+      <div class="detail-layout">
+        <section class="panel-card">
+          <h3>帳號資訊</h3>
+          <div>
+            <table class="cart-table" style="margin:0">
+              <tbody>
+                <tr><th>姓名</th><td>{{ user.name || "" }}</td></tr>
+                <tr><th>Email</th><td>{{ user.email || "" }}</td></tr>
+                <tr><th>身份</th><td><span class="status-tag success">{{ typeLabel }}</span></td></tr>
+                <tr><th>帳號 ID</th><td>{{ String(user.accountId || "") }}</td></tr>
+              </tbody>
+            </table>
+            <p v-if="!isMember" style="color:var(--muted);font-size:13px;margin-top:14px">小農 / 管理員的資料編輯功能將於 Phase B 開放。</p>
+          </div>
+        </section>
+
+        <section class="panel-card" v-if="isMember">
+          <h3>編輯資料</h3>
+          <p style="color:var(--muted);font-size:13px;margin-top:-8px">Email 為帳號識別不可修改;可變更姓名、暱稱、電話與地址。</p>
+          <div class="auth-error" :class="{ 'is-visible': !!profileMsg.error }">{{ profileMsg.error }}</div>
+          <div class="auth-error" :class="{ 'is-visible': !!profileMsg.ok }" style="background:#e6f4ea;color:#1e7a3a;border-color:#bfe3cb">{{ profileMsg.ok }}</div>
+          <form novalidate @submit.prevent="saveProfile">
+            <label class="field"><span>Email(不可修改)</span><input type="email" :value="user.email || ''" disabled></label>
+            <label class="field"><span>姓名</span><input type="text" maxlength="50" required v-model="profileForm.name"></label>
+            <label class="field"><span>暱稱(選填)</span><input type="text" maxlength="50" v-model="profileForm.nickname"></label>
+            <label class="field"><span>電話(選填)</span><input type="tel" maxlength="20" v-model="profileForm.phone"></label>
+            <label class="field"><span>地址(選填)</span><input type="text" maxlength="100" v-model="profileForm.address"></label>
+            <button class="primary-button" type="submit" :disabled="profileBusy">{{ profileBusy ? "儲存中…" : "儲存變更" }}</button>
+          </form>
+        </section>
+
+        <section class="panel-card" v-if="isMember">
+          <h3>修改密碼</h3>
+          <p style="color:var(--muted);font-size:13px;margin-top:-8px">新密碼長度 6~64 字元,與舊密碼不可相同。</p>
+          <div class="auth-error" :class="{ 'is-visible': !!pwMsg.error }">{{ pwMsg.error }}</div>
+          <div class="auth-error" :class="{ 'is-visible': !!pwMsg.ok }" style="background:#e6f4ea;color:#1e7a3a;border-color:#bfe3cb">{{ pwMsg.ok }}</div>
+          <form novalidate @submit.prevent="changePassword">
+            <label class="field"><span>舊密碼</span><input type="password" required autocomplete="current-password" v-model="pwForm.oldPassword"></label>
+            <label class="field"><span>新密碼</span><input type="password" required minlength="6" maxlength="64" autocomplete="new-password" v-model="pwForm.newPassword"></label>
+            <label class="field"><span>再次輸入新密碼</span><input type="password" required minlength="6" maxlength="64" autocomplete="new-password" v-model="pwForm.newPasswordConfirm"></label>
+            <button class="primary-button" type="submit" :disabled="pwBusy">{{ pwBusy ? "變更中…" : "變更密碼" }}</button>
+          </form>
+        </section>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="index.html">回首頁</a></div>
+    </footer>
+  </div>
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script><script src="js/header.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        user: {},
+        profileForm: { name: "", nickname: "", phone: "", address: "" },
+        pwForm: { oldPassword: "", newPassword: "", newPasswordConfirm: "" },
+        profileMsg: { error: "", ok: "" },
+        pwMsg: { error: "", ok: "" },
+        profileBusy: false,
+        pwBusy: false
+      };
+    },
+    computed: {
+      typeLabel() {
+        return this.user.type === "FARMER" ? "小農" : this.user.type === "ADMIN" ? "管理員" : "會員";
+      },
+      isMember() {
+        return this.user.type === "MEMBER";
+      }
+    },
+    mounted() {
+      const user = NongAuth.getActiveUser();
+      if (!user) { location.href = "login.html?reason=auth"; return; }
+      this.user = user;
+      this.profileForm.name = user.name || "";
+      // 註：nong_user 沒存 nickname/phone/address（AuthResponse 沒帶），Phase B 加 /api/account/me 後才有完整資料。
+    },
+    methods: {
+      async saveProfile() {
+        this.profileMsg = { error: "", ok: "" };
+        const payload = {
+          name: this.profileForm.name.trim(),
+          nickname: this.profileForm.nickname.trim() || null,
+          phone: this.profileForm.phone.trim() || null,
+          address: this.profileForm.address.trim() || null
+        };
+        if (!payload.name) { this.profileMsg.error = "姓名不可為空"; return; }
+        this.profileBusy = true;
+        try {
+          const resp = await NongAuth.request("/api/account/profile", { method: "PUT", body: JSON.stringify(payload) });
+          NongAuth.saveSession(resp);
+          this.user = resp;
+          if (NongHeader.renderUserZone) NongHeader.renderUserZone();
+          this.profileMsg.ok = "資料已更新";
+        } catch (err) {
+          this.profileMsg.error = err.message || "更新失敗";
+        } finally {
+          this.profileBusy = false;
+        }
+      },
+      async changePassword() {
+        this.pwMsg = { error: "", ok: "" };
+        const { oldPassword: oldPw, newPassword: newPw, newPasswordConfirm: newPw2 } = this.pwForm;
+        if (!oldPw || !newPw) { this.pwMsg.error = "請完整填寫"; return; }
+        if (newPw.length < 6 || newPw.length > 64) { this.pwMsg.error = "新密碼長度需 6~64 字元"; return; }
+        if (newPw !== newPw2) { this.pwMsg.error = "兩次輸入的新密碼不一致"; return; }
+        if (oldPw === newPw) { this.pwMsg.error = "新密碼不可與舊密碼相同"; return; }
+        this.pwBusy = true;
+        try {
+          await NongAuth.request("/api/account/password", { method: "PUT", body: JSON.stringify({ oldPassword: oldPw, newPassword: newPw }) });
+          this.pwForm = { oldPassword: "", newPassword: "", newPasswordConfirm: "" };
+          this.pwMsg.ok = "密碼已變更,3 秒後自動登出,請以新密碼重新登入";
+          setTimeout(() => { NongAuth.logoutAll(); location.href = "login.html?reason=logout"; }, 3000);
+        } catch (err) {
+          this.pwMsg.error = err.message || "變更失敗";
+        } finally {
+          this.pwBusy = false;
+        }
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

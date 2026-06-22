@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>體驗活動｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="farm-trips">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">my farm trips</span>
+          <h2>我的體驗活動</h2>
+          <p>建立活動後送平台審核，通過後可在「管理場次」新增報名場次。</p>
+        </div>
+        <a class="primary-button" href="farmer-farm-trip-form.html">+ 新增活動</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>活動</th><th>類別</th><th>計價</th><th>單價</th><th>容量/場</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">還沒有活動。<a href="farmer-farm-trip-form.html" style="color:var(--leaf);margin-left:8px">+ 新增第一個</a></td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="t in trips" :key="t.id">
+              <td><strong>{{ t.title }}</strong><div style="color:var(--muted);font-size:12px">{{ t.location || "" }}</div></td>
+              <td>{{ typeLabels[t.tripType] || t.tripType }}</td>
+              <td>{{ pricingLabels[t.pricingMode] || "" }}</td>
+              <td>{{ currency(t.price) }}</td>
+              <td>{{ t.pricingMode === "PER_WEIGHT" ? "無上限" : (t.capacityPerSession ?? "—") }}</td>
+              <td><span class="status" :class="t.status === 'ACTIVE' ? '' : (t.status === 'REJECTED' ? 'warning' : 'muted')">{{ statusLabels[t.status] || t.status }}</span></td>
+              <td>
+                <a class="user-btn ghost" :href="`farmer-farm-trip-form.html?id=${t.id}`">編輯</a>
+                <a v-if="t.status === 'ACTIVE'" class="user-btn ghost" :href="`farmer-farm-trip-sessions.html?id=${t.id}`">管理場次</a>
+                <a class="user-btn ghost" :href="`farm-trip-detail.html?id=${t.id}`">預覽</a>
+                <button v-if="t.status === 'ACTIVE'" class="user-btn ghost" style="color:var(--clay)" @click="close(t)">下架</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        trips: [],
+        loadState: "loading",
+        typeLabels: { FARM_EXPERIENCE: "農場體驗", FIELD_VISIT: "產地參訪" },
+        pricingLabels: { PER_PERSON: "每人", PER_WEIGHT: "每公斤" },
+        statusLabels: { PENDING: "審核中", REJECTED: "未通過", ACTIVE: "上架中", CLOSED: "已下架" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/farmer/farm-trips?size=30");
+          this.trips = page.content || [];
+          this.loadState = this.trips.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async close(t) {
+        if (!confirm("確定要下架這個活動嗎？相關 ACTIVE 場次將自動取消。")) return;
+        try {
+          await NongAuth.request(`/api/farmer/farm-trips/${t.id}/close`, { method: "POST" });
+          this.showToast("已下架");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

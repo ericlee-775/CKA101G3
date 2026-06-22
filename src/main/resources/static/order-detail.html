@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訂單詳情｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+
+  <div id="app">
+    <main class="detail-body">
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <template v-else>
+        <section class="page-header" style="text-align:left;padding:24px 0 16px">
+          <span class="eyebrow">order #{{ order.orderNo }}</span>
+          <h1 style="margin:6px 0">訂單詳情 <span class="status-tag" :class="status.cls" style="vertical-align:middle">{{ status.text }}</span></h1>
+          <p style="margin:0">{{ fmt(order.createdAt) }} 建立 ｜ 小農 {{ order.farmerName || "" }} ｜ 付款 {{ payLabel }}</p>
+        </section>
+
+        <table class="cart-table">
+          <thead><tr><th>商品</th><th>單價</th><th>數量</th><th>小計</th></tr></thead>
+          <tbody>
+            <tr v-for="(it, i) in (order.items || [])" :key="i">
+              <td>
+                <div style="font-weight:600">{{ it.productName }}</div>
+                <div style="color:var(--muted);font-size:12px">{{ it.unit || "" }}</div>
+              </td>
+              <td>{{ currency(it.unitPrice) }}</td>
+              <td>{{ it.quantity }}</td>
+              <td><strong>{{ currency(it.subtotal) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="cart-summary"><strong>合計：{{ currency(order.totalAmount) }}</strong></div>
+
+        <div class="detail-layout" style="margin-top:24px">
+          <section>
+            <div class="section-heading compact"><span class="eyebrow">recipient</span><h2>收件資訊</h2></div>
+            <p style="line-height:1.9;color:#3a463b">
+              {{ order.recipientName || "" }}<br>
+              {{ order.recipientPhone || "" }}<br>
+              {{ order.shippingAddress || "" }}
+              <template v-if="order.note"><br>備註：{{ order.note }}</template>
+            </p>
+          </section>
+          <section>
+            <div class="section-heading compact"><span class="eyebrow">actions</span><h2>可執行的動作</h2></div>
+            <div class="action-row">
+              <template v-if="order.status === 'PENDING_PAYMENT'">
+                <button class="primary-button" :disabled="actionBusy" @click="doAction('pay')">立即付款（模擬）</button>
+                <button class="user-btn ghost" :disabled="actionBusy" style="color:var(--clay)" @click="doAction('cancel')">取消訂單</button>
+              </template>
+              <button v-else-if="order.status === 'PAID' || order.status === 'SHIPPED'" class="primary-button" :disabled="actionBusy" @click="doAction('confirm')">確認收貨</button>
+              <span v-else-if="order.status === 'COMPLETED'" style="color:var(--muted)">訂單已完成</span>
+              <span v-else-if="order.status === 'CANCELLED'" style="color:var(--muted)">訂單已取消</span>
+            </div>
+            <p v-if="order.paidAt" style="margin-top:14px;color:var(--muted);font-size:13px">付款時間：{{ fmt(order.paidAt) }}</p>
+          </section>
+        </div>
+      </template>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="orders.html">回我的訂單</a><a href="products.html">繼續逛商品</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/order-detail.js"></script>
+</body>
+</html>
