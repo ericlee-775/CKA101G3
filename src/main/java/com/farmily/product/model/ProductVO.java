@@ -2,9 +2,12 @@ package com.farmily.product.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -16,8 +19,9 @@ public class ProductVO {
 	@Column(name="product_id")
 	private Integer productId;
 	
-	@Column(name="sub_cat_class_id")
-	private Integer subCatClassId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="sub_cat_class_id",referencedColumnName = "sub_cat_class_id")
+	private SubCategoryVO subCategoryVO;
 	
 	@Column(name="farmer_id")
 	private Integer farmerId;
@@ -45,6 +49,9 @@ public class ProductVO {
 	
 	@Column(name="product_name")
 	private String productName;
+	
+	
+	
 
 	public Integer getProductId() {
 		return productId;
@@ -53,13 +60,13 @@ public class ProductVO {
 	public void setProductId(Integer productId) {
 		this.productId = productId;
 	}
-
-	public Integer getSubCatClassId() {
-		return subCatClassId;
+	
+	public SubCategoryVO getSubCategoryVO() {
+		return subCategoryVO;
 	}
 
-	public void setSubCatClassId(Integer subCatClassId) {
-		this.subCatClassId = subCatClassId;
+	public void setSubCategoryVO(SubCategoryVO subCategoryVO) {
+		this.subCategoryVO = subCategoryVO;
 	}
 
 	public Integer getFarmerId() {
