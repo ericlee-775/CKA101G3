@@ -17,8 +17,11 @@ const NongAuth = (function () {
   const BACKOFFICE_USER_KEY  = "nong_backoffice_user";
 
   async function request(path, options = {}) {
+    // body 是 FormData(檔案上傳)時不可自己設 Content-Type，
+    // 必須讓瀏覽器自動帶上含 boundary 的 multipart/form-data
+    const isFormData = (typeof FormData !== "undefined") && (options.body instanceof FormData);
     const headers = Object.assign(
-      { "Content-Type": "application/json" },
+      isFormData ? {} : { "Content-Type": "application/json" },
       options.headers || {}
     );
     const token = getActiveToken();

@@ -16,17 +16,16 @@
       <template v-else>
         <article class="detail-body">
           <span class="eyebrow">{{ blog.blogTypeName || "" }}</span>
-          <h1 style="margin:6px 0 14px;font-size:clamp(28px,4vw,44px);line-height:1.2">{{ blog.title }}</h1>
+          <h1 style="margin:6px 0 14px;font-size:clamp(28px,4vw,44px);line-height:1.2">{{ blog.blogTitle }}</h1>
           <div class="meta-row" style="color:var(--muted);font-size:13px;margin-bottom:18px">
-            <span>作者：{{ blog.authorName || "" }}</span>
-            <span>👁 {{ blog.viewCount || 0 }}</span>
-            <span>♡ {{ blog.likeCount || 0 }}</span>
-            <span>💬 {{ blog.commentCount || 0 }}</span>
-            <span>{{ fmt(blog.createdAt) }}</span>
+            <span>♡ {{ blog.blogLikeCount || 0 }}</span>
+            <span>{{ fmt(blog.blogTime) }}</span>
           </div>
-          <div v-if="blog.coverImageUrl && blog.coverImageUrl.trim()" class="detail-cover"
-               :style="{ backgroundImage: `url('${blog.coverImageUrl}')`, minHeight: '300px', marginBottom: '22px' }"></div>
-          <div style="white-space:pre-wrap;line-height:2;color:#3a463b;font-size:16px">{{ blog.content || "" }}</div>
+          <img v-if="blog.blogId" :src="`/api/blogs/${blog.blogId}/image`" alt="封面"
+               class="detail-cover" style="width:100%;max-height:420px;object-fit:cover;border-radius:14px;margin-bottom:22px"
+               @error="$event.target.style.display='none'">
+
+          <div style="white-space:pre-wrap;line-height:2;color:#3a463b;font-size:16px">{{ blog.blogContent || "" }}</div>
 
           <section v-if="(blog.featuredProducts || []).length" style="margin-top:28px;background:#f7f4ec;border-radius:14px;padding:22px">
             <div class="section-heading compact" style="margin-bottom:14px">
@@ -47,7 +46,7 @@
           </section>
 
           <div class="action-row" style="margin-top:24px">
-            <button class="secondary-button" @click="like">♡ 按讚 ({{ blog.likeCount || 0 }})</button>
+            <button class="secondary-button" @click="like">♡ 按讚 ({{ blog.blogLikeCount || 0 }})</button>
             <button class="user-btn ghost" style="color:var(--clay)" @click="report">檢舉</button>
           </div>
         </article>

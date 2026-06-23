@@ -8,8 +8,7 @@ public class BlogTypeResponse {
     private String blogTypeText;
     private byte[] blogTypeImg;
     private Integer sortOrder;
-    /** 是否僅限小農可發表（前端按 type 篩 dropdown） */
-    private Boolean farmerOnly;
+
 
     public Integer getBlogTypeId() {
         return blogTypeId;
@@ -51,13 +50,7 @@ public class BlogTypeResponse {
         this.sortOrder = sortOrder;
     }
 
-    public Boolean getFarmerOnly() {
-        return farmerOnly;
-    }
 
-    public void setFarmerOnly(Boolean farmerOnly) {
-        this.farmerOnly = farmerOnly;
-    }
 
     public static BlogTypeResponse from(BlogType t) { //轉型
         BlogTypeResponse r = new BlogTypeResponse();

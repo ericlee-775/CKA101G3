@@ -7,7 +7,10 @@ import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.rowmapper.BlogRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -109,29 +112,55 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Integer createBlog(BlogRequest blogRequest) {
-        String sql = "INSERT INTO blog (blog_title, user_id,farmer_id, blog_type_id, blog_content, blog_img) VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, :blogContent, :blogImg)";
+        String sql = "INSERT INTO blog (blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img," +
+                " blog_like_count, blog_time, blog_status) " +
+                "VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, :productId, " +
+                ":blogContent, :blogImg, 0, NOW(), 'VISIBLE')";
 
         Map<String, Object> map = new HashMap<>();
         map.put("blogTitle", blogRequest.getBlogTitle());
         map.put("userId", blogRequest.getUserId());
         map.put("farmerId", blogRequest.getFarmerId());
         map.put("blogTypeId", blogRequest.getBlogTypeId());
+        map.put("productId", blogRequest.getProductId());
         map.put("blogContent", blogRequest.getBlogContent());
         map.put("blogImg", blogRequest.getBlogImg());
 
+        KeyHolder keyHolder = new GeneratedKeyHolder();
 
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource(map), keyHolder);
+        int blogId = keyHolder.getKey().intValue();
 
-        int result = namedParameterJdbcTemplate.update(sql, map);
-        return 0;
+        return blogId;
     }
 
     @Override
     public void updateBlog(Integer blogId, BlogRequest blogRequest) {
+        String sql = "UPDATE blog SET blog_title = :blogTitle, user_id = :userId, farmer_id = :farmerId," +
+                " blog_type_id = :blogTypeId, product_id = :productId, blog_content = :blogContent, blog_img = :blogImg " +
+                "WHERE blog_id = :blogId";
 
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+
+        map.put("blogTitle", blogRequest.getBlogTitle());
+        map.put("userId", blogRequest.getUserId());
+        map.put("farmerId", blogRequest.getFarmerId());
+        map.put("blogTypeId", blogRequest.getBlogTypeId());
+        map.put("productId", blogRequest.getProductId());
+        map.put("blogContent", blogRequest.getBlogContent());
+        map.put("blogImg", blogRequest.getBlogImg());
+
+        namedParameterJdbcTemplate.update(sql, map);
     }
 
     @Override
     public void deleteBlog(Integer blogId) {
+        String sql = "DELETE FROM blog WHERE blog_id = :blogId";
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
 
     }
 

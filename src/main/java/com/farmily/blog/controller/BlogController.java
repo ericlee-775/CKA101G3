@@ -6,20 +6,26 @@ import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URLConnection;
 import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api")   // class 層級前綴：底下的 /blogs 實際路徑就是 /api/blogs
+@RequestMapping("/api")
 public class BlogController {
 
     @Autowired
@@ -78,8 +84,8 @@ public class BlogController {
 
     /* ===== 寫作(會員) ===== */
 
-    @PostMapping("/blogs/")
-    public ResponseEntity<Blog> createBlog(@RequestParam @Valid BlogRequest blogRequest) {
+    @PostMapping(value = "/blogs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Blog> createBlog(@ModelAttribute @Valid BlogRequest blogRequest) {
 
        Integer BlogId = blogService.createBlog(blogRequest);
 
@@ -90,13 +96,17 @@ public class BlogController {
 
     }
 
-    @PutMapping("/blogs/{blogId}")
-    public ResponseEntity<Blog> updateBlog(@PathVariable @RequestParam Integer blogId, @RequestParam @Valid BlogRequest blogRequest) {
+    @PutMapping(value ="/blogs/{blogId}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Blog> updateBlog(@PathVariable Integer blogId, @ModelAttribute @Valid BlogRequest blogRequest) {
        Blog blog = blogService.getBlogById(blogId);
 
        if(blog == null) {
            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
        }
+        // 前端沒選新檔 → blogImg 會是 null → 沿用 DB 裡的舊圖
+        if(blogRequest.getBlogImg() == null) {
+            blogRequest.setBlogImg(blog.getBlogImg());
+        }
 
        blogService.updateBlog(blogId, blogRequest);
 
@@ -114,6 +124,25 @@ public class BlogController {
 
 
     }
+    //讀取圖片
+    @GetMapping("/blogs/{blogId}/image")
+    public void getHandleImg(HttpServletResponse res, @PathVariable Integer blogId) throws IOException {
+
+        Blog blog = blogService.getBlogById(blogId);
+        ServletOutputStream out= res.getOutputStream();
+
+        if(blog != null && blog.getBlogImg() != null && blog.getBlogImg().length > 0) {
+           byte[] img = blog.getBlogImg();
+            // 自動判斷是 jpg/png/gif，判不出就當 jpeg
+            String type = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(img));
+            res.setContentType(type != null ? type : MediaType.IMAGE_JPEG_VALUE);
+            out.write(img);
+        } else {
+            res.setStatus(HttpStatus.NOT_FOUND.value()); //沒圖 404 前端@error 會自動隱藏
+        }
+
+    }
+
 
 
 

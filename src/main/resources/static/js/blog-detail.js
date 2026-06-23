@@ -30,16 +30,20 @@ createApp({
   },
   methods: {
     async reload() {
+      // 文章本體是必要的；抓不到才算載入失敗
       try {
-        const [b, comments] = await Promise.all([
-          NongAuth.request(`/api/blogs/${this.blogId}`),
-          NongAuth.request(`/api/blogs/${this.blogId}/comments?size=50`)
-        ]);
-        this.blog = b;
-        this.comments = comments.content || [];
+        this.blog = await NongAuth.request(`/api/blogs/${this.blogId}`);
         this.loadState = "ready";
       } catch (e) {
         this.loadState = "error:文章載入失敗：" + e.message;
+        return;
+      }
+      // 留言是選用功能：後端還沒做這個端點時，靜默略過，不要讓整頁掛掉
+      try {
+        const comments = await NongAuth.request(`/api/blogs/${this.blogId}/comments?size=50`);
+        this.comments = comments.content || [];
+      } catch (e) {
+        this.comments = [];
       }
     },
     async addFeaturedToCart(p) {

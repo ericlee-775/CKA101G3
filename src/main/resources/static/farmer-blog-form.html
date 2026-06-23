@@ -29,21 +29,33 @@
                 <option v-if="diary" :value="diary.id">🌾 {{ diary.name }}（小農限定）</option>
               </select>
             </label>
-            <label class="field"><span>標題（≤60 字）</span><input type="text" maxlength="60" required v-model="form.title"></label>
-            <label class="field" style="grid-column:1/-1"><span>封面圖網址</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.coverImageUrl"></label>
+            <label class="field"><span>標題（≤60 字）</span><input type="text" maxlength="60" required v-model="form.blogTitle"></label>
+            <label class="field" style="grid-column:1/-1">
+              <span>封面圖（{{ isEdit ? "不選檔案則沿用原圖" : "選填" }}）</span>
+              <input type="file" accept="image/*" @change="onPickImage($event)">
+            </label>
+            <div v-if="imagePreview" style="grid-column:1/-1">
+              <img :src="imagePreview" alt="封面預覽" style="max-height:200px;border-radius:8px;display:block">
+            </div>
           </div>
-          <label class="field"><span>內文</span><textarea maxlength="50000" required style="min-height:280px" v-model="form.content"></textarea></label>
+          <label class="field"><span>內文</span><textarea maxlength="50000" required style="min-height:280px" v-model="form.blogContent"></textarea></label>
 
           <div class="field">
-            <span>文中介紹的商品（你自家上架的，最多 6 項；讀者可從文章內加入購物車）</span>
+            <span>文中介紹的商品（你自家上架的，選填一項；讀者可從文章內加入購物車）</span>
             <div style="max-height:220px;overflow:auto;background:#f7f4ec;border-radius:8px;padding:10px 12px;font-size:14px">
               <p v-if="pickerState === 'loading'" style="color:var(--muted);margin:4px 0">載入商品中…</p>
               <p v-else-if="pickerState === 'error'" style="color:var(--muted)">商品載入失敗：{{ pickerError }}</p>
               <p v-else-if="!products.length" style="color:var(--muted);margin:4px 0">尚無上架商品可介紹。</p>
-              <label v-else v-for="p in products" :key="p.id" style="display:flex;align-items:center;gap:10px;padding:4px 0;cursor:pointer">
-                <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleSelect(p.id, $event)">
-                <span>{{ p.name }} <small style="color:var(--muted)">NT$ {{ Number(p.price).toLocaleString("zh-TW") }} / {{ p.unit || "件" }}</small></span>
-              </label>
+              <template v-else>
+                <label style="display:flex;align-items:center;gap:10px;padding:4px 0;cursor:pointer">
+                  <input type="radio" name="productId" :value="null" v-model="form.productId">
+                  <span style="color:var(--muted)">不介紹商品</span>
+                </label>
+                <label v-for="p in products" :key="p.id" style="display:flex;align-items:center;gap:10px;padding:4px 0;cursor:pointer">
+                  <input type="radio" name="productId" :value="p.id" v-model="form.productId">
+                  <span>{{ p.name }} <small style="color:var(--muted)">NT$ {{ Number(p.price).toLocaleString("zh-TW") }} / {{ p.unit || "件" }}</small></span>
+                </label>
+              </template>
             </div>
           </div>
 
@@ -72,8 +84,9 @@
         products: [],
         pickerState: "loading", // loading / ready / error
         pickerError: "",
-        selectedIds: [],
-        form: { blogTypeId: "", title: "", coverImageUrl: "", content: "" },
+        form: { blogTypeId: "", blogTitle: "", blogContent: "", productId: null },
+        imageFile: null,      // 使用者新選的圖檔(File)，沒選就是 null
+        imagePreview: "",     // 預覽用 URL(新選檔的 objectURL 或既有圖端點)
         saving: false,
         toast: { msg: "", error: false, visible: false },
         toastTimer: null
@@ -113,35 +126,40 @@
         try {
           const b = await NongAuth.request(`/api/blogs/${this.id}`);
           this.form.blogTypeId = b.blogTypeId || this.form.blogTypeId;
-          this.form.title = b.title || "";
-          this.form.coverImageUrl = b.coverImageUrl || "";
-          this.form.content = b.content || "";
-          this.selectedIds = (b.featuredProducts || []).map((p) => p.id);
+          this.form.blogTitle = b.blogTitle || "";
+          this.form.blogContent = b.blogContent || "";
+          this.form.productId = b.productId != null ? b.productId : null;
+          // 既有封面圖：直接指到圖片端點當預覽(加時間戳避免快取)
+          this.imagePreview = `/api/blogs/${this.id}/image?t=${Date.now()}`;
         } catch (e) {
           this.showToast("文章載入失敗：" + e.message, true);
         }
       },
-      toggleSelect(pid, e) {
-        if (e.target.checked) {
-          if (this.selectedIds.length >= 6) { e.target.checked = false; this.showToast("最多選 6 項", true); return; }
-          if (!this.selectedIds.includes(pid)) this.selectedIds.push(pid);
-        } else {
-          this.selectedIds = this.selectedIds.filter((x) => x !== pid);
+      onPickImage(e) {
+        const file = (e.target.files && e.target.files[0]) || null;
+        this.imageFile = file;
+        if (file) {
+          this.imagePreview = URL.createObjectURL(file);
         }
       },
       async submit() {
-        const payload = {
-          blogTypeId: Number(this.form.blogTypeId) || null,
-          title: this.form.title.trim(),
-          content: this.form.content.trim(),
-          coverImageUrl: this.form.coverImageUrl.trim() || null,
-          productIds: [...this.selectedIds]
-        };
+        const farmer = NongAuth.getBackofficeUser();
+        if (!farmer) { this.showToast("請先登入", true); return; }
+
+        const fd = new FormData();
+        fd.append("blogTitle", this.form.blogTitle.trim());
+        fd.append("blogTypeId", Number(this.form.blogTypeId));
+        fd.append("blogContent", this.form.blogContent.trim());
+        fd.append("farmerId", farmer.accountId);
+        if (this.form.productId != null) fd.append("productId", this.form.productId);
+        // 只有使用者這次有選新檔才送 blogImg；編輯時不送＝後端沿用原圖
+        if (this.imageFile) fd.append("blogImg", this.imageFile);
+
         this.saving = true;
         try {
           const url = this.isEdit ? `/api/blogs/${this.id}` : "/api/blogs";
           const method = this.isEdit ? "PUT" : "POST";
-          await NongAuth.request(url, { method, body: JSON.stringify(payload) });
+          await NongAuth.request(url, { method, body: fd });
           this.showToast("已儲存");
           setTimeout(() => (location.href = "farmer-blogs.html"), 600);
         } catch (err) {

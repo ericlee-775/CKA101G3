@@ -1,6 +1,7 @@
 package com.farmily.blog.model;
 
 import com.farmily.blog.contstant.BlogStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.sql.Timestamp;
@@ -108,6 +109,8 @@ public class Blog implements java.io.Serializable {
 		this.blogContent = blogContent;
 	}
 
+	//不要讓圖片序列化
+	@JsonIgnore
 	public byte[] getBlogImg() {
 		return blogImg;
 	}
