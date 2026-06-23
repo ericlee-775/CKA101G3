@@ -2,7 +2,7 @@ package com.farmily.groupbuy.model;
 
 import java.sql.Timestamp;
 
-
+import com.farmily.product.model.ProductVO;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,7 +27,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	
 	@ManyToOne
 	@JoinColumn(name="product_id")
-	private Integer product;
+	private ProductVO product;
 	
 	@ManyToOne
 	@Column(name="host_user_id")
@@ -176,11 +176,11 @@ public class GroupBuyVO implements java.io.Serializable {
 		this.pickupAddress = pickupAddress;
 	}
 
-	public Integer getProduct() {
+	public ProductVO getProduct() {
 		return product;
 	}
 
-	public void setProduct(Integer product) {
+	public void setProduct(ProductVO product) {
 		this.product = product;
 	}
 
@@ -188,7 +188,7 @@ public class GroupBuyVO implements java.io.Serializable {
 		super();
 	}
 
-	public GroupBuyVO(Integer groupBuyId, Integer product, Integer hostUserId, Integer targetAmount,
+	public GroupBuyVO(Integer groupBuyId, ProductVO product, Integer hostUserId, Integer targetAmount,
 			Integer groupPrice, Timestamp openDatetime, Timestamp ddlDatetime, GroupBuyStatus status,
 			Timestamp createdAt, RequestStatus requestStatus, Timestamp requestDatetime, Timestamp replyDatetime,
 			String rejectReason, String pickupAddress) {
