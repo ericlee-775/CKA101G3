@@ -1,9 +1,3 @@
-/*
-  blogs.html — 部落格列表（Vue 改寫版）
-  - GET /api/blogs?size=&typeId=&keyword=
-  - GET /api/blogs/types
-*/
-
 const { createApp } = Vue;
 
 createApp({
@@ -18,7 +12,7 @@ createApp({
   },
   computed: {
     pills() {
-      return [{ id: null, name: "全部" }, ...this.blogTypes.map((type) => ({ id: type.id, name: type.name }))];
+      return [{ id: null, name: "全部" }, ...this.blogTypes.map((type) => ({ id: type.blogTypeId, name: type.blogTypeName }))];
     }
   },
   mounted() {
@@ -41,12 +35,12 @@ createApp({
     },
     async loadBlogs() {
       this.listState = "loading";
-      const params = new URLSearchParams({ size: "24" });
-      if (this.activeTypeId != null) params.set("typeId", String(this.activeTypeId));
-      if (this.keyword) params.set("keyword", this.keyword);
+      const params = new URLSearchParams({ limit: "24" });
+      if (this.activeTypeId != null) params.set("blogTypeId", String(this.activeTypeId));
+      if (this.keyword) params.set("search", this.keyword);
       try {
         const page = await NongAuth.request("/api/blogs?" + params.toString());
-        this.blogs = page.content || [];
+        this.blogs = page.results || [];
         this.listState = this.blogs.length ? "ready" : "empty";
       } catch (e) {
         this.listState = "error:文章載入失敗：" + e.message;
