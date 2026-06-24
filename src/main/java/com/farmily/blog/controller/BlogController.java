@@ -1,12 +1,10 @@
 package com.farmily.blog.controller;
 
-import com.farmily.blog.dto.BlogCommentRequest;
-import com.farmily.blog.dto.BlogQueryParms;
-import com.farmily.blog.dto.BlogRequest;
-import com.farmily.blog.dto.BlogTypeResponse;
+import com.farmily.blog.dto.*;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogPhoto;
+import com.farmily.blog.model.BlogReport;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
 import jakarta.servlet.ServletOutputStream;
@@ -243,11 +241,24 @@ public class BlogController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-//    @PostMapping("/blogs/{blogId}/reports")
+    //發送檢舉
+    @PostMapping("/blogs/{blogId}/reports")
+    public ResponseEntity<BlogReport> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
+
+        Integer blogReportId = blogService.reportBlog(blogId , blogReportRequest);
+
+         BlogReport blogReport = blogService.getBlogReportById(blogReportId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogReport);
+    }
 
 
 
-//    @PostMapping("/comments/{commentId}/reports")
+    @PostMapping("/comments/{commentId}/reports")
+    public ResponseEntity<?> reportComment(@PathVariable Integer commentId, @RequestBody Integer userId) {
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 
 
 }

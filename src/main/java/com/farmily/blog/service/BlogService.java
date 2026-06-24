@@ -1,12 +1,10 @@
 package com.farmily.blog.service;
 
-import com.farmily.blog.dto.BlogCommentRequest;
-import com.farmily.blog.dto.BlogQueryParms;
-import com.farmily.blog.dto.BlogRequest;
-import com.farmily.blog.dto.BlogTypeResponse;
+import com.farmily.blog.dto.*;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogPhoto;
+import com.farmily.blog.model.BlogReport;
 
 import java.util.List;
 
@@ -50,8 +48,11 @@ public interface BlogService {
 
     BlogComment getBlogCommentsById(Integer commentId);
 
-
     void deleteComment(Integer commentId);
+
+    Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest);
+
+    BlogReport getBlogReportById(Integer blogReportId);
 
 
 

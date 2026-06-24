@@ -1,13 +1,12 @@
 package com.farmily.blog.dao.impl;
 
+import com.farmily.blog.contstant.BlogReportStatus;
 import com.farmily.blog.dao.BlogDao;
-import com.farmily.blog.dto.BlogCommentRequest;
-import com.farmily.blog.dto.BlogQueryParms;
-import com.farmily.blog.dto.BlogRequest;
-import com.farmily.blog.dto.BlogTypeResponse;
+import com.farmily.blog.dto.*;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogPhoto;
+import com.farmily.blog.model.BlogReport;
 import com.farmily.blog.rowmapper.BlogCommentRowMapper;
 import com.farmily.blog.rowmapper.BlogPhotoRowMapper;
 import com.farmily.blog.rowmapper.BlogRowMapper;
@@ -324,6 +323,41 @@ public class BlogDaoImpl implements BlogDao {
         namedParameterJdbcTemplate.update(sql, map);
     }
 
+    @Override
+    public Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest) {
+        String sql = "INSERT INTO blog_report (user_id, blog_id, report_reason, report_status, report_time) " +
+                "VALUES (:userId, :blogId, :reason, 'PENDING', NOW())";
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        map.put("userId", blogReportRequest.getUserId());
+        map.put("reason", blogReportRequest.getReportReason());   // 注意：取 reportReason，但 :reason 代號隨你
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource(map), keyHolder);
+        return keyHolder.getKey().intValue();
+    }
+
+    @Override
+    public BlogReport getBlogReportById(Integer blogReportId) {
+        String sql = "SELECT blog_report_id, user_id, blog_id, admin_id, report_time, " +
+                "report_reason, report_status FROM blog_report WHERE blog_report_id = :id";
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", blogReportId);
+
+        List<BlogReport> list = namedParameterJdbcTemplate.query(sql, map, (rs, rowNum) -> {
+            BlogReport r = new BlogReport();
+            r.setBlogReportId(rs.getInt("blog_report_id"));
+            r.setUserId(rs.getInt("user_id"));
+            r.setBlogId(rs.getInt("blog_id"));
+            r.setAdminId((Integer) rs.getObject("admin_id"));   // 可能是 NULL，用 getObject 才不會變成 0
+            r.setReportTime(rs.getTimestamp("report_time"));
+            r.setReportReason(rs.getString("report_reason"));
+            r.setReportStatus(BlogReportStatus.valueOf(rs.getString("report_status"))); // ★字串轉 enum
+            return r;
+        });
+        return list.isEmpty() ? null : list.get(0);
+    }
 
 
     /* ===== 方法 ===== */
@@ -353,4 +387,7 @@ public class BlogDaoImpl implements BlogDao {
     private String safeSort(String sort) {
         return "asc".equalsIgnoreCase(sort) ? "ASC" : "DESC";
     }
+
+
+
 }

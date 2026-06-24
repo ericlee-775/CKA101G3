@@ -16,6 +16,9 @@ public class BlogCommentReport {
     @Column(name = "report_comment_id", updatable = false)
     private Integer reportCommentId;
 
+    @Column(name = "comment_id")
+    private Integer commentId;
+
     @Column(name = "blog_id")
     private Integer blogId;
 
@@ -43,6 +46,10 @@ public class BlogCommentReport {
     public void setReportCommentId(Integer reportCommentId) {
         this.reportCommentId = reportCommentId;
     }
+
+    public Integer getCommentId() {return commentId;}
+
+    public void setCommentId(Integer commentId) {this.commentId = commentId;}
 
     public Integer getBlogId() {
         return blogId;

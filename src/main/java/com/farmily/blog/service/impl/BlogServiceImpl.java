@@ -1,13 +1,11 @@
 package com.farmily.blog.service.impl;
 
 import com.farmily.blog.dao.BlogDao;
-import com.farmily.blog.dto.BlogCommentRequest;
-import com.farmily.blog.dto.BlogQueryParms;
-import com.farmily.blog.dto.BlogRequest;
-import com.farmily.blog.dto.BlogTypeResponse;
+import com.farmily.blog.dto.*;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogPhoto;
+import com.farmily.blog.model.BlogReport;
 import com.farmily.blog.service.BlogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -162,5 +160,24 @@ public class BlogServiceImpl implements BlogService {
     public void deleteComment(Integer commentId) {
         blogDao.delteComment(commentId);
 
+    }
+
+    @Override
+    public Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest) {
+        Integer userId = blogReportRequest.getUserId();
+
+
+        if(userId == null || blogId == null) {
+            throw new IllegalArgumentException("使用者和文章不能為 NULL");
+
+        }
+
+        return blogDao.reportBlog(blogId , blogReportRequest);
+
+    }
+
+    @Override
+    public BlogReport getBlogReportById(Integer blogReportId) {
+        return blogDao.getBlogReportById(blogReportId);
     }
 }
