@@ -16,6 +16,25 @@ const NongAuth = (function () {
   const BACKOFFICE_TOKEN_KEY = "nong_backoffice_token";
   const BACKOFFICE_USER_KEY  = "nong_backoffice_user";
 
+  // ===== [暫時] 登入功能尚未完成，先塞假帳號讓各頁可瀏覽測試。 =====
+  // ===== 等真正的登入 API 做好後，把整個 if 區塊刪掉即可。       =====
+  const DEV_FAKE_LOGIN = true;
+  if (DEV_FAKE_LOGIN) {
+    // 假小農（給 farmer-* 後台頁用）— accountId 請改成你 DB 裡真實存在的 farmer_id
+    if (!sessionStorage.getItem(BACKOFFICE_TOKEN_KEY)) {
+      sessionStorage.setItem(BACKOFFICE_TOKEN_KEY, "dev");
+      sessionStorage.setItem(BACKOFFICE_USER_KEY, JSON.stringify(
+        { token: "dev", type: "FARMER", accountId: 1, name: "測試小農", email: "farmer@test.com" }));
+    }
+    // 假會員（給一般消費者頁用）— accountId 請改成你 DB 裡真實存在的 user_id
+    if (!localStorage.getItem(CONSUMER_TOKEN_KEY)) {
+      localStorage.setItem(CONSUMER_TOKEN_KEY, "dev");
+      localStorage.setItem(CONSUMER_USER_KEY, JSON.stringify(
+        { token: "dev", type: "MEMBER", accountId: 1, name: "測試會員", email: "member@test.com" }));
+    }
+  }
+  // ===== [暫時] 結束 =====
+
   async function request(path, options = {}) {
     // body 是 FormData(檔案上傳)時不可自己設 Content-Type，
     // 必須讓瀏覽器自動帶上含 boundary 的 multipart/form-data

@@ -1,9 +1,11 @@
 package com.farmily.blog.controller;
 
+import com.farmily.blog.dto.BlogCommentRequest;
 import com.farmily.blog.dto.BlogQueryParms;
 import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
+import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
 import jakarta.servlet.ServletOutputStream;
@@ -82,6 +84,15 @@ public class BlogController {
 
     }
 
+    @GetMapping("/blogs/{blogId}/comments")
+    public ResponseEntity<List<BlogComment>> getBlogComments( @PathVariable Integer blogId)  {
+
+        List<BlogComment> comments = blogService.getBlogComments(blogId);
+
+        return ResponseEntity.ok(comments);
+    }
+
+
     /* ===== 寫作(會員) ===== */
 
     @PostMapping(value = "/blogs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -149,7 +160,39 @@ public class BlogController {
 
 
     /* ===== 互動 ===== */
+    @PostMapping("/blogs/{blogId}/like")
+    public ResponseEntity<Blog> likeBlog(@PathVariable Integer blogId,
+                                         @RequestParam Integer userId) {
+        // TODO: 之後登入做好，userId 改成從 token 解析，不再由前端傳
+        Blog blog = blogService.getBlogById(blogId);
 
+        if (blog == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        blogService.likeBlog(blogId, userId);
+
+        return ResponseEntity.ok(blogService.getBlogById(blogId));
+    }
+
+
+    @PostMapping("/blogs/{blogId}/comments")
+    public ResponseEntity<BlogComment> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
+        request.setBlogId(blogId);
+
+        Integer commentId = blogService.addBlogComment(request);
+
+        BlogComment newComment = blogService.getBlogCommentsById(commentId);
+        //201
+        return ResponseEntity.status(HttpStatus.CREATED).body(newComment);
+    }
+
+    @DeleteMapping("/blogs/comments/{commentId}")
+    public ResponseEntity<?> deleteComment (@PathVariable Integer commentId) {
+        blogService.deleteComment(commentId);
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 
 
 

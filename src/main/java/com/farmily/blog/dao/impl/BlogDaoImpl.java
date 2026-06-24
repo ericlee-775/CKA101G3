@@ -1,23 +1,26 @@
 package com.farmily.blog.dao.impl;
 
 import com.farmily.blog.dao.BlogDao;
+import com.farmily.blog.dto.BlogCommentRequest;
 import com.farmily.blog.dto.BlogQueryParms;
 import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
+import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.rowmapper.BlogCommentRowMapper;
 import com.farmily.blog.rowmapper.BlogRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
+@Repository
 public class BlogDaoImpl implements BlogDao {
 
     @Autowired
@@ -96,6 +99,9 @@ public class BlogDaoImpl implements BlogDao {
         map.put("offset", blogQueryParms.getOffset());
 
         return namedParameterJdbcTemplate.query(sql, map, new BlogRowMapper());
+
+
+
     }
 
     @Override
@@ -107,7 +113,23 @@ public class BlogDaoImpl implements BlogDao {
         sql = addFilter(sql, map, blogQueryParms);
 
         return namedParameterJdbcTemplate.queryForObject(sql, map, Integer.class);
+
+
     }
+
+
+    @Override
+    public List<BlogComment> getBlogComments(Integer blogId) {
+        String sql = "SELECT comment_id, blog_id, user_id, comment_time, comment_post,comment_like, " +
+                "comment_status FROM blog_comment WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+
+        List<BlogComment> blogCommentList = namedParameterJdbcTemplate.query(sql,map,new BlogCommentRowMapper());
+
+        return blogCommentList;
+    }
+
     /* ===== 寫作(會員) ===== */
 
     @Override
@@ -162,6 +184,94 @@ public class BlogDaoImpl implements BlogDao {
         map.put("blogId", blogId);
         namedParameterJdbcTemplate.update(sql, map);
 
+    }
+
+    /* ===== 互動 ===== */
+
+    @Override
+    public boolean existsLike(Integer blogId, Integer userId) {
+        String sql = "SELECT COUNT(*) FROM blog_like WHERE blog_id = :blogId AND user_id = :userId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        map.put("userId", userId);
+
+        Integer count = namedParameterJdbcTemplate.queryForObject(sql, map, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public void insertLike(Integer blogId, Integer userId) {
+        String sql = "INSERT INTO blog_like (blog_id, user_id, create_at) VALUES (:blogId, :userId, NOW())";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        map.put("userId", userId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public void deleteLike(Integer blogId, Integer userId) {
+        String sql = "DELETE FROM blog_like WHERE blog_id = :blogId AND user_id = :userId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        map.put("userId", userId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public void increaseLikeCount(Integer blogId) {
+        String sql = "UPDATE blog SET blog_like_count = blog_like_count + 1 WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public void decreaseLikeCount(Integer blogId) {
+        // 用 GREATEST 保護，避免扣到負數
+        String sql = "UPDATE blog SET blog_like_count = GREATEST(blog_like_count - 1, 0) WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public Integer addComment(BlogCommentRequest blogComment) {
+        String sql = "INSERT INTO blog_comment (blog_id, user_id, comment_time, comment_post, comment_like, comment_status)" +
+                " VALUES (:blogId, :userId, NOW(), :commentPost, 0, 'VISIBLE') ";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogComment.getBlogId());
+        map.put("userId", blogComment.getUserId());
+        map.put("commentPost", blogComment.getCommentPost());
+
+
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource(map), keyHolder);
+        return keyHolder.getKey().intValue();
+    }
+
+    @Override
+    public BlogComment getBlogCommentById(Integer commentId) {
+        String sql = "SELECT comment_id, blog_id, user_id, comment_time, comment_post, comment_like, comment_status " +
+                "FROM blog_comment WHERE comment_id = :commentId" ;
+        Map<String, Object> map = new HashMap<>();
+        map.put("commentId", commentId);
+        List<BlogComment> blogCommentList = namedParameterJdbcTemplate.query(sql, map, new BlogCommentRowMapper());
+
+        if (blogCommentList.size() > 0) {
+            return blogCommentList.get(0);
+        }else {
+            return null;
+        }
+
+    }
+
+    @Override
+    public void delteComment(Integer commentId) {
+        String sql = "DELETE FROM blog_comment WHERE comment_id = :commentId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("commentId", commentId);
+        namedParameterJdbcTemplate.update(sql, map);
     }
 
 
