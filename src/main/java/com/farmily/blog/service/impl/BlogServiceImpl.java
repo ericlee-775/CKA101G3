@@ -7,6 +7,7 @@ import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogPhoto;
 import com.farmily.blog.service.BlogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,16 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public List<BlogComment> getBlogComments(Integer blogId) {
         return blogDao.getBlogComments(blogId);
+    }
+
+    @Override
+    public List<BlogPhoto> getBlogPhotos(Integer blogId) {
+        return blogDao.getBlogPhotos(blogId);
+    }
+
+    @Override
+    public byte[] getPhotoBytes(Integer photoId) {
+        return blogDao.getPhotoBytes(photoId);
     }
 
     /* ===== 寫作(會員) ===== */
@@ -97,8 +108,17 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public void deleteBlog(Integer blogId) {
         blogDao.deleteBlog(blogId);
+    }
 
+    @Override
+    public void addBlogPhotos(Integer blogId, List<byte[]> photoList) {
+        blogDao.addBlogPhotos(blogId, photoList);
 
+    }
+
+    @Override
+    public void deletePhoto(Integer photoId) {
+        blogDao.deletePhoto(photoId);
 
     }
 

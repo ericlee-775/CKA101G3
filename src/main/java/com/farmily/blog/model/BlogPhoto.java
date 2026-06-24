@@ -17,8 +17,8 @@ public class BlogPhoto {
     @Column(name = "blog_id")
     private Integer blogId;
 
-    @Column(name = "photo")
-    private byte[] photo;
+    @Column(name = "blog_photo")
+    private byte[] blogPhoto;
 
     public Integer getBlogPhotoId() {
         return blogPhotoId;
@@ -37,10 +37,10 @@ public class BlogPhoto {
     }
 
     public byte[] getPhoto() {
-        return photo;
+        return blogPhoto;
     }
 
     public void setPhoto(byte[] photo) {
-        this.photo = photo;
+        this.blogPhoto = photo;
     }
 }

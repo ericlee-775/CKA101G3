@@ -6,6 +6,7 @@ import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogPhoto;
 
 import java.util.List;
 
@@ -28,6 +29,10 @@ public interface BlogDao {
 
     List<BlogComment> getBlogComments(Integer blogId);
 
+    List<BlogPhoto> getBlogPhotos(Integer blogId);
+
+    byte[] getPhotoBytes(Integer photoId);
+
     /* ===== 寫作(會員) ===== */
 
     Integer createBlog(BlogRequest blogRequest);
@@ -35,6 +40,10 @@ public interface BlogDao {
     void updateBlog(Integer blogId, BlogRequest blogRequest);
 
     void deleteBlog(Integer blogId);
+
+    void addBlogPhotos(Integer blogId, List<byte[]> photoList);  // 批次新增
+
+    void deletePhoto(Integer photoId);
 
     /* ===== 互動 ===== */
 

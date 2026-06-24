@@ -6,6 +6,7 @@ import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogPhoto;
 
 import java.util.List;
 
@@ -25,6 +26,10 @@ public interface BlogService {
 
     List<BlogComment> getBlogComments(Integer blogId);
 
+    List<BlogPhoto> getBlogPhotos(Integer blogId);
+
+    byte[] getPhotoBytes(Integer photoId);
+
     /* ===== 寫作(會員) ===== */
 
     Integer createBlog(BlogRequest blogRequest);
@@ -32,6 +37,10 @@ public interface BlogService {
     void updateBlog(Integer blogId , BlogRequest blogRequest);
 
     void deleteBlog(Integer blogId);
+
+    void addBlogPhotos(Integer blogId, List<byte[]> photoList);
+
+    void deletePhoto(Integer photoId);
 
     /* ===== 互動 ===== */
     // toggle：回傳 true=這次變成已按讚，false=這次取消讚

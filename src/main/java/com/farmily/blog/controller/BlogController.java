@@ -6,6 +6,7 @@ import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogPhoto;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
 import jakarta.servlet.ServletOutputStream;
@@ -19,10 +20,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.List;
 
 @Validated
@@ -92,6 +95,30 @@ public class BlogController {
         return ResponseEntity.ok(comments);
     }
 
+    @GetMapping("/blogs/{blogId}/photos")
+    public ResponseEntity<List<BlogPhoto>> getBlogPhotos(@PathVariable Integer blogId) {
+
+        List<BlogPhoto> blogPhotos = blogService.getBlogPhotos(blogId);
+
+        return ResponseEntity.ok(blogPhotos);
+    }
+
+    @GetMapping("/photos/{photoId}/image")
+    public void getPhotoImg(HttpServletResponse res, @PathVariable Integer photoId)
+            throws IOException {
+
+        byte[] img = blogService.getPhotoBytes(photoId);
+        ServletOutputStream out = res.getOutputStream();
+
+        if (img != null && img.length > 0) {
+            String type = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(img));
+            res.setContentType(type != null ? type : MediaType.IMAGE_JPEG_VALUE);
+            out.write(img);
+        } else {
+            res.setStatus(HttpStatus.NOT_FOUND.value());
+        }
+    }
+
 
     /* ===== 寫作(會員) ===== */
 
@@ -154,7 +181,29 @@ public class BlogController {
 
     }
 
+    // 上傳照片集 (批次上傳多張)
+    @PostMapping("/blogs/{blogId}/photos")
+    public ResponseEntity<List<BlogPhoto>> uploadPhotos(
+            @PathVariable Integer blogId,
+            @RequestParam("files") List<MultipartFile> files) throws IOException {
 
+        List<byte[]> photoList = new ArrayList<>();
+        for (MultipartFile file : files) {
+            photoList.add(file.getBytes());   // MultipartFile → byte[]
+        }
+        blogService.addBlogPhotos(blogId, photoList);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.getBlogPhotos(blogId));
+    }
+
+
+
+    // 刪除照片
+    @DeleteMapping("/photos/{photoId}")
+    public ResponseEntity<?> deletePhoto(@PathVariable Integer photoId) {
+        blogService.deletePhoto(photoId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 
 
 
@@ -194,7 +243,11 @@ public class BlogController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
+//    @PostMapping("/blogs/{blogId}/reports")
 
+
+
+//    @PostMapping("/comments/{commentId}/reports")
 
 
 }

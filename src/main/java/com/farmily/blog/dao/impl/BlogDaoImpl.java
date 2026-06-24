@@ -7,7 +7,9 @@ import com.farmily.blog.dto.BlogRequest;
 import com.farmily.blog.dto.BlogTypeResponse;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogPhoto;
 import com.farmily.blog.rowmapper.BlogCommentRowMapper;
+import com.farmily.blog.rowmapper.BlogPhotoRowMapper;
 import com.farmily.blog.rowmapper.BlogRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -16,6 +18,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import javax.naming.Name;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +133,28 @@ public class BlogDaoImpl implements BlogDao {
         return blogCommentList;
     }
 
+    @Override
+    public List<BlogPhoto> getBlogPhotos(Integer blogId) {
+        String sql = "SELECT blog_photo_id, blog_id FROM blog_photo WHERE blog_id = :blogId";
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+
+        return namedParameterJdbcTemplate.query(sql, map , new BlogPhotoRowMapper());
+
+    }
+
+    @Override
+    public byte[] getPhotoBytes(Integer photoId) {
+        String sql = "SELECT blog_photo FROM blog_photo WHERE blog_photo_id = :photoId";
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("photoId", photoId);
+        List<byte[]> photoList = namedParameterJdbcTemplate.query(sql, map, (rs, rowNum) -> rs.getBytes("blog_photo"));
+
+        return photoList.isEmpty() ? null : photoList.get(0);
+    }
+
     /* ===== 寫作(會員) ===== */
 
     @Override
@@ -182,6 +207,31 @@ public class BlogDaoImpl implements BlogDao {
 
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+
+    }
+
+    @Override
+    public void addBlogPhotos(Integer blogId, List<byte[]> photoList) {
+        if (photoList == null || photoList.isEmpty()) return;   // 空的就不做
+        String sql = "INSERT INTO blog_photo (blog_id, blog_photo) VALUES (:blogId, :photo)";
+
+        MapSqlParameterSource[] params = new MapSqlParameterSource[photoList.size()];
+        for (int i = 0; i < photoList.size(); i++) {
+            params[i] = new MapSqlParameterSource();
+            params[i].addValue("blogId", blogId);
+            params[i].addValue("photo", photoList.get(i));
+        }
+        namedParameterJdbcTemplate.batchUpdate(sql, params);   // ← 你上一題問的批次寫法
+    }
+
+
+
+    @Override
+    public void deletePhoto(Integer photoId) {
+        String sql = "DELETE FROM blog_photo WHERE blog_photo_id = :photoId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("photoId", photoId);
         namedParameterJdbcTemplate.update(sql, map);
 
     }
