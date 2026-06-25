@@ -2,7 +2,8 @@ package com.farmily.product.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import java.io.IOException;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -117,6 +118,15 @@ public class ProductVO {
 	public void setProductImage(byte[] productImage) {
 		this.productImage = productImage;
 	}
+	
+	// 前端 multipart 的檔案會進到這個 setter，Spring 自動呼叫
+    public void setProductImage(MultipartFile multipartFile) {
+        try {
+            this.productImage = multipartFile.getBytes();   // 檔案 → byte[]
+        } catch (IOException e) {
+            throw new RuntimeException("圖片讀取失敗", e);
+        }
+    }
 
 	public Boolean getIsGroupBuy() {
 		return isGroupBuy;
