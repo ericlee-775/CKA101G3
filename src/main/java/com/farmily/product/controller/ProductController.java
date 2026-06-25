@@ -23,7 +23,6 @@ import com.farmily.product.service.ProductService;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/products")
@@ -41,7 +40,7 @@ public class ProductController {
 
     // 新增商品
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductVO> addProduct(@ModelAttribute @Valid ProductVO productVO) {
+    public ResponseEntity<ProductVO> addProduct(@ModelAttribute ProductVO productVO) {
         Integer productId = productService.addProduct(productVO);
         ProductVO newProduct = productService.getProductById(productId);
         return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
@@ -51,7 +50,7 @@ public class ProductController {
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductVO> updateProduct(
             @PathVariable Integer productId,
-            @ModelAttribute @Valid ProductVO productVO) {
+            @ModelAttribute ProductVO productVO) {
             
         ProductVO product = productService.getProductById(productId);
 
