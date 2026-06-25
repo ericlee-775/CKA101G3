@@ -17,4 +17,22 @@ public class MainCategoryVO {
 	
 	@Column(name="product_main_cat_name")
 	private String productMainCatName;
+
+	public Integer getProductMainCatId() {
+		return productMainCatId;
+	}
+
+	public void setProductMainCatId(Integer productMainCatId) {
+		this.productMainCatId = productMainCatId;
+	}
+
+	public String getProductMainCatName() {
+		return productMainCatName;
+	}
+
+	public void setProductMainCatName(String productMainCatName) {
+		this.productMainCatName = productMainCatName;
+	}
+	
+	
 }
