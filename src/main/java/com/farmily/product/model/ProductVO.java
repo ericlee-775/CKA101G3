@@ -1,5 +1,8 @@
 package com.farmily.product.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+//@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name="product_detail")
 public class ProductVO {
@@ -37,6 +41,8 @@ public class ProductVO {
 	@Column(name="unit_pricing_measure")
 	private String unitPricingMeasure;
 	
+	
+	@JsonIgnore
 	@Column(name="product_image")
 	private byte[] productImage;
 	
