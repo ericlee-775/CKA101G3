@@ -1,5 +1,8 @@
 package com.farmily.product.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+//@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name="product_detail")
 public class ProductVO {
@@ -31,6 +35,8 @@ public class ProductVO {
 	@Column(name="unit_pricing_measure")
 	private String unitPricingMeasure;
 	
+	
+	@JsonIgnore
 	@Column(name="product_image")
 	private byte[] productImage;
 	
