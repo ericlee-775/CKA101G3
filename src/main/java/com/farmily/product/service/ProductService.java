@@ -1,5 +1,4 @@
 package com.farmily.product.service;
-
 import java.util.List;
 
 import com.farmily.product.dto.ProductDTO;
@@ -14,5 +13,6 @@ public interface ProductService {
 	List<ProductDTO> getAllProducts(); 
 
 	ProductVO getProductById(Integer productId);
+
 
 }
