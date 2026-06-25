@@ -11,7 +11,7 @@ public class BlogComment {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //告訴JPA 這個 id 由資料庫自動產生
     @Column(name = "comment_id", updatable = false)
     private Integer commentId;
 
