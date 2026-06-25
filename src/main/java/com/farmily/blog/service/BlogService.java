@@ -1,10 +1,7 @@
 package com.farmily.blog.service;
 
 import com.farmily.blog.dto.*;
-import com.farmily.blog.model.Blog;
-import com.farmily.blog.model.BlogComment;
-import com.farmily.blog.model.BlogPhoto;
-import com.farmily.blog.model.BlogReport;
+import com.farmily.blog.model.*;
 
 import java.util.List;
 
@@ -53,6 +50,10 @@ public interface BlogService {
     Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest);
 
     BlogReport getBlogReportById(Integer blogReportId);
+
+    Integer reportComment(Integer commentId, BlogReportRequest request);
+
+    BlogCommentReport getCommentReportById(Integer reportCommentId);
 
 
 

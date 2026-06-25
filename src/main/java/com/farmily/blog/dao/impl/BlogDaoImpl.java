@@ -3,10 +3,8 @@ package com.farmily.blog.dao.impl;
 import com.farmily.blog.contstant.BlogReportStatus;
 import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
-import com.farmily.blog.model.Blog;
-import com.farmily.blog.model.BlogComment;
-import com.farmily.blog.model.BlogPhoto;
-import com.farmily.blog.model.BlogReport;
+import com.farmily.blog.model.*;
+import com.farmily.blog.rowmapper.BlogCommentReportRowMapper;
 import com.farmily.blog.rowmapper.BlogCommentRowMapper;
 import com.farmily.blog.rowmapper.BlogPhotoRowMapper;
 import com.farmily.blog.rowmapper.BlogRowMapper;
@@ -359,6 +357,35 @@ public class BlogDaoImpl implements BlogDao {
         return list.isEmpty() ? null : list.get(0);
     }
 
+    @Override
+    public Integer reportComment(Integer commentId, Integer blogId, BlogReportRequest request) {
+        String sql = "INSERT INTO blog_comment_report (comment_id, user_id, blog_id ,report_reason, report_status, report_time) " +
+                "VALUES (:commentId, :userId,:blogId, :reason, 'PENDING', NOW())";
+
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("commentId", commentId);
+        map.put("userId", request.getUserId());
+        map.put("blogId", blogId);
+        map.put("reason", request.getReportReason());
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource(map), keyHolder);
+        return keyHolder.getKey().intValue();
+    }
+
+    @Override
+    public BlogCommentReport getCommentReportById(Integer reportCommentId) {
+        String sql = "SELECT report_comment_id, comment_id ,blog_id, user_id, admin_id, report_time, " +
+                "report_reason, report_status FROM blog_comment_report WHERE report_comment_id = :id";
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", reportCommentId);
+
+        List<BlogCommentReport> list = namedParameterJdbcTemplate.query(sql, map,
+                new BlogCommentReportRowMapper());
+
+        return list.isEmpty() ? null : list.get(0);
+    }
 
     /* ===== 方法 ===== */
 

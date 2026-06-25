@@ -1,10 +1,7 @@
 package com.farmily.blog.controller;
 
 import com.farmily.blog.dto.*;
-import com.farmily.blog.model.Blog;
-import com.farmily.blog.model.BlogComment;
-import com.farmily.blog.model.BlogPhoto;
-import com.farmily.blog.model.BlogReport;
+import com.farmily.blog.model.*;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
 import jakarta.servlet.ServletOutputStream;
@@ -255,9 +252,12 @@ public class BlogController {
 
 
     @PostMapping("/comments/{commentId}/reports")
-    public ResponseEntity<?> reportComment(@PathVariable Integer commentId, @RequestBody Integer userId) {
+    public ResponseEntity<BlogCommentReport> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
+        Integer reportCommentId = blogService.reportComment(commentId ,request);
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        BlogCommentReport reportComment = blogService.getCommentReportById(reportCommentId);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(reportComment);
     }
 
 
