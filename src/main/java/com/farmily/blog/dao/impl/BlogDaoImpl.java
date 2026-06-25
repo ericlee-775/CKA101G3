@@ -387,6 +387,59 @@ public class BlogDaoImpl implements BlogDao {
         return list.isEmpty() ? null : list.get(0);
     }
 
+    /* ===== 刪除關聯處理 ===== */
+
+    @Override
+    public void deletePhotosByBlogId(Integer blogId) {
+        String sql = "DELETE FROM blog_photo WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public void deleteCommentReportsByBlogId(Integer blogId) {
+        String sql = "DELETE FROM  blog_comment_report WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+
+    }
+
+    @Override
+    public void deleteCommentsByBlogId(Integer blogId) {
+        String sql = "DELETE FROM blog_comment WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
+    @Override
+    public void deleteReportsByBlogId(Integer blogId) {
+        String sql = "DELETE FROM blog_report WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+
+    }
+
+    @Override
+    public void deleteLikesByBlogId(Integer blogId) {
+        String sql = "DELETE FROM blog_like WHERE blog_id = :blogId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("blogId", blogId);
+        namedParameterJdbcTemplate.update(sql, map);
+
+    }
+
+    @Override
+    public void deleteCommentReportsByCommentId(Integer commentId) {
+        String sql = "DELETE FROM blog_comment_report WHERE comment_id = :commentId" ;
+        Map<String, Object> map = new HashMap<>();
+        map.put("commentId", commentId);
+        namedParameterJdbcTemplate.update(sql, map);
+    }
+
     /* ===== 方法 ===== */
 
     // 共用的篩選條件，getBlogs 與 countBlogs 都呼叫，確保兩邊條件一致

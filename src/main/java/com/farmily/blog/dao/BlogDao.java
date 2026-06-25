@@ -70,4 +70,17 @@ public interface BlogDao {
 
     BlogCommentReport getCommentReportById(Integer reportCommentId);
 
+    /* ===== 刪除關聯處理 ===== */
+    void deletePhotosByBlogId(Integer blogId);
+
+    void deleteCommentReportsByBlogId(Integer blogId);
+
+    void deleteCommentsByBlogId (Integer blogId);
+
+    void deleteReportsByBlogId(Integer blogId);
+
+    void deleteLikesByBlogId(Integer blogId);
+
+    void deleteCommentReportsByCommentId (Integer commentId);
+
 }

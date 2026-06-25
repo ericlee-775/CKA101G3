@@ -101,8 +101,15 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Transactional
     public void deleteBlog(Integer blogId) {
+        blogDao.deleteCommentReportsByBlogId(blogId);  //先刪「留言的檢舉」
+        blogDao.deleteCommentsByBlogId(blogId);        //再刪留言本身
+        blogDao.deleteReportsByBlogId(blogId);         //刪文章的檢舉
+        blogDao.deletePhotosByBlogId(blogId);          //刪照片
+        blogDao.deleteLikesByBlogId(blogId);           //刪讚
         blogDao.deleteBlog(blogId);
+
     }
 
     @Override
@@ -154,7 +161,9 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Transactional
     public void deleteComment(Integer commentId) {
+        blogDao.deleteCommentReportsByCommentId(commentId);  // 先刪這則留言的檢舉
         blogDao.delteComment(commentId);
 
     }
