@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全部商品｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="products">
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-seal">儂</span><span><strong>你儂我農</strong><small>from soil to table</small></span></a>
+    <button class="mobile-menu" id="mobileMenu" type="button" aria-label="開啟選單">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-item"><a href="index.html"      data-nav-key="home">首頁</a></div>
+      <div class="nav-item"><a href="products.html"   data-nav-key="products">全部商品</a></div>
+      <div class="nav-item"><a href="group-buys.html" data-nav-key="group-buys">團購</a></div>
+      <div class="nav-item"><a href="farm-trips.html" data-nav-key="farm-trips">體驗活動</a></div>
+      <div class="nav-item"><a href="blogs.html"      data-nav-key="blogs">部落格</a></div>
+      <div class="user-zone" id="userZone"></div>
+    </nav>
+  </header>
+
+  <section class="page-header">
+    <span class="eyebrow">products</span>
+    <h1>全部商品</h1>
+    <p>所有上架中商品。點選分類或輸入關鍵字篩選；按下「加入購物車」會直接放進你的購物車（需登入）。</p>
+  </section>
+
+  <div id="app">
+    <div class="toolbar">
+      <div class="category-pills">
+        <button v-for="cat in categories" :key="cat.id == null ? 'all' : cat.id"
+                type="button" class="category-pill"
+                :class="{ 'is-active': same(cat.id, activeCategoryId) }"
+                @click="selectCategory(cat.id)">
+          {{ cat.name }}
+        </button>
+      </div>
+      <form class="search" role="search" @submit.prevent="submitSearch">
+        <input type="search" v-model="keyword" placeholder="搜尋商品 / 小農…" aria-label="搜尋">
+        <button class="secondary-button" type="submit">搜尋</button>
+      </form>
+    </div>
+
+    <main class="section-block" style="padding-top:0">
+      <div class="product-grid">
+        <p v-if="listState === 'loading'" style="grid-column:1/-1;color:var(--muted);text-align:center;">載入中…</p>
+        <div v-else-if="listState === 'empty'" class="empty-state" style="grid-column:1/-1;margin:0;">沒有符合的商品。試試其他分類或關鍵字。</div>
+        <div v-else-if="listState.startsWith('error')" class="empty-state" style="grid-column:1/-1;margin:0;">{{ errorText(listState) }}</div>
+        <article v-else v-for="(p, i) in products" :key="p.id" class="product-card">
+          <a :href="`product-detail.html?id=${p.id}`" class="product-image"
+             :style="{ backgroundImage: `url('${productImage(p, i)}')` }"
+             role="img" :aria-label="`${p.name} 商品圖片`"></a>
+          <div class="product-body">
+            <div class="product-meta"><span>{{ p.farmerName || "小農" }}</span><span>{{ p.categoryName || "" }}</span></div>
+            <h3><a :href="`product-detail.html?id=${p.id}`">{{ p.name }}</a></h3>
+            <p>{{ p.description || "" }}</p>
+            <div class="product-meta">
+              <strong class="price">{{ currency(p.price) }}</strong>
+              <button class="secondary-button" type="button" :disabled="p._adding" @click="addToCart(p)">
+                {{ p._adding ? "加入中…" : "加入購物車" }}
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CKA101 第三組專題</p></div>
+      <div class="footer-links">
+        <a href="index.html">首頁</a><a href="group-buys.html">團購</a><a href="farm-trips.html">體驗活動</a><a href="blogs.html">部落格</a>
+      </div>
+    </footer>
+
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/products.js"></script>
+</body>
+</html>

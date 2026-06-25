@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增 / 編輯文章｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="">
+  <div id="headerHost"></div>
+  <div id="app">
+    <section class="page-header">
+      <span class="eyebrow">write</span>
+      <h1>{{ isEdit ? "編輯文章" : "新增文章" }}</h1>
+      <p>分享一段你的食農體驗、料理筆記或營養知識。「產地日記」僅限小農發表。</p>
+    </section>
+    <main class="detail-body">
+      <form class="auth-card" style="width:100%;max-width:900px;margin:0 auto;box-shadow:none" @submit.prevent="submit">
+        <label class="field"><span>分類</span>
+          <select v-model="form.blogTypeId" required>
+            <option value="">請選擇分類</option>
+            <option v-for="t in visibleTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
+        </label>
+        <label class="field"><span>標題（最多 60 字）</span><input type="text" maxlength="60" v-model="form.title" required></label>
+        <label class="field"><span>封面圖網址（選填）</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.coverImageUrl"></label>
+        <label class="field"><span>內文</span><textarea maxlength="50000" required style="min-height:280px" v-model="form.content"></textarea></label>
+
+        <div class="field">
+          <span>文中介紹的商品（選填，最多 6 項；讀者可從文章內加入購物車）</span>
+          <div style="background:#f7f4ec;border-radius:8px;padding:12px;font-size:14px">
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+              <input type="search" v-model="searchKeyword" placeholder="🔍 搜尋商品名稱或農場…" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px">
+              <span style="color:var(--muted);font-size:13px">已選 {{ selectedIds.length }} / 6</span>
+            </div>
+            <div style="max-height:280px;overflow:auto">
+              <p v-if="pickerState === 'loading'" style="color:var(--muted);margin:4px 0">載入商品中…</p>
+              <p v-else-if="pickerState === 'error'" style="color:var(--muted)">商品載入失敗</p>
+              <p v-else-if="!products.length" style="color:var(--muted);margin:4px 0">目前沒有可介紹的商品。</p>
+              <p v-else-if="!filteredGroups.length" style="color:var(--muted);margin:4px 0">沒有符合「{{ searchKeyword }}」的商品。</p>
+              <div v-else v-for="group in filteredGroups" :key="group.name" style="margin-bottom:14px">
+                <div style="font-weight:600;color:var(--leaf);font-size:13px;padding:6px 8px;background:#fff;border-radius:6px;margin-bottom:6px">
+                  🌾 {{ group.name }} <span style="color:var(--muted);font-weight:400">（{{ group.items.length }} 項）</span>
+                </div>
+                <label v-for="p in group.items" :key="p.id" style="display:flex;align-items:center;gap:10px;padding:6px 10px;cursor:pointer;border-radius:6px">
+                  <input type="checkbox" :checked="selectedIds.includes(p.id)" @change="toggleSelect(p.id, $event)">
+                  <span style="flex:1">{{ p.name }}</span>
+                  <small style="color:var(--muted)">{{ p.categoryName || "" }} ｜ NT$ {{ Number(p.price).toLocaleString("zh-TW") }} / {{ p.unit || "件" }}</small>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row" style="justify-content:flex-end">
+          <a class="user-btn ghost" href="my-blogs.html">取消</a>
+          <button class="primary-button" type="submit" :disabled="saving">{{ saving ? "儲存中…" : "儲存" }}</button>
+        </div>
+      </form>
+    </main>
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="my-blogs.html">回我的文章</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script><script src="js/header.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        id: null,
+        isEdit: false,
+        blogTypes: [],
+        products: [],
+        pickerState: "loading", // loading / ready / error
+        searchKeyword: "",
+        selectedIds: [],
+        form: { blogTypeId: "", title: "", coverImageUrl: "", content: "" },
+        saving: false,
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    computed: {
+      visibleTypes() {
+        return this.blogTypes.filter((t) => !t.farmerOnly);
+      },
+      filteredGroups() {
+        const kw = this.searchKeyword.trim().toLowerCase();
+        const filtered = !kw ? this.products : this.products.filter((p) =>
+          (p.name || "").toLowerCase().includes(kw) ||
+          (p.farmerName || "").toLowerCase().includes(kw) ||
+          (p.categoryName || "").toLowerCase().includes(kw)
+        );
+        const groups = new Map();
+        for (const p of filtered) {
+          const key = p.farmerName || "(未指定農場)";
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(p);
+        }
+        return Array.from(groups, ([name, items]) => ({ name, items }));
+      }
+    },
+    mounted() {
+      const user = NongAuth.getConsumerUser();
+      if (!user) { location.href = "login.html?reason=auth"; return; }
+      this.id = new URLSearchParams(location.search).get("id");
+      this.isEdit = !!this.id;
+      this.loadTypes();
+      this.loadProducts();
+      if (this.isEdit) this.loadBlog();
+    },
+    methods: {
+      async loadTypes() {
+        try {
+          this.blogTypes = await NongAuth.request("/api/blogs/types");
+        } catch (e) {
+          this.showToast("分類載入失敗：" + e.message, true);
+        }
+      },
+      async loadProducts() {
+        try {
+          const page = await NongAuth.request("/api/public/products?size=200");
+          this.products = page.content || [];
+          this.pickerState = "ready";
+        } catch (e) {
+          this.pickerState = "error";
+        }
+      },
+      async loadBlog() {
+        try {
+          const b = await NongAuth.request(`/api/blogs/${this.id}`);
+          this.form.blogTypeId = b.blogTypeId || "";
+          this.form.title = b.title || "";
+          this.form.coverImageUrl = b.coverImageUrl || "";
+          this.form.content = b.content || "";
+          this.selectedIds = (b.featuredProducts || []).map((p) => p.id);
+        } catch (e) {
+          this.showToast("文章載入失敗：" + e.message, true);
+        }
+      },
+      toggleSelect(pid, e) {
+        if (e.target.checked) {
+          if (this.selectedIds.length >= 6) { e.target.checked = false; this.showToast("最多選 6 項", true); return; }
+          if (!this.selectedIds.includes(pid)) this.selectedIds.push(pid);
+        } else {
+          this.selectedIds = this.selectedIds.filter((x) => x !== pid);
+        }
+      },
+      async submit() {
+        const payload = {
+          blogTypeId: Number(this.form.blogTypeId) || null,
+          title: this.form.title.trim(),
+          content: this.form.content.trim(),
+          coverImageUrl: this.form.coverImageUrl.trim() || null,
+          productIds: [...this.selectedIds]
+        };
+        this.saving = true;
+        try {
+          const url = this.isEdit ? `/api/blogs/${this.id}` : "/api/blogs";
+          const method = this.isEdit ? "PUT" : "POST";
+          await NongAuth.request(url, { method, body: JSON.stringify(payload) });
+          this.showToast("已儲存");
+          setTimeout(() => (location.href = "my-blogs.html"), 600);
+        } catch (err) {
+          this.showToast(err.message || "儲存失敗", true);
+          this.saving = false;
+        }
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

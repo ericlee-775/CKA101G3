@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>最新消息管理｜管理員後台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="admin" data-active-side="news">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">news</span>
+          <h2>最新消息</h2>
+          <p>平台公告管理；發布後會顯示在前台「最新消息」頁面。</p>
+        </div>
+        <button class="primary-button" @click="openModal(null)">+ 新增消息</button>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>標題</th><th>狀態</th><th>發布人</th><th>發布時間</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="5" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="5" style="text-align:center;color:var(--muted)">尚無最新消息</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="5" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="n in news" :key="n.id">
+              <td><strong>{{ n.title }}</strong><div v-if="n.summary" style="color:var(--muted);font-size:12px">{{ n.summary }}</div></td>
+              <td><span class="status" :class="{ warning: n.status !== 'PUBLISHED' }">{{ n.status === "PUBLISHED" ? "已發布" : "下架" }}</span></td>
+              <td>{{ n.publishedBy || "—" }}</td>
+              <td>{{ fmt(n.publishedAt) }}</td>
+              <td>
+                <button class="user-btn ghost" @click="openModal(n.id)">編輯</button>
+                <a class="user-btn ghost" :href="`news-detail.html?id=${n.id}`" target="_blank">預覽</a>
+                <button class="user-btn ghost" style="color:var(--clay)" @click="remove(n)">刪除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="modal-backdrop" :class="{ 'is-open': modalOpen }" @click.self="modalOpen = false">
+        <div class="modal-card" style="max-width:720px">
+          <h2>{{ form.id ? "編輯最新消息" : "新增最新消息" }}</h2>
+          <form @submit.prevent="submit">
+            <label class="field"><span>標題（≤80 字）</span><input type="text" maxlength="80" required v-model="form.title"></label>
+            <label class="field"><span>摘要（≤200 字，前台列表顯示）</span><input type="text" maxlength="200" v-model="form.summary"></label>
+            <label class="field"><span>封面圖網址</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.coverImageUrl"></label>
+            <label class="field"><span>內文</span><textarea maxlength="50000" required style="min-height:200px" v-model="form.content"></textarea></label>
+            <label class="field"><span>狀態</span>
+              <select v-model="form.status">
+                <option value="PUBLISHED">已發布</option>
+                <option value="HIDDEN">下架</option>
+              </select>
+            </label>
+            <div class="modal-foot">
+              <button class="user-btn ghost" type="button" @click="modalOpen = false">取消</button>
+              <button class="primary-button" type="submit">儲存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        news: [],
+        loadState: "loading",
+        modalOpen: false,
+        form: { id: "", title: "", summary: "", coverImageUrl: "", content: "", status: "PUBLISHED" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const page = await NongAuth.request("/api/admin/news?size=30");
+          this.news = page.content || [];
+          this.loadState = this.news.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async openModal(id) {
+        if (id) {
+          try {
+            const n = await NongAuth.request(`/api/admin/news/${id}`);
+            this.form = { id, title: n.title || "", summary: n.summary || "", coverImageUrl: n.coverImageUrl || "", content: n.content || "", status: n.status || "PUBLISHED" };
+          } catch (err) {
+            this.showToast(err.message || "載入失敗", true);
+            return;
+          }
+        } else {
+          this.form = { id: "", title: "", summary: "", coverImageUrl: "", content: "", status: "PUBLISHED" };
+        }
+        this.modalOpen = true;
+      },
+      async submit() {
+        const payload = {
+          title: this.form.title.trim(),
+          summary: this.form.summary.trim() || null,
+          content: this.form.content.trim(),
+          coverImageUrl: this.form.coverImageUrl.trim() || null,
+          status: this.form.status
+        };
+        try {
+          if (this.form.id) await NongAuth.request(`/api/admin/news/${this.form.id}`, { method: "PUT", body: JSON.stringify(payload) });
+          else await NongAuth.request(`/api/admin/news`, { method: "POST", body: JSON.stringify(payload) });
+          this.modalOpen = false;
+          this.showToast("已儲存");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      async remove(n) {
+        if (!confirm("確定刪除此則最新消息？")) return;
+        try {
+          await NongAuth.request(`/api/admin/news/${n.id}`, { method: "DELETE" });
+          this.showToast("已刪除");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "刪除失敗", true);
+        }
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

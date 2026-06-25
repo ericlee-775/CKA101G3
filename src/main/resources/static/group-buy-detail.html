@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>團購詳情｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="group-buys">
+  <div id="headerHost"></div>
+  <div id="app">
+    <main>
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <section v-else class="detail-layout">
+        <div class="detail-cover" :style="{ backgroundImage: `url('${coverImage}')` }" role="img"></div>
+        <div class="detail-info">
+          <span class="eyebrow">group buy</span>
+          <h1>{{ gb.productName }}</h1>
+          <div class="meta-row">
+            <span>團主：{{ gb.hostName || "" }}</span>
+            <span>小農：{{ gb.farmerName || "" }}</span>
+            <span>狀態：{{ gb.status }}</span>
+          </div>
+          <div class="meta-row">
+            <span>開團：{{ fmt(gb.openDate) }}</span>
+            <span>截止：{{ fmt(gb.deadlineDate) }}</span>
+          </div>
+          <div class="price-big">{{ currency(gb.groupPrice) }} <small style="font-size:14px;color:var(--muted)">/ {{ gb.productUnit || "" }}　原價 {{ currency(gb.productPrice) }}，省 {{ currency(gb.saving) }}</small></div>
+          <div class="progress-bar" aria-label="團購進度"><span :style="{ width: (gb.percent || 0) + '%' }"></span></div>
+          <p style="margin-top:10px;color:var(--muted)">{{ gb.currentQuantity || 0 }} / {{ gb.targetQuantity || 0 }} 份（剩 {{ gb.remainingQuantity || 0 }}）</p>
+
+          <div class="action-row" style="margin-top:14px">
+            <template v-if="gb.joined">
+              <span class="status-tag success">我已加入 {{ gb.myQuantity || 0 }} 份</span>
+              <button class="user-btn ghost" style="color:var(--clay)" @click="withdraw">退出團購</button>
+            </template>
+            <button v-else class="primary-button" :disabled="!canJoin" @click="openJoinModal">{{ canJoin ? "我要加入" : "目前不可加入" }}</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" :class="{ 'is-open': modalOpen }" @click.self="closeModal">
+      <div class="modal-card">
+        <h2>加入團購</h2>
+        <p style="color:var(--muted);margin:4px 0 16px">填寫收件資訊。成團後系統會自動為你建立訂單。</p>
+        <form @submit.prevent="submitJoin">
+          <label class="field"><span>數量</span><input type="number" min="1" v-model.number="form.quantity" required></label>
+          <div class="form-grid">
+            <label class="field"><span>收件人姓名</span><input type="text" maxlength="50" v-model="form.recipientName" required></label>
+            <label class="field"><span>收件人電話</span><input type="text" maxlength="20" v-model="form.recipientPhone" required></label>
+          </div>
+          <div class="form-grid">
+            <label class="field"><span>郵遞區號</span><input type="text" maxlength="10" v-model="form.shippingZipcode" required></label>
+            <label class="field"><span>縣市</span><input type="text" maxlength="20" v-model="form.shippingCity" required></label>
+          </div>
+          <div class="form-grid">
+            <label class="field"><span>鄉鎮區</span><input type="text" maxlength="20" v-model="form.shippingDist" required></label>
+            <label class="field"><span>付款方式</span>
+              <select v-model="form.paymentMethod" required>
+                <option value="CREDIT_CARD_SIM">模擬信用卡</option>
+                <option value="BANK_TRANSFER_SIM">模擬 ATM 轉帳</option>
+                <option value="CASH_ON_DELIVERY">貨到付款</option>
+              </select>
+            </label>
+          </div>
+          <label class="field"><span>詳細地址</span><input type="text" maxlength="200" v-model="form.shippingDetail" required></label>
+          <label class="field"><span>備註（選填）</span><textarea maxlength="500" v-model="form.note"></textarea></label>
+          <div class="modal-foot">
+            <button class="user-btn ghost" type="button" @click="closeModal">取消</button>
+            <button class="primary-button" type="submit">確認加入</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="group-buys.html">回團購列表</a><a href="my-group-buys.html">我參加的</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/group-buy-detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>團購整單｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="gb-orders">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">group buy orders</span>
+          <h2>團購整單</h2>
+          <p>已成團、由系統自動結算的整單彙整。可逐筆對團員出貨。</p>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>團購</th><th>商品</th><th>份數</th><th>總金額</th><th>狀態</th><th></th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="6" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="6" style="text-align:center;color:var(--muted)">尚未有成團整單。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="6" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="(o, i) in orders" :key="i">
+              <td>#{{ o.groupBuyId || "" }}</td>
+              <td><strong>{{ o.productName || "" }}</strong></td>
+              <td>{{ o.totalQuantity || 0 }}</td>
+              <td>{{ currency(o.totalAmount || 0) }}</td>
+              <td><span class="status">{{ o.status || "" }}</span></td>
+              <td><a v-if="o.groupBuyId" class="user-btn ghost" :href="`group-buy-detail.html?id=${o.groupBuyId}`">查看團</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return { orders: [], loadState: "loading" };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        try {
+          const page = await NongAuth.request("/api/farmer/group-buy-orders?size=30");
+          this.orders = page.content || [];
+          this.loadState = this.orders.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

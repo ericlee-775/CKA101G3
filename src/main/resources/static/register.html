@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會員註冊｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="auth">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Farmily 首頁">
+      <span class="brand-seal">F</span>
+      <span><strong>Farmily</strong><small>Farmily</small></span>
+    </a>
+    <nav class="utility-nav">
+      <a href="index.html">回到首頁</a>
+      <a href="login.html">已有帳號</a>
+    </nav>
+  </header>
+
+  <main class="auth-wrapper" id="app">
+    <section class="auth-card">
+      <span class="eyebrow">member sign up</span>
+      <h1>建立會員帳號</h1>
+      <p class="auth-foot" style="text-align:left;margin:0 0 14px">會員可瀏覽商品、加入購物車、參加團購、預約體驗活動。<br>想成為小農請走「<a href="farmer-register.html">小農申請入口</a>」(需審核)。</p>
+
+      <div class="auth-error" :class="{ 'is-visible': !!error }">{{ error }}</div>
+
+      <form novalidate @submit.prevent="submit">
+        <label class="field">
+          <span>姓名</span>
+          <input type="text" maxlength="50" required v-model="form.name">
+        </label>
+        <label class="field">
+          <span>暱稱(選填)</span>
+          <input type="text" maxlength="50" v-model="form.nickname">
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input type="email" maxlength="50" required autocomplete="email" v-model="form.email">
+        </label>
+        <label class="field">
+          <span>密碼(6-64 字元)</span>
+          <input type="password" minlength="6" maxlength="64" required autocomplete="new-password" v-model="form.password">
+        </label>
+        <label class="field">
+          <span>電話(選填)</span>
+          <input type="tel" maxlength="20" placeholder="09xx-xxx-xxx" v-model="form.phone">
+        </label>
+        <label class="field">
+          <span>地址(選填)</span>
+          <input type="text" maxlength="100" v-model="form.address">
+        </label>
+        <button class="primary-button" type="submit">建立帳號</button>
+      </form>
+
+      <p class="auth-foot">已經有帳號？<a href="login.html">登入</a></p>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          form: { name: "", nickname: "", email: "", password: "", phone: "", address: "" },
+          error: ""
+        };
+      },
+      methods: {
+        async submit() {
+          this.error = "";
+          const payload = {
+            name: this.form.name.trim(),
+            nickname: this.form.nickname.trim() || null,
+            email: this.form.email.trim(),
+            password: this.form.password,
+            phone: this.form.phone.trim() || null,
+            address: this.form.address.trim() || null
+          };
+          if (!payload.name || !payload.email || !payload.password) {
+            this.error = "姓名、Email、密碼皆為必填"; return;
+          }
+          try {
+            const auth = await NongAuth.memberRegister(payload);
+            NongAuth.saveSession(auth);
+            NongAuth.redirectAfterLogin(auth);
+          } catch (err) {
+            this.error = err.message || "註冊失敗";
+          }
+        }
+      }
+    }).mount("#app");
+  </script>
+</body>
+</html>

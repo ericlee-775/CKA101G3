@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章詳情｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="blogs">
+  <div id="headerHost"></div>
+  <div id="app">
+    <main>
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中…</p>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <template v-else>
+        <article class="detail-body">
+          <span class="eyebrow">{{ blog.blogTypeName || "" }}</span>
+          <h1 style="margin:6px 0 14px;font-size:clamp(28px,4vw,44px);line-height:1.2">{{ blog.title }}</h1>
+          <div class="meta-row" style="color:var(--muted);font-size:13px;margin-bottom:18px">
+            <span>作者：{{ blog.authorName || "" }}</span>
+            <span>👁 {{ blog.viewCount || 0 }}</span>
+            <span>♡ {{ blog.likeCount || 0 }}</span>
+            <span>💬 {{ blog.commentCount || 0 }}</span>
+            <span>{{ fmt(blog.createdAt) }}</span>
+          </div>
+          <div v-if="blog.coverImageUrl && blog.coverImageUrl.trim()" class="detail-cover"
+               :style="{ backgroundImage: `url('${blog.coverImageUrl}')`, minHeight: '300px', marginBottom: '22px' }"></div>
+          <div style="white-space:pre-wrap;line-height:2;color:#3a463b;font-size:16px">{{ blog.content || "" }}</div>
+
+          <section v-if="(blog.featuredProducts || []).length" style="margin-top:28px;background:#f7f4ec;border-radius:14px;padding:22px">
+            <div class="section-heading compact" style="margin-bottom:14px">
+              <span class="eyebrow">featured</span>
+              <h2 style="margin:0">文中介紹的商品</h2>
+            </div>
+            <div class="featured-product-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
+              <article v-for="p in blog.featuredProducts" :key="p.id" style="background:#fff;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+                <a :href="`product-detail.html?id=${p.id}`" :style="{ display: 'block', height: '130px', background: `#eee center/cover no-repeat url('${featuredImage(p)}')`, borderRadius: '8px' }"></a>
+                <a :href="`product-detail.html?id=${p.id}`" style="color:#3a463b;font-weight:600;text-decoration:none">{{ p.name }}</a>
+                <div style="color:var(--muted);font-size:13px">{{ currency(p.price) }} / {{ p.unit || "件" }}</div>
+                <div style="display:flex;gap:6px;margin-top:auto">
+                  <a class="user-btn ghost" :href="`product-detail.html?id=${p.id}`" style="flex:1;text-align:center">看商品</a>
+                  <button class="primary-button" :disabled="!p.available || p._adding" style="flex:1;font-size:13px;padding:8px 10px" @click="addFeaturedToCart(p)">{{ p.available ? (p._adding ? "加入中…" : "加入購物車") : "缺貨" }}</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <div class="action-row" style="margin-top:24px">
+            <button class="secondary-button" @click="like">♡ 按讚 ({{ blog.likeCount || 0 }})</button>
+            <button class="user-btn ghost" style="color:var(--clay)" @click="report">檢舉</button>
+          </div>
+        </article>
+
+        <section class="detail-body" style="margin-top:0">
+          <div class="section-heading compact"><span class="eyebrow">comments</span><h2>留言（{{ comments.length }}）</h2></div>
+          <form class="comment-form" style="margin-bottom:18px" @submit.prevent="submitComment">
+            <textarea v-model="commentText" maxlength="500" placeholder="留下你的想法… (登入後才能留言)"></textarea>
+            <div style="text-align:right;margin-top:8px"><button class="primary-button" type="submit">送出留言</button></div>
+          </form>
+          <div class="comment-list">
+            <div v-if="!comments.length" class="empty-state" style="margin:0">還沒有留言，第一個來分享吧。</div>
+            <div v-else v-for="(c, i) in comments" :key="i" class="comment-item">
+              <div class="meta">{{ c.authorName || "匿名" }} ・ {{ fmt(c.createdAt) }}</div>
+              <div style="white-space:pre-wrap">{{ c.content || "" }}</div>
+            </div>
+          </div>
+        </section>
+      </template>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>你儂我農</strong><p>CFA104 第二組專題</p></div>
+      <div class="footer-links"><a href="blogs.html">回文章列表</a><a href="my-blogs.html">我的文章</a></div>
+    </footer>
+    <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/blog-detail.js"></script>
+</body>
+</html>

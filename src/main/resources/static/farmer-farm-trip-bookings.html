@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>體驗預約管理｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="trip-bookings">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">trip orders</span>
+          <h2>體驗預約管理</h2>
+          <p>消費者對你舉辦的活動的預約紀錄；PER_WEIGHT 訂單需手動補登重量完成。</p>
+        </div>
+        <div class="action-row">
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === '' }" @click="setFilter('')">全部</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'CONFIRMED' }" @click="setFilter('CONFIRMED')">已預約</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'COMPLETED' }" @click="setFilter('COMPLETED')">已完成</button>
+          <button class="user-btn ghost" :class="{ 'is-active': currentFilter === 'CANCELLED' }" @click="setFilter('CANCELLED')">已取消</button>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>編號</th><th>活動 / 場次</th><th>聯絡人</th><th>人數</th><th>單價</th><th>金額</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="8" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="8" style="text-align:center;color:var(--muted)">沒有符合的預約。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="8" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="b in bookings" :key="b.id">
+              <td><strong>{{ b.bookingNo || "" }}</strong></td>
+              <td>{{ b.farmTripTitle || "" }}<div style="color:var(--muted);font-size:12px">{{ fmt(b.sessionTripStart) }} ｜ {{ pricingLabels[b.pricingMode] || "" }}</div></td>
+              <td>{{ b.contactName || "" }}<div style="color:var(--muted);font-size:12px">{{ b.contactPhone || "" }}</div></td>
+              <td>{{ b.numPeople || 0 }}</td>
+              <td>{{ currency(b.unitPrice || 0) }}</td>
+              <td>
+                <span v-if="b.pricingMode === 'PER_WEIGHT' && b.status !== 'COMPLETED'" style="color:var(--muted)">現場結算</span>
+                <template v-else>{{ currency(b.totalAmount || 0) }}</template>
+                <div v-if="b.actualWeight" style="color:var(--muted);font-size:12px">{{ b.actualWeight }} kg</div>
+              </td>
+              <td><span class="status" :class="b.status === 'CANCELLED' ? 'warning' : (b.status === 'COMPLETED' ? '' : 'muted')">{{ b.status }}</span></td>
+              <td>
+                <template v-if="b.status === 'CONFIRMED'">
+                  <button v-if="b.pricingMode === 'PER_WEIGHT'" class="user-btn ghost" style="color:var(--leaf)" @click="openComplete(b)">補登重量並完成</button>
+                  <button v-else class="user-btn ghost" style="color:var(--leaf)" @click="completePerPerson(b)">完成</button>
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="modal-backdrop" :class="{ 'is-open': modalOpen }" @click.self="modalOpen = false">
+        <div class="modal-card">
+          <h2>補登實際採收重量</h2>
+          <p style="color:var(--muted);margin:4px 0 16px">總金額 = 實際公斤 × 場次單價。</p>
+          <form @submit.prevent="submitComplete">
+            <label class="field"><span>實際採收重量（公斤）</span><input type="number" min="0.01" step="0.01" required v-model.number="actualWeight"></label>
+            <div class="modal-foot">
+              <button class="user-btn ghost" type="button" @click="modalOpen = false">取消</button>
+              <button class="primary-button" type="submit">完成訂單</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        bookings: [],
+        loadState: "loading",
+        currentFilter: "",
+        modalOpen: false,
+        completeOrderId: null,
+        actualWeight: null,
+        pricingLabels: { PER_PERSON: "每人", PER_WEIGHT: "每公斤" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      setFilter(f) {
+        this.currentFilter = f;
+        this.reload();
+      },
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const url = "/api/farmer/farm-trip-orders?size=30" + (this.currentFilter ? `&status=${this.currentFilter}` : "");
+          const page = await NongAuth.request(url);
+          this.bookings = page.content || [];
+          this.loadState = this.bookings.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      openComplete(b) {
+        this.completeOrderId = b.id;
+        this.actualWeight = null;
+        this.modalOpen = true;
+      },
+      async submitComplete() {
+        try {
+          await NongAuth.request(`/api/farmer/farm-trip-orders/${this.completeOrderId}/complete`, { method: "POST", body: JSON.stringify({ actualWeight: Number(this.actualWeight) }) });
+          this.modalOpen = false;
+          this.showToast("已完成");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "失敗", true);
+        }
+      },
+      async completePerPerson(b) {
+        if (!confirm("確認完成此訂單？金額將直接以下單金額作結。")) return;
+        try {
+          await NongAuth.request(`/api/farmer/farm-trip-orders/${b.id}/complete`, { method: "POST", body: JSON.stringify({}) });
+          this.showToast("已完成");
+          await this.reload();
+        } catch (e) {
+          this.showToast(e.message || "失敗", true);
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

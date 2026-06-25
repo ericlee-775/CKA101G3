@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理員後台｜你儂我農</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="admin" data-active-side="dashboard">
+  <div id="headerHost"></div>
+
+  <main class="dashboard-layout admin-tone">
+    <div id="sidebarHost"></div>
+
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">admin console</span>
+          <h2>平台營運總覽</h2>
+          <p>會員、商品、團購、體驗活動與檢舉處理的數據集中區。</p>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <article><span>總會員數</span><strong>{{ stats.totalUsers ?? "—" }}</strong></article>
+        <article><span>小農人數</span><strong>{{ stats.totalFarmers ?? "—" }}</strong></article>
+        <article><span>商品總數</span><strong>{{ stats.totalProducts ?? "—" }}</strong></article>
+        <article><span>待處理檢舉</span><strong>{{ stats.pendingBlogReports ?? 0 }}</strong></article>
+      </div>
+      <div class="metric-row">
+        <article><span>消費者</span><strong>{{ stats.totalConsumers ?? "—" }}</strong></article>
+        <article><span>停權帳號</span><strong>{{ stats.disabledUsers ?? 0 }}</strong></article>
+        <article><span>進行中團購</span><strong>{{ stats.openGroupBuys ?? 0 }}</strong></article>
+        <article><span>文章總數</span><strong>{{ stats.totalBlogs ?? 0 }}</strong></article>
+      </div>
+
+      <section class="panel-grid">
+        <article class="panel-card">
+          <h3>會員管理</h3>
+          <p>檢視所有會員、啟用/停權帳號。</p>
+          <a class="primary-button" href="admin-users.html">進入</a>
+        </article>
+        <article class="panel-card">
+          <h3>商品管理</h3>
+          <p>瀏覽所有商品、下架違規商品、復原。</p>
+          <a class="primary-button" href="admin-products.html">進入</a>
+        </article>
+        <article class="panel-card">
+          <h3>檢舉處理</h3>
+          <p>處理文章與留言的檢舉，決定保留或隱藏。</p>
+          <a class="primary-button" href="admin-blog-reports.html">進入</a>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return { stats: {} };
+    },
+    mounted() {
+      if (!NongAuth.getBackofficeUser()) return;
+      this.loadStats();
+    },
+    methods: {
+      async loadStats() {
+        try {
+          this.stats = await NongAuth.request("/api/admin/stats");
+        } catch (e) {
+          console.warn("stats:", e);
+        }
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

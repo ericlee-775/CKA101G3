@@ -2,12 +2,16 @@ package com.farmily.product.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 //@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -20,8 +24,9 @@ public class ProductVO {
 	@Column(name="product_id")
 	private Integer productId;
 	
-	@Column(name="sub_cat_class_id")
-	private Integer subCatClassId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="sub_cat_class_id",referencedColumnName = "sub_cat_class_id")
+	private SubCategoryVO subCategoryVO;
 	
 	@Column(name="farmer_id")
 	private Integer farmerId;
@@ -47,10 +52,14 @@ public class ProductVO {
 	private String description;
 	
 	@Column(name="status")
+	@Enumerated(EnumType.STRING)
 	private Status status;
 	
 	@Column(name="product_name")
 	private String productName;
+	
+	
+	
 
 	public Integer getProductId() {
 		return productId;
@@ -59,13 +68,13 @@ public class ProductVO {
 	public void setProductId(Integer productId) {
 		this.productId = productId;
 	}
-
-	public Integer getSubCatClassId() {
-		return subCatClassId;
+	
+	public SubCategoryVO getSubCategoryVO() {
+		return subCategoryVO;
 	}
 
-	public void setSubCatClassId(Integer subCatClassId) {
-		this.subCatClassId = subCatClassId;
+	public void setSubCategoryVO(SubCategoryVO subCategoryVO) {
+		this.subCategoryVO = subCategoryVO;
 	}
 
 	public Integer getFarmerId() {
@@ -107,6 +116,15 @@ public class ProductVO {
 	public void setProductImage(byte[] productImage) {
 		this.productImage = productImage;
 	}
+	
+	// 前端 multipart 的檔案會進到這個 setter，Spring 自動呼叫
+    public void setProductImage(MultipartFile multipartFile) {
+        try {
+            this.productImage = multipartFile.getBytes();   // 檔案 → byte[]
+        } catch (IOException e) {
+            throw new RuntimeException("圖片讀取失敗", e);
+        }
+    }
 
 	public Boolean getIsGroupBuy() {
 		return isGroupBuy;

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的團購活動｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="group-buys">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">my group buys</span>
+          <h2>我的團購活動</h2>
+          <p>所有由消費者發起並通過審核的團購；達標後系統會自動結算為團購整單。</p>
+        </div>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>商品</th><th>團主</th><th>進度</th><th>團購價</th><th>截止</th><th>狀態</th><th></th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">還沒有團購活動。可以到「團購審核」通過消費者的請求來開團。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="g in groupBuys" :key="g.id">
+              <td><strong>{{ g.productName }}</strong></td>
+              <td>{{ g.hostName || "" }}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="progress-bar" style="flex:1"><span :style="{ width: (g.percent || 0) + '%' }"></span></div>
+                  <span style="font-size:12px;color:var(--muted);white-space:nowrap">{{ g.currentQuantity || 0 }}/{{ g.targetQuantity || 0 }}</span>
+                </div>
+              </td>
+              <td>{{ currency(g.groupPrice) }}</td>
+              <td>{{ fmt(g.deadlineDate) }}</td>
+              <td><span class="status">{{ g.status }}</span></td>
+              <td><a class="user-btn ghost" :href="`group-buy-detail.html?id=${g.id}`">查看</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return { groupBuys: [], loadState: "loading" };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      async reload() {
+        try {
+          const page = await NongAuth.request("/api/farmer/group-buys?size=30");
+          this.groupBuys = page.content || [];
+          this.loadState = this.groupBuys.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

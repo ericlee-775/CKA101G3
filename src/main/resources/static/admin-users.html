@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會員管理｜管理員後台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="admin" data-active-side="users">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout admin-tone">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">users</span>
+          <h2>會員管理</h2>
+          <p>所有會員清單。新註冊的小農預設停權，需在這啟用後才能登入後台。</p>
+        </div>
+        <form class="search" role="search" @submit.prevent="submitSearch">
+          <input type="search" v-model="keyword" placeholder="搜尋姓名 / Email…" aria-label="搜尋">
+          <button class="secondary-button" type="submit">搜尋</button>
+        </form>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>姓名</th><th>Email</th><th>身份</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="6" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="6" style="text-align:center;color:var(--muted)">沒有符合的會員。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="6" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="u in users" :key="u.id">
+              <td><strong>{{ u.name || "" }}</strong></td>
+              <td>{{ u.email || "" }}</td>
+              <td>{{ typeLabels[u.type] || u.type || "—" }}</td>
+              <td><span class="status" :class="{ warning: u.status !== 'NORMAL' }">{{ u.status === "NORMAL" ? "已啟用" : (u.status || "停權") }}</span></td>
+              <td>{{ fmt(u.createdAt) }}</td>
+              <td>
+                <button v-if="u.status === 'NORMAL'" class="user-btn ghost" style="color:var(--clay)" @click="toggleEnabled(u, false)">停權</button>
+                <button v-else class="user-btn ghost" @click="toggleEnabled(u, true)">啟用</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        users: [],
+        keyword: "",
+        loadState: "loading",
+        typeLabels: { MEMBER: "會員", FARMER: "小農", ADMIN: "管理員" },
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      submitSearch() {
+        this.keyword = this.keyword.trim();
+        this.reload();
+      },
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const url = "/api/admin/members?size=30" + (this.keyword ? `&keyword=${encodeURIComponent(this.keyword)}` : "");
+          const page = await NongAuth.request(url);
+          this.users = page.content || [];
+          this.loadState = this.users.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async toggleEnabled(u, enable) {
+        try {
+          await NongAuth.request(`/api/admin/members/${u.id}/${enable ? "enable" : "disable"}`, { method: "POST" });
+          this.showToast(enable ? "已啟用" : "已停權");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "操作失敗", true);
+        }
+      },
+      fmt(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

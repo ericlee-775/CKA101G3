@@ -11,4 +11,6 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer>{
 	ProductVO getProductById(Integer productId);
 
 
+
+
 }

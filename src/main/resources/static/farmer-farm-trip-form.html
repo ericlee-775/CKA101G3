@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增 / 編輯體驗活動｜小農工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="farmer" data-active-side="farm-trips">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">trip form</span>
+          <h2>{{ isEdit ? "編輯體驗活動" : "新增體驗活動" }}</h2>
+          <p>填寫活動本體；場次（日期/報名時間/容量）在儲存並通過審核後到「管理場次」單獨建立。</p>
+        </div>
+        <a class="user-btn ghost" href="farmer-farm-trips.html">← 回列表</a>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <form @submit.prevent="submit">
+          <div class="form-grid">
+            <label class="field"><span>類型</span>
+              <select required v-model="form.tripType">
+                <option value="FARM_EXPERIENCE">農場體驗</option>
+                <option value="FIELD_VISIT">產地參訪</option>
+              </select>
+            </label>
+            <label class="field"><span>計價模式</span>
+              <select required v-model="form.pricingMode">
+                <option value="PER_PERSON">每人定價</option>
+                <option value="PER_WEIGHT">按採收重量（每公斤）</option>
+              </select>
+            </label>
+            <label class="field"><span>活動名稱（≤30 字）</span><input type="text" maxlength="30" required v-model="form.title"></label>
+            <label class="field"><span>單價（每人 / 每公斤）</span><input type="number" min="0" step="1" required v-model.number="form.price"></label>
+            <label class="field" :style="{ opacity: isWeight ? 0.5 : 1 }"><span>每場容量（人）</span><input type="number" min="1" placeholder="按重量時可留空" :required="!isWeight" :disabled="isWeight" v-model.number="form.capacityPerSession"></label>
+            <label class="field"><span>地點</span><input type="text" maxlength="100" v-model="form.location"></label>
+            <label class="field" style="grid-column:1/-1"><span>圖片網址</span><input type="url" maxlength="500" placeholder="https://..." v-model="form.imageUrl"></label>
+          </div>
+          <label class="field"><span>活動介紹（≤500 字）</span><textarea maxlength="500" style="min-height:100px" v-model="form.intro"></textarea></label>
+          <div class="info-banner" style="margin-top:12px">儲存後狀態為「審核中」，待管理員審核通過才會公開上架；通過後再到「管理場次」設定一場一場的日期與報名截止。</div>
+          <div class="action-row" style="justify-content:flex-end">
+            <a class="user-btn ghost" href="farmer-farm-trips.html">取消</a>
+            <button class="primary-button" type="submit" :disabled="saving">{{ saving ? "儲存中…" : "儲存" }}</button>
+          </div>
+        </form>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/farmer-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        id: null,
+        isEdit: false,
+        form: { tripType: "FARM_EXPERIENCE", pricingMode: "PER_PERSON", title: "", price: null, capacityPerSession: null, location: "", imageUrl: "", intro: "" },
+        saving: false,
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    computed: {
+      isWeight() {
+        return this.form.pricingMode === "PER_WEIGHT";
+      }
+    },
+    watch: {
+      "form.pricingMode"(mode) {
+        if (mode === "PER_WEIGHT") this.form.capacityPerSession = null;
+      }
+    },
+    mounted() {
+      this.id = new URLSearchParams(location.search).get("id");
+      this.isEdit = !!this.id;
+      if (this.isEdit) this.loadTrip();
+    },
+    methods: {
+      async loadTrip() {
+        try {
+          const t = await NongAuth.request(`/api/farm-trips/${this.id}`);
+          this.form = {
+            tripType: t.tripType || "FARM_EXPERIENCE",
+            pricingMode: t.pricingMode || "PER_PERSON",
+            title: t.title || "",
+            price: t.price,
+            capacityPerSession: t.capacityPerSession ?? null,
+            location: t.location || "",
+            imageUrl: t.imageUrl || "",
+            intro: t.intro || ""
+          };
+        } catch (e) {
+          this.showToast("活動載入失敗：" + e.message, true);
+        }
+      },
+      async submit() {
+        const payload = {
+          tripType: this.form.tripType,
+          pricingMode: this.form.pricingMode,
+          title: this.form.title.trim(),
+          intro: this.form.intro.trim() || null,
+          imageUrl: this.form.imageUrl.trim() || null,
+          location: this.form.location.trim() || null,
+          price: Number(this.form.price),
+          capacityPerSession: this.isWeight ? null : Number(this.form.capacityPerSession)
+        };
+        this.saving = true;
+        try {
+          const url = this.isEdit ? `/api/farmer/farm-trips/${this.id}` : "/api/farmer/farm-trips";
+          const method = this.isEdit ? "PUT" : "POST";
+          await NongAuth.request(url, { method, body: JSON.stringify(payload) });
+          this.showToast(this.isEdit ? "已更新" : "已送審");
+          setTimeout(() => (location.href = "farmer-farm-trips.html"), 600);
+        } catch (err) {
+          this.showToast(err.message || "儲存失敗", true);
+          this.saving = false;
+        }
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

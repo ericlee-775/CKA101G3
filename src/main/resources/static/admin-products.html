@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品管理｜管理員後台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="admin" data-active-side="products">
+  <div id="headerHost"></div>
+  <main class="dashboard-layout admin-tone">
+    <div id="sidebarHost"></div>
+    <section class="dashboard-main" id="app">
+      <div class="dashboard-hero">
+        <div>
+          <span class="eyebrow">products</span>
+          <h2>商品管理</h2>
+          <p>所有小農上架的商品。發現違規可以直接下架，事後仍可復原。</p>
+        </div>
+        <form class="search" role="search" @submit.prevent="submitSearch">
+          <input type="search" v-model="keyword" placeholder="搜尋商品 / 小農…" aria-label="搜尋">
+          <button class="secondary-button" type="submit">搜尋</button>
+        </form>
+      </div>
+
+      <article class="panel-card is-large" style="grid-column:1/-1">
+        <table class="data-table">
+          <thead><tr><th>商品</th><th>小農</th><th>分類</th><th>價格</th><th>庫存</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
+            <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">沒有符合的商品。</td></tr>
+            <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
+            <tr v-else v-for="p in products" :key="p.id">
+              <td>
+                <strong>{{ p.name }}</strong>
+                <div style="color:var(--muted);font-size:12px">{{ p.origin || "" }} {{ p.shippingMethod ? " ｜ " + p.shippingMethod : "" }}</div>
+              </td>
+              <td>{{ p.farmerName || "" }}</td>
+              <td>{{ p.categoryName || "" }}</td>
+              <td>{{ currency(p.price) }} / {{ p.unit || "" }}</td>
+              <td>{{ p.stock }}</td>
+              <td><span class="status" :class="{ warning: p.status !== 'ACTIVE' }">{{ p.status }}</span></td>
+              <td>
+                <a class="user-btn ghost" :href="`product-detail.html?id=${p.id}`" target="_blank">預覽</a>
+                <button v-if="p.status === 'ACTIVE'" class="user-btn ghost" style="color:var(--clay)" @click="act(p, 'take-down')">下架</button>
+                <button v-else class="user-btn ghost" @click="act(p, 'restore')">復原</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <div class="toast-flash" :class="{ 'is-visible': toast.visible, 'is-error': toast.error }">{{ toast.msg }}</div>
+    </section>
+  </main>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin-shell.js"></script>
+  <script>
+  const { createApp } = Vue;
+  createApp({
+    data() {
+      return {
+        products: [],
+        keyword: "",
+        loadState: "loading",
+        toast: { msg: "", error: false, visible: false },
+        toastTimer: null
+      };
+    },
+    mounted() {
+      this.reload();
+    },
+    methods: {
+      submitSearch() {
+        this.keyword = this.keyword.trim();
+        this.reload();
+      },
+      async reload() {
+        this.loadState = "loading";
+        try {
+          const url = "/api/admin/products?size=30" + (this.keyword ? `&keyword=${encodeURIComponent(this.keyword)}` : "");
+          const page = await NongAuth.request(url);
+          this.products = page.content || [];
+          this.loadState = this.products.length ? "ready" : "empty";
+        } catch (e) {
+          this.loadState = "error:載入失敗：" + e.message;
+        }
+      },
+      async act(p, action) {
+        if (action === "take-down" && !confirm("確定要下架這個商品嗎？小農會看到狀態變為 INACTIVE。")) return;
+        try {
+          await NongAuth.request(`/api/admin/products/${p.id}/${action}`, { method: "POST" });
+          this.showToast(action === "take-down" ? "已下架" : "已復原");
+          await this.reload();
+        } catch (err) {
+          this.showToast(err.message || "操作失敗", true);
+        }
+      },
+      currency(v) {
+        return `NT$ ${Number(v).toLocaleString("zh-TW")}`;
+      },
+      showToast(msg, isError) {
+        this.toast = { msg, error: !!isError, visible: true };
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { this.toast.visible = false; }, 1800);
+      },
+      errorText(state) {
+        return state.startsWith("error:") ? state.slice(6) : "";
+      }
+    }
+  }).mount("#app");
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>農場介紹｜農鮮平台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent">
+</head>
+<body data-page="consumer" data-active-nav="producers">
+  <div id="headerHost"></div>
+
+  <div id="app" data-page-kind="detail">
+    <main>
+      <p v-if="loadState === 'loading'" style="text-align:center;color:var(--muted);padding:48px 0;">載入中...</p>
+      <div v-else-if="loadState.startsWith('error')" class="empty-state">{{ errorText(loadState) }}</div>
+      <template v-else>
+        <section class="producer-hero">
+          <div class="producer-hero-media" :style="{ backgroundImage: `url('${producer.heroImage}')` }" role="img" :aria-label="producer.name"></div>
+          <div class="producer-hero-copy">
+            <div class="producer-title-lockup">
+              <div>
+                <span class="eyebrow">{{ producer.origins[0] || "producer" }}</span>
+                <h1>{{ producer.name }}</h1>
+              </div>
+            </div>
+            <p>{{ producer.intro || "這裡整理了農場目前公開的商品、團購、體驗活動與產地日記。" }}</p>
+            <div class="producer-hero-actions">
+              <a class="primary-button" href="#producerProducts">看商品</a>
+              <a class="secondary-button" href="producers.html">回農場清單</a>
+            </div>
+            <div class="producer-quick-stats">
+              <span><strong>{{ producer.products.length }}</strong> 商品</span>
+              <span><strong>{{ producer.groupBuys.length }}</strong> 團購</span>
+              <span><strong>{{ producer.trips.length }}</strong> 體驗</span>
+              <span><strong>{{ producer.blogs.length }}</strong> 日記</span>
+            </div>
+            <div v-if="contactFacts.length" class="producer-contact-facts">
+              <span v-for="fact in contactFacts" :key="fact.label"><b>{{ fact.label }}</b>{{ fact.value }}</span>
+            </div>
+          </div>
+        </section>
+
+        <nav class="producer-anchor-nav" aria-label="農場內容">
+          <a href="#producerAbout">介紹</a>
+          <a href="#producerProducts">商品</a>
+          <a href="#producerGroups">團購</a>
+          <a href="#producerTrips">體驗活動</a>
+          <a href="#producerBlogs">產地日記</a>
+        </nav>
+
+        <section class="producer-section producer-about" id="producerAbout">
+          <div class="section-heading compact"><span class="eyebrow">about</span><h2>農場介紹</h2></div>
+          <div class="producer-about-grid">
+            <div>
+              <p>{{ producer.intro || "跟著這個農場的公開內容，看見從產地、採收、出貨到餐桌的完整節奏。" }}</p>
+              <div class="producer-tags"><span v-for="tag in producer.tags" :key="tag">{{ tag }}</span></div>
+            </div>
+            <div class="producer-gallery">
+              <span v-for="(img, i) in heroGallery" :key="i" :style="{ backgroundImage: `url('${img}')` }"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="producer-section" id="producerProducts">
+          <div class="section-heading compact"><span class="eyebrow">products</span><h2>農場商品</h2></div>
+          <div v-if="producer.products.length" class="producer-content-grid">
+            <article v-for="p in producer.products.slice(0, 8)" :key="p.id" class="product-card">
+              <a :href="`product-detail.html?id=${p.id}`" class="product-image" :style="{ backgroundImage: `url('${productImage(p)}')` }" :aria-label="p.name"></a>
+              <div class="product-body">
+                <div class="product-meta"><span>{{ p.categoryName || "商品" }}</span><span>{{ p.origin || "" }}</span></div>
+                <h3><a :href="`product-detail.html?id=${p.id}`">{{ p.name }}</a></h3>
+                <p>{{ truncate(p.description || "", 86) }}</p>
+                <div class="product-meta">
+                  <strong class="price">{{ currency(p.price) }}</strong>
+                  <a class="secondary-button" :href="`product-detail.html?id=${p.id}`">查看</a>
+                </div>
+              </div>
+            </article>
+          </div>
+          <div v-else class="producer-section-empty">目前沒有公開商品</div>
+        </section>
+
+        <section class="producer-section" id="producerGroups">
+          <div class="section-heading compact"><span class="eyebrow">group buys</span><h2>團購</h2></div>
+          <div v-if="producer.groupBuys.length" class="producer-content-grid">
+            <article v-for="g in producer.groupBuys.slice(0, 6)" :key="g.id" class="product-card">
+              <a :href="`group-buy-detail.html?id=${g.id}`" class="product-image" :style="{ backgroundImage: `url('${groupImage(g)}')` }" :aria-label="g.productName"></a>
+              <div class="product-body">
+                <div class="product-meta"><span>目標 {{ g.targetQuantity || 0 }}</span><span>{{ formatDate(g.deadlineDate) }}</span></div>
+                <h3><a :href="`group-buy-detail.html?id=${g.id}`">{{ g.productName }}</a></h3>
+                <p>團購價 <strong class="price">{{ currency(g.groupPrice) }}</strong>，目前 {{ g.currentQuantity || 0 }} / {{ g.targetQuantity || 0 }}。</p>
+                <div class="progress-bar" aria-label="團購進度"><span :style="{ width: (g.percent || 0) + '%' }"></span></div>
+              </div>
+            </article>
+          </div>
+          <div v-else class="producer-section-empty">目前沒有公開團購</div>
+        </section>
+
+        <section class="producer-section" id="producerTrips">
+          <div class="section-heading compact"><span class="eyebrow">farm trips</span><h2>體驗活動</h2></div>
+          <div v-if="producer.trips.length" class="producer-content-grid">
+            <article v-for="t in producer.trips.slice(0, 6)" :key="t.id" class="product-card">
+              <a :href="`farm-trip-detail.html?id=${t.id}`" class="product-image" :style="{ backgroundImage: `url('${tripImage(t)}')` }" :aria-label="t.title"></a>
+              <div class="product-body">
+                <div class="product-meta"><span>{{ tripTypeLabels[t.tripType] || "體驗活動" }}</span><span>{{ t.location || "" }}</span></div>
+                <h3><a :href="`farm-trip-detail.html?id=${t.id}`">{{ t.title }}</a></h3>
+                <p>{{ truncate(t.intro || "", 92) }}</p>
+                <div class="product-meta">
+                  <strong class="price">{{ currency(t.price) }} / {{ tripUnit(t) }}</strong>
+                  <a class="secondary-button" :href="`farm-trip-detail.html?id=${t.id}`">預約</a>
+                </div>
+              </div>
+            </article>
+          </div>
+          <div v-else class="producer-section-empty">目前沒有公開體驗活動</div>
+        </section>
+
+        <section class="producer-section" id="producerBlogs">
+          <div class="section-heading compact"><span class="eyebrow">journal</span><h2>產地日記</h2></div>
+          <div v-if="producer.blogs.length" class="producer-journal-list">
+            <article v-for="b in producer.blogs.slice(0, 8)" :key="b.id" class="producer-journal-item">
+              <span>{{ b.blogTypeName || "日記" }} · {{ formatDate(b.createdAt) }}</span>
+              <h3><a :href="`blog-detail.html?id=${b.id}`">{{ b.title }}</a></h3>
+              <p>{{ truncate(b.content || "", 130) }}</p>
+            </article>
+          </div>
+          <div v-else class="producer-section-empty">目前沒有公開產地日記</div>
+        </section>
+      </template>
+    </main>
+
+    <footer class="site-footer">
+      <div><strong>農鮮平台</strong><p>from soil to table</p></div>
+      <div class="footer-links">
+        <a href="producers.html">農場清單</a>
+        <a href="products.html">商品</a>
+        <a href="group-buys.html">團購</a>
+        <a href="farm-trips.html">體驗活動</a>
+        <a href="blogs.html">產地日記</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="vendors/vue/vue.global.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/producers.js"></script>
+</body>
+</html>
