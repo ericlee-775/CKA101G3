@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.sql.Timestamp;
 
 @Entity //這個意思是，告訴JPA/Hibernate ，這個class是要拿來對應資料庫表格
-@Table(name = "farm_trip_order") //告訴spring boot 這個table的名字
+@Table(name = "farm_trip_order") //告訴JPA 這個table的名字
 public class FarmTripOrder {
 
     @Id //告訴JPA 這是PK

@@ -182,6 +182,13 @@ public class BlogController {
             @PathVariable Integer blogId,
             @RequestParam("files") List<MultipartFile> files) throws IOException {
 
+        Blog blog = blogService.getBlogById(blogId);
+
+        if(blog == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+
         List<byte[]> photoList = new ArrayList<>();
         for (MultipartFile file : files) {
             photoList.add(file.getBytes());   // MultipartFile → byte[]
