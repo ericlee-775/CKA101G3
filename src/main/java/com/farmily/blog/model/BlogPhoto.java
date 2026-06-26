@@ -1,5 +1,6 @@
 package com.farmily.blog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -36,6 +37,7 @@ public class BlogPhoto {
         this.blogId = blogId;
     }
 
+    @JsonIgnore
     public byte[] getPhoto() {
         return blogPhoto;
     }

@@ -191,7 +191,17 @@ public class BlogController {
 
         List<byte[]> photoList = new ArrayList<>();
         for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;   // 跳過空檔
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();   // 非圖片擋掉
+            }
             photoList.add(file.getBytes());   // MultipartFile → byte[]
+        }
+        if (photoList.isEmpty()) {
+            return ResponseEntity.badRequest().build();   // 沒有任何有效檔案
         }
         blogService.addBlogPhotos(blogId, photoList);
 
