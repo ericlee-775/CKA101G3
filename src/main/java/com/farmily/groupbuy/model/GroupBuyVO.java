@@ -22,7 +22,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name="group_buy_id",updatable=false)
+	@JoinColumn(name="group_buy_id",updatable=false)
 	private Integer groupBuyId;
 	
 	@ManyToOne
@@ -30,7 +30,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	private ProductVO product;
 	
 	@ManyToOne
-	@Column(name="host_user_id")
+	@JoinColumn(name="host_user_id")
 	private Integer hostUser ;
 	
 	@Column(name="target_amount")

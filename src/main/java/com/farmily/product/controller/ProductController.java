@@ -23,26 +23,24 @@ import com.farmily.product.service.ProductService;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/products") // 建議：使用複數名詞，並設定統一前綴
+@RequestMapping("/api/products")
 public class ProductController {
 
     @Autowired
     private ProductService productService;
-
+    
     // 查詢所有商品（統一回傳 DTO，對應前端 Vue 串接）
-    @GetMapping // 路由：GET /api/products
+    @GetMapping
     public ResponseEntity<List<ProductDTO>> getAllProducts() {
         List<ProductDTO> products = productService.getAllProducts();
-        // 明確回傳 HTTP 200 OK 狀態碼與資料
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(products); 
     }
 
     // 新增商品
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductVO> addProduct(@ModelAttribute @Valid ProductVO productVO) {
+    public ResponseEntity<ProductVO> addProduct(@ModelAttribute ProductVO productVO) {
         Integer productId = productService.addProduct(productVO);
         ProductVO newProduct = productService.getProductById(productId);
         return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
@@ -52,20 +50,18 @@ public class ProductController {
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductVO> updateProduct(
             @PathVariable Integer productId,
-            @ModelAttribute @Valid ProductVO productVO) {
-        
+            @ModelAttribute ProductVO productVO) {
+            
         ProductVO product = productService.getProductById(productId);
+
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        // 前端沒選新檔 → productImage 會是 null → 沿用 DB 裡的舊圖
-        if (productVO.getProductImage() == null) {
-            productVO.setProductImage(product.getProductImage());
-        }
-
+        // 沒選新圖時沿用舊圖的邏輯已移到 service 層處理
         productService.updateProduct(productId, productVO);
         ProductVO updateProduct = productService.getProductById(productId);
+
         return ResponseEntity.status(HttpStatus.OK).body(updateProduct);
     }
 
@@ -74,7 +70,7 @@ public class ProductController {
     public void getHandleImg(HttpServletResponse res, @PathVariable Integer productId) throws IOException {
         ProductVO product = productService.getProductById(productId);
         ServletOutputStream out = res.getOutputStream();
-        
+
         if (product != null && product.getProductImage() != null && product.getProductImage().length > 0) {
             byte[] img = product.getProductImage();
             // 自動判斷是 jpg/png/gif，判不出就當 jpeg
