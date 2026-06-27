@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
 
@@ -27,20 +28,23 @@ public class ProductServiceImpl implements ProductService{
 	}
 
 	@Override
-	public void updateProduct(Integer productId, ProductVO productVO) {
-		byte[] img = productVO.getProductImage();
-
-		// null 或空陣列 → 代表前端沒選新圖 → 沿用 DB 裡的舊圖
-		if (img == null || img.length == 0) {
-			ProductVO old = productRepository.findById(productId).orElse(null);
-			if (old != null) {
-				productVO.setProductImage(old.getProductImage());
-			}
+	public boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto) {
+		// 先讀出舊的，查無就回 false（讓 controller 回 404）
+		ProductVO product = productRepository.findById(productId).orElse(null);
+		if (product == null) {
+			return false;
 		}
 
-		// 指定主鍵後 save() 會執行更新（而非新增）
-		productVO.setProductId(productId);
-		productRepository.save(productVO);
+		// 局部更新（PATCH）：只覆蓋「有帶值」的價格欄位，其餘欄位一律原封不動
+		if (dto.getRetailPrice() != null) {
+			product.setRetailPrice(dto.getRetailPrice());
+		}
+		if (dto.getGroupPrice() != null) {
+			product.setGroupPrice(dto.getGroupPrice());
+		}
+
+		productRepository.save(product);
+		return true;
 	}
 
 	@Override

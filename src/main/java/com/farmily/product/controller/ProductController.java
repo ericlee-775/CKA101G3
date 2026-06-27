@@ -11,13 +11,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductService;
 
@@ -42,14 +44,14 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    // 修改商品
-    @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity updateProduct(
+    // 修改商品價格（只開放零售價 / 團購價，其他欄位一律改不到）
+    // PATCH = 局部更新；收 JSON body，不再走 multipart（改價不需要圖片）
+    @PatchMapping("/{productId}/price")
+    public ResponseEntity<Void> updateProductPrice(
             @PathVariable Integer productId,
-            @ModelAttribute ProductVO productVO) {
-        productService.updateProduct(productId, productVO);
-        
-        return ResponseEntity.status(HttpStatus.OK).build();
+            @RequestBody ProductUpdatedDTO dto) {
+        boolean updated = productService.updateProductPrice(productId, dto);
+        return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
     // 讀取圖片（Spring ResponseEntity 版：header / body / 狀態碼都宣告式交給 Spring 寫）
