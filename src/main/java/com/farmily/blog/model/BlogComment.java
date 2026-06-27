@@ -1,6 +1,6 @@
 package com.farmily.blog.model;
 
-import com.farmily.blog.contstant.BlogStatus;
+import com.farmily.blog.constant.BlogStatus;
 import jakarta.persistence.*;
 
 import java.sql.Timestamp;

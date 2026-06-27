@@ -1,6 +1,6 @@
 package com.farmily.blog.dao.impl;
 
-import com.farmily.blog.contstant.BlogReportStatus;
+import com.farmily.blog.constant.BlogReportStatus;
 import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;

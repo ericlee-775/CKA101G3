@@ -1,6 +1,6 @@
 package com.farmily.blog.rowmapper;
 
-import com.farmily.blog.contstant.BlogStatus;
+import com.farmily.blog.constant.BlogStatus;
 import com.farmily.blog.model.BlogComment;
 import org.springframework.jdbc.core.RowMapper;
 

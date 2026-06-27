@@ -1,8 +1,7 @@
 package com.farmily.blog.rowmapper;
 
-import com.farmily.blog.contstant.BlogStatus;
+import com.farmily.blog.constant.BlogStatus;
 import com.farmily.blog.model.Blog;
-import jdk.jshell.Snippet;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;

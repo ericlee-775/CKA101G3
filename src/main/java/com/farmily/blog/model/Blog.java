@@ -1,6 +1,6 @@
 package com.farmily.blog.model;
 
-import com.farmily.blog.contstant.BlogStatus;
+import com.farmily.blog.constant.BlogStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 

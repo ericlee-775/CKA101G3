@@ -1,4 +1,4 @@
-package com.farmily.blog.contstant;
+package com.farmily.blog.constant;
 
 public enum BlogStatus {
     VISIBLE, //文章顯示
