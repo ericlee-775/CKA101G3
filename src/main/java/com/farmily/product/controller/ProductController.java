@@ -23,6 +23,8 @@ import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -49,7 +51,7 @@ public class ProductController {
     @PatchMapping("/{productId}/price")
     public ResponseEntity<Void> updateProductPrice(
             @PathVariable Integer productId,
-            @RequestBody ProductUpdatedDTO dto) {
+            @Valid @RequestBody ProductUpdatedDTO dto) {
         boolean updated = productService.updateProductPrice(productId, dto);
         return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
