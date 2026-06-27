@@ -22,15 +22,14 @@ public class GroupBuyVO implements java.io.Serializable {
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@JoinColumn(name="group_buy_id",updatable=false)
+	@Column(name="group_buy_id",updatable=false)
 	private Integer groupBuyId;
 	
 	@ManyToOne
 	@JoinColumn(name="product_id")
 	private ProductVO product;
 	
-	@ManyToOne
-	@JoinColumn(name="host_user_id")
+	@Column(name="host_user_id")
 	private Integer hostUser ;
 	
 	@Column(name="target_amount")
