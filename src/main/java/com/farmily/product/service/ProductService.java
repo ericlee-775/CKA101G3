@@ -14,5 +14,7 @@ public interface ProductService {
 
 	ProductVO getProductById(Integer productId);
 
+	// 只取圖片 bytes（讀圖用，不載入整個 entity）
+	byte[] getProductImageBytes(Integer productId);
 
 }
