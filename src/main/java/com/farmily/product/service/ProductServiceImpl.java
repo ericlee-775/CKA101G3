@@ -47,6 +47,11 @@ public class ProductServiceImpl implements ProductService{
 	public ProductVO getProductById(Integer productId) {
 		return productRepository.findById(productId).orElse(null);
 	}
+
+	@Override
+	public byte[] getProductImageBytes(Integer productId) {
+		return productRepository.findImageById(productId);
+	}
 	
 
 	
