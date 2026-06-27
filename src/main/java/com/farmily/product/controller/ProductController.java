@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.farmily.product.dto.ProductDTO;
+import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductService;
 
@@ -33,36 +33,26 @@ public class ProductController {
     
     // 查詢所有商品（統一回傳 DTO，對應前端 Vue 串接）
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> getAllProducts() {
-        List<ProductDTO> products = productService.getAllProducts();
+    public ResponseEntity<List<ProductSummeryDTO>> getAllProducts() {
+        List<ProductSummeryDTO> products = productService.getAllProducts();
         return ResponseEntity.ok(products); 
     }
 
     // 新增商品
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductVO> addProduct(@ModelAttribute ProductVO productVO) {
-        Integer productId = productService.addProduct(productVO);
-        ProductVO newProduct = productService.getProductById(productId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newProduct);
+    public ResponseEntity addProduct(@ModelAttribute ProductVO productVO) {
+        productService.addProduct(productVO);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     // 修改商品
     @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductVO> updateProduct(
+    public ResponseEntity updateProduct(
             @PathVariable Integer productId,
             @ModelAttribute ProductVO productVO) {
-            
-        ProductVO product = productService.getProductById(productId);
-
-        if (product == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        // 沒選新圖時沿用舊圖的邏輯已移到 service 層處理
         productService.updateProduct(productId, productVO);
-        ProductVO updateProduct = productService.getProductById(productId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(updateProduct);
+        
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     // 讀取圖片

@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.farmily.product.dto.ProductDTO;
+import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
 
@@ -15,17 +15,15 @@ public class ProductServiceImpl implements ProductService{
 	private ProductRepository productRepository;
 
 	@Override
-	public List<ProductDTO> getAllProducts() {
-		
+	public List<ProductSummeryDTO> getAllProducts() {
 	    return  productRepository.findAllProjectedToDto();
 	}
 
 
 	@Override
-	public Integer addProduct(ProductVO productVO) {
+	public void addProduct(ProductVO productVO) {
 		// save() 新增後會回傳含自動產生主鍵的物件
-		ProductVO saved = productRepository.save(productVO);
-		return saved.getProductId();
+		productRepository.save(productVO);
 	}
 
 	@Override
