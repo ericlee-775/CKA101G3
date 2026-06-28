@@ -29,7 +29,8 @@ public class GroupBuyVO implements java.io.Serializable {
 	@JoinColumn(name="product_id")
 	private ProductVO product;
 	
-	@Column(name="host_user_id")
+	@ManyToOne
+	@JoinColumn(name="host_user_id")
 	private Integer hostUser ;
 	
 	@Column(name="target_amount")
