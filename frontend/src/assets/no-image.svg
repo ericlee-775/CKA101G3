@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" role="img" aria-label="無圖片">
+  <!-- 底色：主題米色 -->
+  <rect width="400" height="300" fill="#f4eee2"/>
+  <!-- 中央圖示：一個簡單的「山景照片」框，表示這裡本來該有圖 -->
+  <g transform="translate(200 130)" fill="none" stroke="#b9ad95" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="-60" y="-45" width="120" height="90" rx="8"/>
+    <!-- 太陽 -->
+    <circle cx="-28" cy="-18" r="10" fill="#cfc4ac" stroke="none"/>
+    <!-- 山 -->
+    <path d="M-60 30 L-18 -8 L6 18 L30 -14 L60 22"/>
+  </g>
+  <!-- 斜線:表示「無/缺少」 -->
+  <line x1="150" y1="80" x2="250" y2="180" stroke="#3b8a57" stroke-width="7" stroke-linecap="round"/>
+  <!-- 文字 -->
+  <text x="200" y="220" text-anchor="middle" font-family="'Segoe UI', 'Microsoft JhengHei', sans-serif" font-size="22" font-weight="600" fill="#7d8a78">暫無圖片</text>
+</svg>
