@@ -51,7 +51,73 @@ src/
 
 ---
 
-## ⭐ Vue 模板語法基礎（新手必看）
+## ⭐ 先搞懂：一個 `.vue` 檔長怎樣（單檔組件 SFC）
+
+Vue 的每一個頁面 / 組件 = 一個 **`.vue` 檔**，裡面由**三個區塊**組成，這叫 **單檔組件（Single File Component, SFC）**：
+
+| 區塊 | 寫什麼 | 對應你熟的東西 |
+|---|---|---|
+| `<script>` | **JavaScript 邏輯** + 用 **fetch 串後端**、準備資料 | 像 Controller / JS 行為 |
+| `<template>` | **HTML** + 動態綁定（`{{ }}`、`:`、`v-for`…） | 像 Thymeleaf 的 HTML 樣板 |
+| `<style>` | **CSS**（加 `scoped` = 只作用在這個組件） | 樣式 |
+
+一個空的 `.vue` 樣板長這樣：
+```vue
+<script setup>
+  // 寫 JavaScript、用 fetch 串後端的地方
+</script>
+
+<template>
+  <!-- 寫動態 HTML 的地方 -->
+</template>
+
+<style scoped>
+  /* 寫 CSS 的地方 */
+</style>
+```
+**一個完整的 `.vue` 範例（商品列表，三段都有）：**
+
+> 💡 重要：看得懂下面這段程式碼，就代表你會 Vue 了，可以開始做專題！
+
+```vue
+<script setup>
+// ① <script>：寫 JavaScript，並用 fetch 串後端拿資料
+import { ref, onMounted } from 'vue'
+
+const products = ref([])      // 響應式資料：一變動，畫面自動跟著更新
+
+async function loadProducts() {
+  const res = await fetch('/api/products')
+  if (!res.ok) throw new Error('載入失敗：' + res.status)
+  products.value = await res.json()   // 塞進 ref → template 自動重繪
+}
+
+onMounted(loadProducts)         // 這個組件一出現在畫面（使用者一進到這頁）就去抓資料
+</script>
+
+<template>
+  <!-- ② <template>：寫 HTML + 動態綁定 -->
+  <div class="product-list">
+    <div v-for="p in products" :key="p.productId" class="card">
+      <h3>{{ p.productName }}</h3>
+      <p>{{ p.retailPrice }} 元</p>
+      <img :src="`/api/products/${p.productId}/image`" />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* ③ <style>：寫 CSS。scoped = 樣式只作用在這個組件，不會污染別頁 */
+.card { border: 1px solid #ddd; padding: 12px; }
+</style>
+```
+
+> 🔄 **資料流向**：`<script>` 用 fetch 拿到資料 → 存進 `ref` → `<template>` 自動顯示 → `<style>` 負責美化。
+> 📌 `<script setup>` 是 Vue 3 現在的標準寫法（Composition API）；三個區塊順序不強制，但習慣 `script → template → style`。
+
+---
+
+## ⭐ `<template>` 模板語法基礎（新手必看）
 
 > Vue 的畫面寫在 `<template>` 裡，長得像 HTML，但多了一些「會動」的語法。
 ### ① `{{ }}` 顯示資料（文字插值）
@@ -246,6 +312,7 @@ npm run dev        # 開發伺服器（通常 http://localhost:5173）
 ```
 
 ### 開發時 proxy 設定（vite.config）
+組長統一設定好，這裡了解概念即可。
 > 開發時前端在 5173、後端在 8080，靠 proxy 把 `/api` 轉給後端，避免跨域問題。
 ```js
 export default defineConfig({
@@ -258,7 +325,8 @@ export default defineConfig({
 })
 ```
 
-### 部署到後端（重點！）
+### 部署到後端
+最後專題完成打包進spring boot方法
 這個專案的部署方式是「**build 後把產物複製到後端的 static 資料夾**」：
 
 1. `npm run build` → 產生 `dist/`（或設定好的輸出資料夾）
