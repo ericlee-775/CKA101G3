@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
@@ -37,6 +38,13 @@ public class ProductController {
     public ResponseEntity<List<ProductSummeryDTO>> getAllProducts() {
         List<ProductSummeryDTO> products = productService.getAllProducts();
         return ResponseEntity.ok(products); 
+    }
+
+    // 查詢單一商品詳情（給商品詳情頁）；查無回 404
+    @GetMapping("/{productId}")
+    public ResponseEntity<ProductDetailDTO> getProductDetail(@PathVariable Integer productId) {
+        ProductDetailDTO detail = productService.getProductDetail(productId);
+        return (detail != null) ? ResponseEntity.ok(detail) : ResponseEntity.notFound().build();
     }
 
     // 新增商品
