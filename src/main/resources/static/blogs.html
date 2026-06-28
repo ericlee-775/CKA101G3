@@ -46,13 +46,13 @@
         <p v-if="listState === 'loading'" style="grid-column:1/-1;color:var(--muted);text-align:center;">載入中…</p>
         <div v-else-if="listState === 'empty'" class="empty-state" style="grid-column:1/-1;margin:0;">沒有符合的文章。</div>
         <div v-else-if="listState.startsWith('error')" class="empty-state" style="grid-column:1/-1;margin:0;">{{ errorText(listState) }}</div>
-        <article v-else v-for="b in blogs" :key="b.id">
+        <article v-else v-for="b in blogs" :key="b.blogId">
           <span>{{ b.blogTypeName || "" }}</span>
-          <h3><a :href="`blog-detail.html?id=${b.id}`">{{ b.title }}</a></h3>
-          <p>{{ truncate(b.content || "", 100) }}</p>
+          <h3><a :href="`blog-detail.html?id=${b.blogId}`">{{ b.blogTitle }}</a></h3>
+          <p>{{ truncate(b.blogContent || "", 100) }}</p>
           <div class="card-meta" style="margin-top:10px">
             <span>{{ b.authorName || "" }}</span>
-            <span>👁 {{ b.viewCount || 0 }} ｜ ♡ {{ b.likeCount || 0 }} ｜ 💬 {{ b.commentCount || 0 }}</span>
+            <span>👁 {{ b.viewCount || 0 }} ｜ ♡ {{ b.blogLikeCount || 0 }} ｜ 💬 {{ b.commentCount || 0 }}</span>
           </div>
         </article>
       </div>
