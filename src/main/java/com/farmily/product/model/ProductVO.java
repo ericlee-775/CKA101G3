@@ -62,9 +62,6 @@ public class ProductVO implements Serializable{
 	@Column(name="product_name")
 	private String productName;
 	
-	
-	
-
 	public Integer getProductId() {
 		return productId;
 	}

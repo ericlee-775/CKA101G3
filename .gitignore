@@ -13,6 +13,9 @@
 target/
 build/
 
+# 前端打包產物（由 frontend/ 執行 npm run build 生成，不進版控避免衝突）
+src/main/resources/static/farmily-web/
+
 ##############################
 # Maven
 ##############################

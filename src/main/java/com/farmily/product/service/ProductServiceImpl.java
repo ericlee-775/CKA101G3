@@ -4,68 +4,65 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.farmily.product.dto.ProductDTO;
+import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
 
 @Service
+@Transactional   // 類別層級：預設所有方法都包在讀寫交易裡（讀 → 改 → 存 同一個交易）
 public class ProductServiceImpl implements ProductService{
 	@Autowired
 	private ProductRepository productRepository;
 
 	@Override
-	public List<ProductDTO> getAllProducts() {
-	    // 1. 從資料庫查出真實的 Entity (VO) 列表
-	    List<ProductVO> voList = productRepository.findAll();
-	    
-	    // 2. 建立一個空的 DTO 列表準備儲存轉換後的結果
-	    List<ProductDTO> dtoList = new java.util.ArrayList<>();
-	    
-	    // 3. 透過迴圈，把每一個 VO 的資料複製到 DTO 中
-	    for (ProductVO vo : voList) {
-	        ProductDTO dto = new ProductDTO();
-	        
-	        // 使用 Spring 內建的 BeanUtils 自動複製相同名稱的欄位 (例如 id, name, price 等)
-	        org.springframework.beans.BeanUtils.copyProperties(vo, dto);
-	        
-	        dtoList.add(dto);
-	    }
-	    
-	    // 4. 回傳轉換完成的 DTO 列表
-	    return dtoList;
+	@Transactional(readOnly = true)   // 純查詢：唯讀交易，關掉 dirty checking、效能更好
+	public List<ProductSummeryDTO> getAllProducts() {
+	    return  productRepository.findAllProjectedToDto();
 	}
 
 
 	@Override
-	public Integer addProduct(ProductVO productVO) {
-		// save() 新增後會回傳含自動產生主鍵的物件
-		ProductVO saved = productRepository.save(productVO);
-		return saved.getProductId();
-	}
-
-	@Override
-	public void updateProduct(Integer productId, ProductVO productVO) {
-		byte[] img = productVO.getProductImage();
-
-		// null 或空陣列 → 代表前端沒選新圖 → 沿用 DB 裡的舊圖
-		if (img == null || img.length == 0) {
-			ProductVO old = productRepository.findById(productId).orElse(null);
-			if (old != null) {
-				productVO.setProductImage(old.getProductImage());
-			}
-		}
-
-		// 指定主鍵後 save() 會執行更新（而非新增）
-		productVO.setProductId(productId);
+	public void addProduct(ProductVO productVO) {
+		// 主鍵未設 → save() 執行 INSERT，並把 DB 自動產生的主鍵回填進 productVO
 		productRepository.save(productVO);
 	}
 
 	@Override
-	public ProductVO getProductById(Integer productId) {
-		return productRepository.findById(productId).orElse(null);
-	}
-	
+	public boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto) {
+		// 負數檢查已移到 DTO 的 @Min(0) + controller 的 @Valid（宣告式驗證，進方法前就擋掉）
+		// 先讀出舊的，查無就回 false（讓 controller 回 404）
+		ProductVO product = productRepository.findById(productId).orElse(null);
+		if (product == null) {
+			return false;
+		}
 
-	
+		// 局部更新（PATCH）：只覆蓋「有帶值」的價格欄位，其餘欄位一律原封不動
+		if (dto.getRetailPrice() != null) {
+			product.setRetailPrice(dto.getRetailPrice());
+		}
+		if (dto.getGroupPrice() != null) {
+			product.setGroupPrice(dto.getGroupPrice());
+		}
+
+		// @Transactional 下，受管理 entity 會自動 dirty-check flush；save() 留著語意更明確
+		productRepository.save(product);
+		return true;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public byte[] getProductImageBytes(Integer productId) {
+		return productRepository.findImageById(productId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public ProductDetailDTO getProductDetail(Integer productId) {
+		return productRepository.findDetailById(productId);
+	}
+
 }
