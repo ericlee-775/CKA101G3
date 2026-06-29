@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -101,4 +102,25 @@ public class ProductController {
     //         res.setStatus(HttpStatus.NOT_FOUND.value()); // ④ 沒圖自己設 404
     //     }
     // }
+    
+    @PostMapping("/{productId}/wishlist/{userId}")
+    public ResponseEntity<Void>addWishList(@PathVariable Integer productId,@PathVariable Integer userId){
+		
+		boolean added = productService.addWishList(productId,userId);
+		return added ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    	
+    }
+    @DeleteMapping("/{productId}/wishlist/{userId}")
+    public ResponseEntity<Void>deleteWishList(@PathVariable Integer productId,@PathVariable Integer userId){
+		
+		boolean deleted = productService.deleteWishList(productId,userId);
+		return deleted ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    	
+    }
+    @GetMapping("/wishlist/{userId}")
+    public ResponseEntity<List<ProductSummeryDTO>>getWishList(@PathVariable Integer userId){
+		
+    	 List<ProductSummeryDTO> wishlists = productService.getAllWishLists(userId);
+        return ResponseEntity.ok(wishlists);
+    }
 }
