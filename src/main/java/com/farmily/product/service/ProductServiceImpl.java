@@ -53,7 +53,7 @@ public class ProductServiceImpl implements ProductService{
 		productRepository.save(product);
 		return true;
 	}
-
+	//封面圖片
 	@Override
 	@Transactional(readOnly = true)
 	public byte[] getProductImageBytes(Integer productId) {
@@ -66,7 +66,7 @@ public class ProductServiceImpl implements ProductService{
 		return productRepository.findDetailById(productId);
 	}
 
-
+	//給團購用的
 	@Override
 	@Transactional(readOnly = true)
 	public List<ProductGroupBuyDTO> getAllGroupProducts() {
