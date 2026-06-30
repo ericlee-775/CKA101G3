@@ -41,19 +41,19 @@
             <tr v-if="loadState === 'loading'"><td colspan="7" style="text-align:center;color:var(--muted)">載入中…</td></tr>
             <tr v-else-if="loadState === 'empty'"><td colspan="7" style="text-align:center;color:var(--muted)">沒有符合的檢舉。</td></tr>
             <tr v-else-if="loadState.startsWith('error')"><td colspan="7" style="text-align:center;color:var(--clay)">{{ errorText(loadState) }}</td></tr>
-            <tr v-else v-for="r in reports" :key="r.id">
-              <td>#{{ r.id }}</td>
+            <tr v-else v-for="r in reports" :key="r.repotId">
+              <td>#{{ r.reportId }}</td>
               <td>
                 <span class="status" :class="{ warning: r.targetType !== 'BLOG' }">{{ r.targetType }}</span>
                 <a v-if="r.blogId" :href="`blog-detail.html?id=${r.blogId}`" target="_blank" style="color:var(--leaf)">{{ truncate(r.targetTitleOrContent || "", 40) }}</a>
                 <template v-else>{{ truncate(r.targetTitleOrContent || "", 40) }}</template>
               </td>
               <td>{{ r.reporterName || "" }}</td>
-              <td>{{ truncate(r.reason || "", 60) }}</td>
-              <td><span class="status" :class="{ warning: r.status === 'PENDING' }">{{ statusLabel(r.status) }}</span></td>
-              <td>{{ fmt(r.createdAt) }}</td>
+              <td>{{ truncate(r.reportReason || "", 60) }}</td>
+              <td><span class="status" :class="{ warning: r.reportStatus === 'PENDING' }">{{ statusLabel(r.reportStatus) }}</span></td>
+              <td>{{ fmt(r.reportTime) }}</td>
               <td>
-                <template v-if="r.status === 'PENDING'">
+                <template v-if="r.reportStatus === 'PENDING'">
                   <button class="user-btn ghost" @click="handle(r, 'KEEP')">保留</button>
                   <button class="user-btn ghost" style="color:var(--clay)" @click="handle(r, 'HIDDEN')">隱藏</button>
                 </template>
@@ -99,7 +99,7 @@
       async reload() {
         this.loadState = "loading";
         try {
-          const base = this.currentTab === "blog" ? "/api/admin/blog-reports" : "/api/admin/blog-comment-reports";
+          const base = this.currentTab === "blog" ? "/api/admin/blog-reports" : "/api/admin/comment-reports";
           const url = base + "?size=30" + (this.currentFilter ? `&status=${this.currentFilter}` : "");
           const page = await NongAuth.request(url);
           this.reports = page.content || [];
@@ -110,18 +110,18 @@
       },
       async handle(r, action) {
         try {
-          const endpoint = this.currentTab === "blog"
-            ? `/api/admin/blog-reports/${r.id}/handle`
-            : `/api/admin/blog-comment-reports/${r.id}/handle`;
-          await NongAuth.request(endpoint, { method: "POST", body: JSON.stringify({ action }) });
-          this.showToast(action === "KEEP" ? "已保留目標" : "已隱藏目標");
+          const base = this.currentTab === "blog" ? "/api/admin/blog-reports" : "/api/admin/comment-reports";
+          const op = action === "KEEP" ? "approve" : "reject";
+          const adminId = 1;
+          await NongAuth.request(`${base}/${r.reportId}/${op}?adminId=${adminId}`, { method: "PATCH" });
+          this.showToast(action === "KEEP" ? "以保留目標" : "已隱藏目標");
           await this.reload();
         } catch (err) {
-          this.showToast(err.message || "操作失敗", true);
+          this.showToast(err.message || "操作失敗" , true);
         }
       },
       statusLabel(s) {
-        return s === "PENDING" ? "待處理" : s === "KEEP" ? "已保留" : "已隱藏";
+        return s === "PENDING" ? "待處理" : s === "APPROVED_VISIBLE" ? "已保留" : "已隱藏";
       },
       truncate(s, n) {
         s = String(s).replace(/\s+/g, " ");
