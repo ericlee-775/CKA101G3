@@ -10,21 +10,14 @@ import com.farmily.product.model.ProductVO;
 public interface ProductService {
 
 	void addProduct(ProductVO productVO);
-
-	// 只更新價格(零售價/團購價)；有找到並更新回 true，查無商品回 false
+	
 	boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto);
 
 	List<ProductSummeryDTO> getAllProducts();
 	
-
-	// 商品詳情；查無回 null（讓 controller 回 404）
 	ProductDetailDTO getProductDetail(Integer productId);
 
-	// 只取圖片 bytes（讀圖用，不載入整個 entity）
 	byte[] getProductImageBytes(Integer productId);
 	
-	//給團購用的
 	List<ProductGroupBuyDTO> getAllGroupProducts();
-	
-
 }
