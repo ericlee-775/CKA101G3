@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 
 public interface ProductRepository extends JpaRepository<ProductVO, Integer>{
@@ -22,6 +23,12 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer>{
 			+ "WHERE p.productId = :id")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
+	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice,p.unitPricingMeasure, p.description,s.subCatClassId, s.subCatClassName)"
+		     + " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+		     + "AND p.isGroupBuy = true")
+	List<ProductGroupBuyDTO> findGroupBuyProducts();
+	
+	
 	// 只撈圖片這一個欄位（不載入整個 entity 的其他欄位）→ 讀圖時用
 	@Query("SELECT p.productImage FROM ProductVO p WHERE p.productId = :id")
 	byte[] findImageById(@Param("id") Integer id);
