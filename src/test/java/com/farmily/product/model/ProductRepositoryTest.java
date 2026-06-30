@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import com.farmily.product.dto.ProductGroupBuyDTO;
+
 import java.util.List;
 
 @SpringBootTest
@@ -17,6 +20,13 @@ class ProductRepositoryTest {
 		ProductVO productVO = productRepository.findById(1).orElse(null);
 		assertNotNull(productVO);
 		assertEquals("屏東霸王農場香蕉", productVO.getProductName());
+		
+	}
+	@Test
+	public void getProductGroup() {
+		List<ProductGroupBuyDTO> productGroupBuyDTO = productRepository.findGroupBuyProducts();
+		assertNotNull(productGroupBuyDTO);
+		
 		
 	}
 }
