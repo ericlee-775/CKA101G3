@@ -2,6 +2,7 @@ package com.farmily.product.service;
 import java.util.List;
 
 import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
@@ -14,11 +15,16 @@ public interface ProductService {
 	boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto);
 
 	List<ProductSummeryDTO> getAllProducts();
+	
 
 	// 商品詳情；查無回 null（讓 controller 回 404）
 	ProductDetailDTO getProductDetail(Integer productId);
 
 	// 只取圖片 bytes（讀圖用，不載入整個 entity）
 	byte[] getProductImageBytes(Integer productId);
+	
+	//給團購用的
+	List<ProductGroupBuyDTO> getAllGroupProducts();
+	
 
 }
