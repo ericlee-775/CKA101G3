@@ -28,10 +28,10 @@ public class GroupBuyVO implements java.io.Serializable {
 	@ManyToOne
 	@JoinColumn(name="product_id")
 	private ProductVO product;
-	
-	@ManyToOne
+
+//	@ManyToOne
 	@Column(name="host_user_id")
-	private Integer hostUser ;
+	private Integer hostUser ; //之後要改成User
 	
 	@Column(name="target_amount")
 	private Integer targetAmount;
@@ -41,7 +41,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	
 	@Column(name="open_datetime")
 	private Timestamp openDatetime ;
-	
+ 	
 	@Column(name="ddl_datetime")
 	private Timestamp ddlDatetime ;
 	
@@ -49,7 +49,9 @@ public class GroupBuyVO implements java.io.Serializable {
 	@Column(name = "status",
 	    columnDefinition = "ENUM('open','success','failed','cancelled','pending')")
 	private GroupBuyStatus status;
-	@Column(name="created_at")
+	
+	
+	@Column(name="created_at")//小農按下通過後系統自動生成當下時間
 	private Timestamp createdAt;
 	
 	@Enumerated(EnumType.STRING)

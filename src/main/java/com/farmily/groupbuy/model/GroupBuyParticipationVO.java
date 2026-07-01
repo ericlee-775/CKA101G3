@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -21,7 +22,7 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 	private Integer participationId;
 	
 	@ManyToOne
-	@Column(name="group_buy_id")
+	@JoinColumn(name="group_buy_id")
 	private GroupBuyVO groupBuyId;
 	
 	@Column(name="user_id")

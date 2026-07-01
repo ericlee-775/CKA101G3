@@ -44,7 +44,6 @@ public class ProductVO implements Serializable{
 	@Column(name="unit_pricing_measure")
 	private String unitPricingMeasure;
 	
-	
 	@JsonIgnore
 	@Column(name="product_image")
 	private byte[] productImage;
@@ -62,9 +61,6 @@ public class ProductVO implements Serializable{
 	@Column(name="product_name")
 	private String productName;
 	
-	
-	
-
 	public Integer getProductId() {
 		return productId;
 	}

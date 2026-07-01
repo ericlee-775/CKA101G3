@@ -1,71 +1,121 @@
 package com.farmily.product.service;
 
 import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.farmily.product.dto.ProductDTO;
+import org.springframework.transaction.annotation.Transactional;
+import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductGroupBuyDTO;
+import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
+import com.farmily.product.model.WishListId;
+import com.farmily.product.model.WishListRepository;
+import com.farmily.product.model.WishListVO;
 
 @Service
+@Transactional   
 public class ProductServiceImpl implements ProductService{
+
 	@Autowired
 	private ProductRepository productRepository;
+	//取所有產品
+	@Autowired
+	private WishListRepository wishListRepository;
 
 	@Override
-	public List<ProductDTO> getAllProducts() {
-	    // 1. 從資料庫查出真實的 Entity (VO) 列表
-	    List<ProductVO> voList = productRepository.findAll();
-	    
-	    // 2. 建立一個空的 DTO 列表準備儲存轉換後的結果
-	    List<ProductDTO> dtoList = new java.util.ArrayList<>();
-	    
-	    // 3. 透過迴圈，把每一個 VO 的資料複製到 DTO 中
-	    for (ProductVO vo : voList) {
-	        ProductDTO dto = new ProductDTO();
-	        
-	        // 使用 Spring 內建的 BeanUtils 自動複製相同名稱的欄位 (例如 id, name, price 等)
-	        org.springframework.beans.BeanUtils.copyProperties(vo, dto);
-	        
-	        dtoList.add(dto);
-	    }
-	    
-	    // 4. 回傳轉換完成的 DTO 列表
-	    return dtoList;
+	@Transactional(readOnly = true) 
+	public List<ProductSummeryDTO> getAllProducts() {
+		return productRepository.findAllProjectedToDto();
 	}
-
-
-	@Override
-	public Integer addProduct(ProductVO productVO) {
-		// save() 新增後會回傳含自動產生主鍵的物件
-		ProductVO saved = productRepository.save(productVO);
-		return saved.getProductId();
+	
+	@Transactional(readOnly = true)
+	public ProductVO getProductReferenceById(Integer productId) {
+	    return productRepository.getReferenceById(productId);
 	}
-
+	//存單筆產品
 	@Override
-	public void updateProduct(Integer productId, ProductVO productVO) {
-		byte[] img = productVO.getProductImage();
-
-		// null 或空陣列 → 代表前端沒選新圖 → 沿用 DB 裡的舊圖
-		if (img == null || img.length == 0) {
-			ProductVO old = productRepository.findById(productId).orElse(null);
-			if (old != null) {
-				productVO.setProductImage(old.getProductImage());
-			}
-		}
-
-		// 指定主鍵後 save() 會執行更新（而非新增）
-		productVO.setProductId(productId);
+	public void addProduct(ProductVO productVO) {
 		productRepository.save(productVO);
 	}
+	//更新價格
+	@Override
+	public boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto) {
+		ProductVO product = productRepository.findById(productId).orElse(null);
+		if (product == null) {
+			return false;
+		}
+		if (dto.getRetailPrice() != null) {
+			product.setRetailPrice(dto.getRetailPrice());
+		}
+		if (dto.getGroupPrice() != null) {
+			product.setGroupPrice(dto.getGroupPrice());
+		}
+		productRepository.save(product);
+		return true;
+	}
+	//取封面圖片
+	@Override
+	@Transactional(readOnly = true)
+	public byte[] getProductImageBytes(Integer productId) {
+		return productRepository.findImageById(productId);
+	}
+	//取單筆產品
+	@Override
+	@Transactional(readOnly = true)
+	public ProductDetailDTO getProductDetail(Integer productId) {
+		return productRepository.findDetailById(productId);
+	}
+	//給團購用的全部查詢
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
+		return productRepository.findGroupBuyProducts();
+	}
+	//給團購用的單筆查詢
+	@Override
+	@Transactional(readOnly = true)
+	public ProductVO getGroupBuyProductById(Integer productId) {
+	    return productRepository.findById(productId)
+	                           .orElse(null);   // 找不到就回 null
+	}
+	@Override
+	public boolean addWishList(Integer productId, Integer userId) {
+
+		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
+
+			return false;
+		} else {
+
+			WishListVO wishListVO = new WishListVO();
+			wishListVO.setProductId(productId);
+			wishListVO.setUserId(userId);
+			wishListRepository.save(wishListVO);
+
+		}
+		return true;
+	}
 
 	@Override
-	public ProductVO getProductById(Integer productId) {
-		return productRepository.findById(productId).orElse(null);
-	}
-	
+	public boolean deleteWishList(Integer productId, Integer userId) {
 
-	
+		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
+			
+			WishListId id = new WishListId();
+			id.setProductId(productId);
+			id.setUserId(userId);
+			wishListRepository.deleteById(id);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProductSummeryDTO> getAllWishLists(Integer userId) {
+
+		return wishListRepository.findWishListByUserId(userId);
+	}
 }
