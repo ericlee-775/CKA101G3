@@ -1,11 +1,9 @@
 package com.farmily.product.service;
 
 import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
@@ -17,68 +15,65 @@ import com.farmily.product.model.WishListRepository;
 import com.farmily.product.model.WishListVO;
 
 @Service
-@Transactional // 類別層級：預設所有方法都包在讀寫交易裡（讀 → 改 → 存 同一個交易）
-public class ProductServiceImpl implements ProductService {
+@Transactional   
+public class ProductServiceImpl implements ProductService{
+
 	@Autowired
 	private ProductRepository productRepository;
+	//取所有產品
 	@Autowired
 	private WishListRepository wishListRepository;
 
 	@Override
-	@Transactional(readOnly = true) // 純查詢：唯讀交易，關掉 dirty checking、效能更好
+	@Transactional(readOnly = true) 
 	public List<ProductSummeryDTO> getAllProducts() {
 		return productRepository.findAllProjectedToDto();
 	}
-
+	//存單筆產品
 	@Override
 	public void addProduct(ProductVO productVO) {
-		// 主鍵未設 → save() 執行 INSERT，並把 DB 自動產生的主鍵回填進 productVO
 		productRepository.save(productVO);
 	}
-
+	//更新價格
 	@Override
 	public boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto) {
-		// 負數檢查已移到 DTO 的 @Min(0) + controller 的 @Valid（宣告式驗證，進方法前就擋掉）
-		// 先讀出舊的，查無就回 false（讓 controller 回 404）
 		ProductVO product = productRepository.findById(productId).orElse(null);
 		if (product == null) {
 			return false;
 		}
-
-		// 局部更新（PATCH）：只覆蓋「有帶值」的價格欄位，其餘欄位一律原封不動
 		if (dto.getRetailPrice() != null) {
 			product.setRetailPrice(dto.getRetailPrice());
 		}
 		if (dto.getGroupPrice() != null) {
 			product.setGroupPrice(dto.getGroupPrice());
 		}
-
-		// @Transactional 下，受管理 entity 會自動 dirty-check flush；save() 留著語意更明確
 		productRepository.save(product);
 		return true;
 	}
-
+	//取封面圖片
 	@Override
 	@Transactional(readOnly = true)
 	public byte[] getProductImageBytes(Integer productId) {
 		return productRepository.findImageById(productId);
 	}
-
+	//取單筆產品
 	@Override
 	@Transactional(readOnly = true)
 	public ProductDetailDTO getProductDetail(Integer productId) {
 		return productRepository.findDetailById(productId);
 	}
-
-
-
+	//給團購用的全部查詢
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductGroupBuyDTO> getAllGroupProducts() {
+	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
 		return productRepository.findGroupBuyProducts();
 	}
-	
-
+	//給團購用的單筆查詢
+	@Override
+	@Transactional(readOnly = true)
+	public ProductGroupBuyDTO getGroupBuyProductById(Integer ProductId) {
+		return productRepository.findGroupBuyById(ProductId);
+	}
 	@Override
 	public boolean addWishList(Integer productId, Integer userId) {
 
@@ -117,5 +112,4 @@ public class ProductServiceImpl implements ProductService {
 
 		return wishListRepository.findWishListByUserId(userId);
 	}
-
 }
