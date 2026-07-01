@@ -15,7 +15,6 @@ import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.model.RequestStatus;
 import com.farmily.product.model.ProductVO;
-import com.farmily.product.service.ProductService;
 import com.farmily.product.service.ProductServiceImpl;
 
 
@@ -25,22 +24,18 @@ public class GroupBuyService {
 	GroupBuyRepository repository;
 	
 	@Autowired
-	ProductService productSvc;
+	ProductServiceImpl productSvc;
 	
 	@Autowired
     private SessionFactory sessionFactory;
 
-	@Autowired
-	ProductServiceImpl productSvc;
 
-	@Autowired
-	private SessionFactory sessionFactory;
 
 	// 團購主發起請求
 	
 	@Transactional
 	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
-		ProductVO product=productSvc.getProductReferenceById(productId);
+		ProductVO product=productSvc.getGroupBuyProductById(productId);
 		if(product==null) {
 			throw new RuntimeException("查無此商品");
 		} // 防止有人更改網址
