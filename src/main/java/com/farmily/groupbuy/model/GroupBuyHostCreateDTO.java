@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public class GroupBuyHostCreate implements Serializable {
+public class GroupBuyHostCreateDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@NotNull(message="請輸入達標金額")
