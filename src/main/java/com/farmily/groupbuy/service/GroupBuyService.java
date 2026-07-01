@@ -33,7 +33,7 @@ public class GroupBuyService {
 	@Transactional
 	public void hostRequest(GroupBuyHostCreate form,Integer productId,Integer hostUserId) {
 		
-		ProductVO product=productSvc.getProductReferenceById(productId);
+		ProductVO product=productSvc.getGroupBuyProductById(productId);
 		if(product==null) {
 			throw new RuntimeException("查無此商品");
 		}
