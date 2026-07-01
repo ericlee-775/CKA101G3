@@ -29,9 +29,9 @@ public class GroupBuyVO implements java.io.Serializable {
 	@JoinColumn(name="product_id")
 	private ProductVO product;
 
-//	@ManyToOne
-//	@JoinColumn(name="host_user_id")
-//	private Integer hostUser ;
+	@ManyToOne
+	@JoinColumn(name="host_user_id")
+	private Integer hostUser ;
 	
 	@Column(name="target_amount")
 	private Integer targetAmount;
@@ -80,13 +80,13 @@ public class GroupBuyVO implements java.io.Serializable {
 	}
 
 
-//	public Integer getHostUserId() {
-//		return hostUser;
-//	}
-//
-//	public void setHostUserId(Integer hostUser) {
-//		this.hostUser = hostUser;
-//	}
+	public Integer getHostUserId() {
+		return hostUser;
+	}
+
+	public void setHostUserId(Integer hostUser) {
+		this.hostUser = hostUser;
+	}
 
 	public Integer getTargetAmount() {
 		return targetAmount;
@@ -195,7 +195,7 @@ public class GroupBuyVO implements java.io.Serializable {
 		super();
 		this.groupBuyId = groupBuyId;
 		this.product = product;
-//		this.hostUser = hostUser;
+		this.hostUser = hostUser;
 		this.targetAmount = targetAmount;
 		this.groupPrice = groupPrice;
 		this.openDatetime = openDatetime;
