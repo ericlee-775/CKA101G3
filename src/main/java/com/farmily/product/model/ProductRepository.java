@@ -28,6 +28,11 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer>{
 		     + "AND p.isGroupBuy = true")
 	List<ProductGroupBuyDTO> findGroupBuyProducts();
 	
+	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice,p.unitPricingMeasure, p.description,s.subCatClassId, s.subCatClassName)"
+		     + " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+		     + "AND p.isGroupBuy = true AND p.productId = :id")
+	ProductGroupBuyDTO findGroupBuyById(@Param("id") Integer id);
+	
 	
 	// 只撈圖片這一個欄位（不載入整個 entity 的其他欄位）→ 讀圖時用
 	@Query("SELECT p.productImage FROM ProductVO p WHERE p.productId = :id")
