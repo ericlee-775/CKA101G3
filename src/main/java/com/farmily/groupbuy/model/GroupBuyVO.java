@@ -28,7 +28,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	@ManyToOne
 	@JoinColumn(name="product_id")
 	private ProductVO product;
-	
+
 //	@ManyToOne
 	@Column(name="host_user_id")
 	private Integer hostUser ; //之後要改成User
@@ -41,7 +41,7 @@ public class GroupBuyVO implements java.io.Serializable {
 	
 	@Column(name="open_datetime")
 	private Timestamp openDatetime ;
-	
+ 	
 	@Column(name="ddl_datetime")
 	private Timestamp ddlDatetime ;
 	
