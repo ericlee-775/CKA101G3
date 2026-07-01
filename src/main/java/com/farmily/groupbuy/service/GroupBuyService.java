@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +15,11 @@ import com.farmily.groupbuy.model.GroupBuyRepository;
 import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.model.RequestStatus;
+import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductServiceImpl;
 
-
+@Component
 @Service
 public class GroupBuyService {
 	@Autowired
@@ -106,8 +108,19 @@ public class GroupBuyService {
 		return repository.findById(groupBuyId).orElse(null);
 	}
 
-	public List<GroupBuyVO> getAll() {
-		return repository.findAll();
+	public List<ProductGroupBuyDTO>  getConsumerGroupBuyList() {
+		List<GroupBuyVO>groupBuyList=repository.findByRequestStatus(RequestStatus.approved,GroupBuyStatus.open);
+		return groupBuyList.stream().map(groupBuy ->new ProductGroupBuyDTO(
+		        groupBuy.getGroupBuyId(),
+                groupBuy.getProduct().getProductId(),
+                groupBuy.getProduct().getProductName(),
+                groupBuy.getGroupPrice(),
+                groupBuy.getTargetAmount(),
+                groupBuy.getOpenDatetime(),
+                groupBuy.getDdlDatetime(),
+                groupBuy.getPickupAddress(),
+                groupBuy.getStatus())).toList();
 	}
-
+//Integer productId, String productName, Integer groupPrice, String unitPricingMeasure,
+	//String description, Integer subCatClassId, String subCatClassName
 }

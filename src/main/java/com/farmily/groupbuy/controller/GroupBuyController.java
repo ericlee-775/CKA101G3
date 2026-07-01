@@ -1,24 +1,20 @@
 package com.farmily.groupbuy.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.service.GroupBuyService;
+import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.service.ProductService;
-
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 @RestController
-@RequestMapping("/groupBuy")
+@RequestMapping("/api/groupBuy")
 public class GroupBuyController {
 
 	@Autowired
@@ -29,7 +25,7 @@ public class GroupBuyController {
 
 	//給消費者看的
 	@GetMapping("/{groupBuyId}")
-	public ResponseEntity<GroupBuyVO>getGroupBuy
+	public ResponseEntity<GroupBuyVO>getOneGroupBuy
 	(@PathVariable Integer groupBuyId){
 		GroupBuyVO groupBuy=groupBuySvc.getOneGroupBuyId(groupBuyId);
 		if(groupBuy!=null) {
@@ -38,11 +34,18 @@ public class GroupBuyController {
 		return ResponseEntity.notFound().build();
 }
 	}
-	//等user寫好
 	
+	@GetMapping("/all")
+	public ResponseEntity<List<ProductGroupBuyDTO>> getAllGroupBuy() {
+
+	    List<ProductGroupBuyDTO> list = groupBuySvc.getConsumerGroupBuyList();
+
+	    return ResponseEntity.ok(list);
+	}
 
 	
-	
+	//等user寫好
+
 	//團購主的發起請求
 //	@PostMapping("/hostCreate")
 //	public ResponseEntity<GroupBuyVO>createGroupBuy
