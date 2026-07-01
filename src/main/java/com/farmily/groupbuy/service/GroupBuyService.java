@@ -13,7 +13,7 @@ import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.model.RequestStatus;
 import com.farmily.product.model.ProductVO;
-import com.farmily.product.service.ProductServiceimpl;
+import com.farmily.product.service.ProductService;
 
 import jakarta.transaction.Transactional;
 
@@ -25,7 +25,7 @@ public class GroupBuyService {
 	GroupBuyRepository repository;
 	
 	@Autowired
-	ProductServiceimpl productSvc;
+	ProductService productSvc;
 	
 	@Autowired
     private SessionFactory sessionFactory;
@@ -33,7 +33,7 @@ public class GroupBuyService {
 	@Transactional
 	public void hostRequest(GroupBuyHostCreate form,Integer productId,Integer hostUserId) {
 		
-		ProductVO product=productSvc.getProductById(productId);
+		ProductVO product=productSvc.getProductReferenceById(productId);
 		if(product==null) {
 			throw new RuntimeException("查無此商品");
 		}

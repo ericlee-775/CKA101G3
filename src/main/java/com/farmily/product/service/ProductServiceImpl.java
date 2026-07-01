@@ -29,6 +29,11 @@ public class ProductServiceImpl implements ProductService{
 	public List<ProductSummeryDTO> getAllProducts() {
 		return productRepository.findAllProjectedToDto();
 	}
+	
+	@Transactional(readOnly = true)
+	public ProductVO getProductReferenceById(Integer productId) {
+	    return productRepository.getReferenceById(productId);
+	}
 	//存單筆產品
 	@Override
 	public void addProduct(ProductVO productVO) {

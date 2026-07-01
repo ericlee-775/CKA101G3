@@ -27,6 +27,7 @@ public class GroupBuyController {
 	@Autowired
 	ProductService productSvc;
 
+	//給消費者看的
 	@GetMapping("/{groupBuyId}")
 	public ResponseEntity<GroupBuyVO>getGroupBuy
 	(@PathVariable Integer groupBuyId){
@@ -36,9 +37,12 @@ public class GroupBuyController {
 		}else {
 		return ResponseEntity.notFound().build();
 }
-	
 	}
 	
+
+	
+	
+	//團購主的發起請求
 //	@PostMapping("/hostCreate")
 //	public ResponseEntity<GroupBuyVO>createGroupBuy
 //	(@RequestBody @Valid GroupBuyHostCreate hostCreate,
