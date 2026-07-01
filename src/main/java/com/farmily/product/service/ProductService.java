@@ -23,7 +23,7 @@ public interface ProductService {
 
 	List<ProductGroupBuyDTO> getAllGroupBuyProducts();
 	
-	ProductGroupBuyDTO getGroupBuyProductById(Integer ProductId);
+	ProductVO getGroupBuyProductById(Integer ProductId);
 
 	boolean addWishList(Integer productId, Integer userId);
 	
