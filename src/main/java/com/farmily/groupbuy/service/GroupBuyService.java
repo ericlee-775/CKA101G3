@@ -34,7 +34,10 @@ public class GroupBuyService {
 	// 團購主發起請求
 	
 	@Transactional
-	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
+
+	public void hostRequest(GroupBuyHostCreateDTO form,Integer productId,Integer hostUserId) {
+		
+
 		ProductVO product=productSvc.getGroupBuyProductById(productId);
 		if(product==null) {
 			throw new RuntimeException("查無此商品");
