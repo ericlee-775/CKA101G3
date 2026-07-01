@@ -76,8 +76,9 @@ public class ProductServiceImpl implements ProductService{
 	//給團購用的單筆查詢
 	@Override
 	@Transactional(readOnly = true)
-	public ProductGroupBuyDTO getGroupBuyProductById(Integer ProductId) {
-		return productRepository.findGroupBuyById(ProductId);
+	public ProductVO getGroupBuyProductById(Integer productId) {
+	    return productRepository.findById(productId)
+	                           .orElse(null);   // 找不到就回 null
 	}
 	@Override
 	public boolean addWishList(Integer productId, Integer userId) {
