@@ -29,7 +29,8 @@ export default defineConfig({
     // 這樣每個隊友 clone 下來路徑都一致,不必再各自改絕對路徑。
     outDir: '../src/main/resources/static/farmily-web',
     emptyOutDir: true, // 打包前自動清空舊檔案
-    assetsDir: 'static' // 讓 js/css 檔案統一放在 static 資料夾內
+    assetsDir: 'static', // 讓 js/css 檔案統一放在 static 資料夾內
+    cssMinify: false
   },
   //這是「開發模式」:npm run dev 時(前端跑在 5173),
   // 只要程式碼裡呼叫 /api/xxx,Vite 會幫你轉發到 http://localhost:8080,避免瀏覽器跨域(CORS)問題。
