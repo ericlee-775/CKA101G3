@@ -37,9 +37,7 @@ public class GroupBuyController {
 	
 	@GetMapping("/all")
 	public ResponseEntity<List<ProductGroupBuyDTO>> getAllGroupBuy() {
-
 	    List<ProductGroupBuyDTO> list = groupBuySvc.getConsumerGroupBuyList();
-
 	    return ResponseEntity.ok(list);
 	}
 
