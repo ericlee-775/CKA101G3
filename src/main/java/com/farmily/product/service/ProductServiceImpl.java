@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
@@ -68,6 +69,15 @@ public class ProductServiceImpl implements ProductService {
 	public ProductDetailDTO getProductDetail(Integer productId) {
 		return productRepository.findDetailById(productId);
 	}
+
+
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProductGroupBuyDTO> getAllGroupProducts() {
+		return productRepository.findGroupBuyProducts();
+	}
+	
 
 	@Override
 	public boolean addWishList(Integer productId, Integer userId) {
