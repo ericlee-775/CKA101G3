@@ -10,17 +10,24 @@ import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
+import com.farmily.product.model.WishListId;
+import com.farmily.product.model.WishListRepository;
+import com.farmily.product.model.WishListVO;
 
 @Service
 @Transactional   
 public class ProductServiceImpl implements ProductService{
+
 	@Autowired
 	private ProductRepository productRepository;
 	//取所有產品
+	@Autowired
+	private WishListRepository wishListRepository;
+
 	@Override
 	@Transactional(readOnly = true) 
 	public List<ProductSummeryDTO> getAllProducts() {
-	    return  productRepository.findAllProjectedToDto();
+		return productRepository.findAllProjectedToDto();
 	}
 	//存單筆產品
 	@Override
@@ -55,11 +62,54 @@ public class ProductServiceImpl implements ProductService{
 	public ProductDetailDTO getProductDetail(Integer productId) {
 		return productRepository.findDetailById(productId);
 	}
-
-	//給團購用的
+	//給團購用的全部查詢
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductGroupBuyDTO> getAllGroupProducts() {
+	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
 		return productRepository.findGroupBuyProducts();
+	}
+	//給團購用的單筆查詢
+	@Override
+	@Transactional(readOnly = true)
+	public ProductGroupBuyDTO getGroupBuyProductById(Integer ProductId) {
+		return productRepository.findGroupBuyById(ProductId);
+	}
+	@Override
+	public boolean addWishList(Integer productId, Integer userId) {
+
+		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
+
+			return false;
+		} else {
+
+			WishListVO wishListVO = new WishListVO();
+			wishListVO.setProductId(productId);
+			wishListVO.setUserId(userId);
+			wishListRepository.save(wishListVO);
+
+		}
+		return true;
+	}
+
+	@Override
+	public boolean deleteWishList(Integer productId, Integer userId) {
+
+		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
+			
+			WishListId id = new WishListId();
+			id.setProductId(productId);
+			id.setUserId(userId);
+			wishListRepository.deleteById(id);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProductSummeryDTO> getAllWishLists(Integer userId) {
+
+		return wishListRepository.findWishListByUserId(userId);
 	}
 }
