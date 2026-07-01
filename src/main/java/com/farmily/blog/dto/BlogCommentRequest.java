@@ -1,8 +1,12 @@
 package com.farmily.blog.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class BlogCommentRequest {
     private Integer blogId;
     private Integer userId;
+
+    @NotBlank(message = "檢舉原因不能空白")
     private String commentPost;
 
     public Integer getBlogId() {

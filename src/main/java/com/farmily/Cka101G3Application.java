@@ -8,6 +8,8 @@ public class Cka101G3Application {
 
 	public static void main(String[] args) {
 		SpringApplication.run(Cka101G3Application.class, args);
-	}
 
+	}
 }
+
+
