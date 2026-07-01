@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.farmily.groupbuy.model.GroupBuyHostCreate;
+import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.service.ProductService;
@@ -30,7 +30,7 @@ public class GroupBuyController {
 	@GetMapping("/{groupBuyId}")
 	public ResponseEntity<GroupBuyVO>getGroupBuy
 	(@PathVariable Integer groupBuyId){
-		GroupBuyVO groupBuy=groupBuySvc.getBuyGrouBuyId(groupBuyId);
+		GroupBuyVO groupBuy=groupBuySvc.getOneGroupBuyId(groupBuyId);
 		if(groupBuy!=null) {
 			return ResponseEntity.ok(groupBuy);
 		}else {
@@ -38,15 +38,15 @@ public class GroupBuyController {
 }
 	
 	}
-	
+	//等user寫好
 //	@PostMapping("/hostCreate")
 //	public ResponseEntity<GroupBuyVO>createGroupBuy
 //	(@RequestBody @Valid GroupBuyHostCreate hostCreate,
 //	 @RequestParam Integer productId,HttpSession session		){
-//		UserVO loginUser=(UserVO)session.getAttribute("userVO");
+//		UserVO loginUser=(UserVO)session.getAttribute("userId");
 //		Integer hostUserId=loginUser.getUserId();
 //		groupBuySvc.hostRequest(hostCreate, productId, hostUserId)
-//		return ResponseEntity.ok().build();
+//		return ResponseEntity.ok("成功送出申請");
 //	}
 	}
 
