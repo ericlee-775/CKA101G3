@@ -142,6 +142,9 @@ public class UserSecurityConfig {
     public SecurityFilterChain defaultChain(HttpSecurity http) throws Exception {
         return commonSetup(http)
                 .authorizeHttpRequests(request -> request
+                        // 前端靜態檔（Vue 打包輸出在 /farmily-web/ 子路徑）
+                        .requestMatchers("/farmily-web/**").permitAll()
+
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/admin.html", "/css/**", "/js/**", "/vendors/**", "/favicon.ico").permitAll()
                         .requestMatchers("/oauth-test.html").permitAll()        // OAuth2.0 測試用
