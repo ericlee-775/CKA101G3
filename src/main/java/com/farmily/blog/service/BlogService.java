@@ -29,7 +29,7 @@ public interface BlogService {
 
     Integer countBlogs(BlogQueryParms blogQueryParms);
 
-    List<BlogComment> getBlogComments(Integer blogId);
+    List<BlogCommentResponse> getBlogComments(Integer blogId);
 
     List<BlogPhotoResponse> getBlogPhotos(Integer blogId);
 
@@ -51,7 +51,7 @@ public interface BlogService {
     // toggle：回傳 true=這次變成已按讚，false=這次取消讚
     BlogResponse likeBlog(Integer blogId, Integer userId);
 
-    Integer addBlogComment(BlogCommentRequest blogComment);
+    BlogCommentResponse addBlogComment(BlogCommentRequest blogComment);
 
     BlogComment getBlogCommentsById(Integer commentId);
 

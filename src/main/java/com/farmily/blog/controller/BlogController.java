@@ -66,11 +66,9 @@ public class BlogController {
     }
 
     @GetMapping("/blogs/{blogId}/comments")
-    public ResponseEntity<List<BlogComment>> getBlogComments( @PathVariable Integer blogId)  {
+    public List<BlogCommentResponse> getBlogComments( @PathVariable Integer blogId)  {
 
-        List<BlogComment> comments = blogService.getBlogComments(blogId);
-
-        return ResponseEntity.ok(comments);
+        return blogService.getBlogComments(blogId);
     }
 
     @GetMapping("/blogs/{blogId}/photos")
@@ -171,14 +169,9 @@ public class BlogController {
 
 
     @PostMapping("/blogs/{blogId}/comments")
-    public ResponseEntity<BlogComment> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
+    public ResponseEntity<BlogCommentResponse> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
         request.setBlogId(blogId);
-
-        Integer commentId = blogService.addBlogComment(request);
-
-        BlogComment newComment = blogService.getBlogCommentsById(commentId);
-        //201
-        return ResponseEntity.status(HttpStatus.CREATED).body(newComment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.addBlogComment(request));
     }
 
     @DeleteMapping("/blogs/comments/{commentId}")
@@ -190,24 +183,17 @@ public class BlogController {
 
     //發送檢舉
     @PostMapping("/blogs/{blogId}/reports")
-    public ResponseEntity<BlogReport> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
-
-        Integer blogReportId = blogService.reportBlog(blogId , blogReportRequest);
-
-         BlogReport blogReport = blogService.getBlogReportById(blogReportId);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(blogReport);
+    public ResponseEntity<Void> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
+        blogService.reportBlog(blogId, blogReportRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
 
 
 
     @PostMapping("/comments/{commentId}/reports")
-    public ResponseEntity<BlogCommentReport> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
-        Integer reportCommentId = blogService.reportComment(commentId ,request);
-
-        BlogCommentReport reportComment = blogService.getCommentReportById(reportCommentId);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(reportComment);
+    public ResponseEntity<Void> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
+        blogService.reportComment(commentId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
 
 

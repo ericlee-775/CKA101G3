@@ -4,13 +4,13 @@ import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
 import com.farmily.blog.service.BlogService;
+import com.farmily.blog.util.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import com.farmily.blog.util.Page;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,8 +77,13 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public List<BlogComment> getBlogComments(Integer blogId) {
-        return blogDao.getBlogComments(blogId);
+    public List<BlogCommentResponse> getBlogComments(Integer blogId) {
+        List<BlogComment> comments = blogDao.getBlogComments(blogId);
+        List<BlogCommentResponse> result = new ArrayList<>();
+        for (BlogComment comment : comments) {
+            result.add(BlogCommentResponse.from(comment));
+        }
+        return result;
     }
 
     @Override
@@ -222,16 +227,16 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public Integer addBlogComment(BlogCommentRequest blogComment) {
+    public BlogCommentResponse addBlogComment(BlogCommentRequest blogComment) {
         Integer userId = blogComment.getUserId();
         Integer blogId = blogComment.getBlogId();
 
         if(userId == null ||     blogId == null) {
             throw new IllegalArgumentException("使用者和文章不能為NULL");
         }
-
-
-        return blogDao.addComment(blogComment);
+        Integer commentId = blogDao.addComment(blogComment); //建立
+        BlogComment newComment = blogDao.getBlogCommentById(commentId); //撈出剛建立的
+        return BlogCommentResponse.from(newComment); //轉DTO
     }
 
     @Override
