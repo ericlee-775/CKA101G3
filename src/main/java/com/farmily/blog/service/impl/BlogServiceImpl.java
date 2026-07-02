@@ -5,9 +5,14 @@ import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
 import com.farmily.blog.service.BlogService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -49,8 +54,14 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public List<BlogPhoto> getBlogPhotos(Integer blogId) {
-        return blogDao.getBlogPhotos(blogId);
+    public List<BlogPhotoResponse> getBlogPhotos(Integer blogId) {
+        List<BlogPhoto> photos = blogDao.getBlogPhotos(blogId);
+
+        List<BlogPhotoResponse> result = new ArrayList<>();        // 空清單，準備裝 DTO
+        for (BlogPhoto photo : photos) {                          // 每一張 photo
+            result.add(BlogPhotoResponse.from(photo));           // 翻成 DTO，放進清單
+        }
+        return result;
     }
 
     @Override
@@ -113,8 +124,33 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public void addBlogPhotos(Integer blogId, List<byte[]> photoList) {
+    public List<BlogPhotoResponse> addBlogPhotos(Integer blogId, List<MultipartFile> files) throws IOException {
+        //文章存在檢查
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
+        // 2. 逐檔驗證，並轉成 byte[]
+        List<byte[]> photoList = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;   // 空檔跳過
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "只能上傳圖片");
+            }
+            photoList.add(file.getBytes());
+        }
+        if (photoList.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "沒有有效的圖片檔");
+        }
+
+        //存進資料庫
         blogDao.addBlogPhotos(blogId, photoList);
+
+        //回傳DTO
+        return getBlogPhotos(blogId);
 
     }
 

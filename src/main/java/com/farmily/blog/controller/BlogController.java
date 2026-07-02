@@ -91,9 +91,9 @@ public class BlogController {
     }
 
     @GetMapping("/blogs/{blogId}/photos")
-    public ResponseEntity<List<BlogPhoto>> getBlogPhotos(@PathVariable Integer blogId) {
+    public ResponseEntity<List<BlogPhotoResponse>> getBlogPhotos(@PathVariable Integer blogId) {
 
-        List<BlogPhoto> blogPhotos = blogService.getBlogPhotos(blogId);
+        List<BlogPhotoResponse> blogPhotos = blogService.getBlogPhotos(blogId);
 
         return ResponseEntity.ok(blogPhotos);
     }
@@ -178,34 +178,11 @@ public class BlogController {
 
     // 上傳照片集 (批次上傳多張)
     @PostMapping("/blogs/{blogId}/photos")
-    public ResponseEntity<List<BlogPhoto>> uploadPhotos(
+    public ResponseEntity<List<BlogPhotoResponse>> uploadPhotos(
             @PathVariable Integer blogId,
             @RequestParam("files") List<MultipartFile> files) throws IOException {
-
-        Blog blog = blogService.getBlogById(blogId);
-
-        if(blog == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-
-        List<byte[]> photoList = new ArrayList<>();
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;   // 跳過空檔
-            }
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();   // 非圖片擋掉
-            }
-            photoList.add(file.getBytes());   // MultipartFile → byte[]
-        }
-        if (photoList.isEmpty()) {
-            return ResponseEntity.badRequest().build();   // 沒有任何有效檔案
-        }
-        blogService.addBlogPhotos(blogId, photoList);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.getBlogPhotos(blogId));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(blogService.addBlogPhotos(blogId, files));
     }
 
 

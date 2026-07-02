@@ -1,8 +1,13 @@
 package com.farmily.blog.service;
 
 import com.farmily.blog.dto.*;
-import com.farmily.blog.model.*;
+import com.farmily.blog.model.Blog;
+import com.farmily.blog.model.BlogComment;
+import com.farmily.blog.model.BlogCommentReport;
+import com.farmily.blog.model.BlogReport;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -21,7 +26,7 @@ public interface BlogService {
 
     List<BlogComment> getBlogComments(Integer blogId);
 
-    List<BlogPhoto> getBlogPhotos(Integer blogId);
+    List<BlogPhotoResponse> getBlogPhotos(Integer blogId);
 
     byte[] getPhotoBytes(Integer photoId);
 
@@ -33,7 +38,7 @@ public interface BlogService {
 
     void deleteBlog(Integer blogId);
 
-    void addBlogPhotos(Integer blogId, List<byte[]> photoList);
+    List<BlogPhotoResponse> addBlogPhotos(Integer blogId, List<MultipartFile> file) throws IOException;
 
     void deletePhoto(Integer photoId);
 
