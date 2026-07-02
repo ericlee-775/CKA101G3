@@ -3,7 +3,6 @@ package com.farmily.groupbuy.service;
 import java.sql.Timestamp;
 import java.util.List;
 
-import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -18,44 +17,44 @@ import com.farmily.groupbuy.model.RequestStatus;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductServiceImpl;
+import com.farmily.user.model.User;
+import com.farmily.user.repository.UserRepository;
 
-@Component
+
 @Service
 public class GroupBuyService {
 	@Autowired
 	GroupBuyRepository repository;
-	
+
 	@Autowired
 	ProductServiceImpl productSvc;
-	
+
 	@Autowired
-    private SessionFactory sessionFactory;
-
-
+	UserRepository userRepository;
 
 	// 團購主發起請求
-	
 	@Transactional
+	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
 
-	public void hostRequest(GroupBuyHostCreateDTO form,Integer productId,Integer hostUserId) {
-		
-
-		ProductVO product=productSvc.getGroupBuyProductById(productId);
-		if(product==null) {
+		ProductVO product = productSvc.getGroupBuyProductById(productId);
+		if (product == null) {
 			throw new RuntimeException("查無此商品");
-		} // 防止有人更改網址
+		}
+
+		User hostUser = userRepository.findById(hostUserId).orElseThrow(() -> new RuntimeException("查無此會員"));
 		GroupBuyVO groupBuyVO = new GroupBuyVO();
-		groupBuyVO.setHostUserId(hostUserId);
+		groupBuyVO.setHostUser(hostUser);
 		groupBuyVO.setProduct(product);
 		groupBuyVO.setTargetAmount(form.getTargetAmount());
 		groupBuyVO.setOpenDatetime(form.getOpenDatetime());
 		groupBuyVO.setDdlDatetime(form.getDdlDatetime());
 		groupBuyVO.setPickupAddress(form.getPickupAddress());
-		// 以下為系統預設
+		// 系統預設
 		groupBuyVO.setRequestStatus(RequestStatus.pending);
 		groupBuyVO.setStatus(GroupBuyStatus.pending);
 		groupBuyVO.setRequestDatetime(new Timestamp(System.currentTimeMillis()));
 		groupBuyVO.setGroupPrice(product.getGroupPrice());
+
 		repository.save(groupBuyVO);
 	}
 
@@ -79,7 +78,7 @@ public class GroupBuyService {
 		if (requestStatus == RequestStatus.approved) {
 			groupBuyVO.setCreatedAt(now);
 			groupBuyVO.setRejectReason(null);
-			groupBuyVO.setStatus(GroupBuyStatus.pending);
+			groupBuyVO.setStatus(GroupBuyStatus.open);
 		} else if (requestStatus == RequestStatus.rejected) {
 			groupBuyVO.setRejectReason(rejectReason);
 			groupBuyVO.setStatus(GroupBuyStatus.cancelled);
@@ -87,13 +86,13 @@ public class GroupBuyService {
 		repository.save(groupBuyVO);
 	}
 
-	//查資料庫的 GroupBuyVO->轉成前端要看的 GroupBuyFarmerDTO->回傳給小農頁面(把資料庫查到的 GroupBuyVO 清單，轉成前端要看的 GroupBuyFarmerDTO 清單)
-	@Transactional(readOnly=true)
+	//給小農前台查看團購清單用
+	// 查資料庫的 GroupBuyVO->轉成前端要看的 GroupBuyFarmerDTO->回傳給小農頁面(把資料庫查到的 GroupBuyVO清單，轉成前端要看的 GroupBuyFarmerDTO 清單)
+	@Transactional(readOnly = true)
 	public List<GroupBuyFarmerDTO> showGroupBuyList(Integer farmerId) {
 		List<GroupBuyVO> list = repository.findByProduct_FarmerId(farmerId);
-		return list.stream()
-				.map(gb -> new GroupBuyFarmerDTO(gb.getGroupBuyId(), gb.getProduct().getProductId(),
-						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUserId(),
+		return list.stream().map(gb -> new GroupBuyFarmerDTO(gb.getGroupBuyId(), gb.getProduct().getProductId(),
+						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUser().getUserId(),
 						gb.getTargetAmount(), gb.getOpenDatetime(), gb.getDdlDatetime(), gb.getPickupAddress(),
 						gb.getRequestStatus(), gb.getStatus(), gb.getRequestDatetime(), gb.getReplyDatetime(),
 						gb.getRejectReason()))
@@ -107,20 +106,16 @@ public class GroupBuyService {
 	public GroupBuyVO getOneGroupBuyId(Integer groupBuyId) {
 		return repository.findById(groupBuyId).orElse(null);
 	}
-
-	public List<ProductGroupBuyDTO>  getConsumerGroupBuyList() {
-		List<GroupBuyVO>groupBuyList=repository.findByRequestStatus(RequestStatus.approved,GroupBuyStatus.open);
-		return groupBuyList.stream().map(groupBuy ->new ProductGroupBuyDTO(
-		        groupBuy.getGroupBuyId(),
-                groupBuy.getProduct().getProductId(),
-                groupBuy.getProduct().getProductName(),
-                groupBuy.getGroupPrice(),
-                groupBuy.getTargetAmount(),
-                groupBuy.getOpenDatetime(),
-                groupBuy.getDdlDatetime(),
-                groupBuy.getPickupAddress(),
-                groupBuy.getStatus())).toList();
+	
+	
+	//顯示可團購之商品
+	public List<ProductGroupBuyDTO> getConsumerGroupBuyList() {
+		List<GroupBuyVO> groupBuyList = repository.findByRequestStatus(RequestStatus.approved, GroupBuyStatus.open);
+		return groupBuyList.stream()
+				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
+						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
+						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
+						groupBuy.getStatus()))
+				.toList();
 	}
-//Integer productId, String productName, Integer groupPrice, String unitPricingMeasure,
-	//String description, Integer subCatClassId, String subCatClassName
 }
