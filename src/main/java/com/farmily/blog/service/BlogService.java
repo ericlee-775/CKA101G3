@@ -5,6 +5,7 @@ import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogCommentReport;
 import com.farmily.blog.model.BlogReport;
+import com.farmily.blog.util.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -17,6 +18,10 @@ public interface BlogService {
     List<BlogTypeResponse> listTypes();
 
     List<Blog> getAll();
+
+    Page<BlogResponse> getBlogPage(BlogQueryParms parms);
+
+    BlogResponse getBlogDetail(Integer blogId);
 
     Blog getBlogById(Integer id);
 
@@ -32,9 +37,9 @@ public interface BlogService {
 
     /* ===== 寫作(會員) ===== */
 
-    Integer createBlog(BlogRequest blogRequest);
+    BlogResponse createBlog(BlogRequest blogRequest);
 
-    void updateBlog(Integer blogId , BlogRequest blogRequest);
+    BlogResponse updateBlog(Integer blogId , BlogRequest blogRequest);
 
     void deleteBlog(Integer blogId);
 
@@ -44,7 +49,7 @@ public interface BlogService {
 
     /* ===== 互動 ===== */
     // toggle：回傳 true=這次變成已按讚，false=這次取消讚
-    boolean likeBlog(Integer blogId, Integer userId);
+    BlogResponse likeBlog(Integer blogId, Integer userId);
 
     Integer addBlogComment(BlogCommentRequest blogComment);
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import com.farmily.blog.util.Page;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,6 +32,33 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public List<Blog> getAll() {
         return blogDao.getAll();
+    }
+
+    @Override
+    public Page<BlogResponse> getBlogPage(BlogQueryParms parms) {
+        List<Blog> blogList = blogDao.getBlogs(parms);      // dao 撈這頁的 entity
+        Integer total = blogDao.countBlogs(parms);          // dao 算總數
+
+        List<BlogResponse> results = new ArrayList<>();     // entity → DTO
+        for (Blog b : blogList) {
+            results.add(BlogResponse.from(b));
+        }
+
+        Page<BlogResponse> page = new Page<>();             // 組分頁物件
+        page.setLimit(parms.getLimit());
+        page.setOffset(parms.getOffset());
+        page.setTotal(total);
+        page.setResults(results);
+        return page;
+    }
+
+    @Override
+    public BlogResponse getBlogDetail(Integer blogId) {
+       Blog blog = blogDao.getBlogById(blogId); //dao 撈entity
+       if(blog != null) {
+           throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文張不存在：" + blogId);
+       }
+        return BlogResponse.from(blog); //轉成 DTO回去
     }
 
     @Override
@@ -73,7 +101,7 @@ public class BlogServiceImpl implements BlogService {
     private static final Integer FARMBLOGTYPEID = 1;
 
     @Override
-    public Integer createBlog(BlogRequest blogRequest) {
+    public BlogResponse createBlog(BlogRequest blogRequest) {
 
         Integer farmerId   = blogRequest.getFarmerId();
         Integer userId     = blogRequest.getUserId();
@@ -103,12 +131,24 @@ public class BlogServiceImpl implements BlogService {
             }
         }
 
-        return blogDao.createBlog(blogRequest);
+        Integer blogId = blogDao.createBlog(blogRequest);   // dao 建立，回 id
+        Blog blog = blogDao.getBlogById(blogId);            // 撈出剛建立的 entity
+        return BlogResponse.from(blog);
     }
 
     @Override
-    public void updateBlog(Integer blogId, BlogRequest blogRequest) {
+    public BlogResponse updateBlog(Integer blogId, BlogRequest blogRequest) {
+
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
+        // 前端沒選新圖 → blogImg 是 null → 沿用 DB 裡的舊圖
+        if (blogRequest.getBlogImg() == null) {
+            blogRequest.setBlogImg(blog.getBlogImg());
+        }
         blogDao.updateBlog(blogId, blogRequest);
+        return BlogResponse.from(blogDao.getBlogById(blogId));   // 回更新後的圖
     }
 
     @Override
@@ -164,18 +204,21 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Transactional
-    public boolean likeBlog(Integer blogId, Integer userId) {
+    public BlogResponse likeBlog(Integer blogId, Integer userId) {
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
         if (blogDao.existsLike(blogId, userId)) {
             // 已經按過 → 取消讚
             blogDao.deleteLike(blogId, userId);
             blogDao.decreaseLikeCount(blogId);
-            return false;
         } else {
             // 還沒按過 → 按讚
             blogDao.insertLike(blogId, userId);
             blogDao.increaseLikeCount(blogId);
-            return true;
         }
+        return BlogResponse.from(blogDao.getBlogById(blogId));
     }
 
     @Override

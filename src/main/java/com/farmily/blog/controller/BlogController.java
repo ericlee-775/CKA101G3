@@ -37,7 +37,7 @@ public class BlogController {
     public List<BlogTypeResponse> types() {return blogService.listTypes();}
 
     @GetMapping("/blogs")
-    public ResponseEntity<Page<Blog>> getBlogAll(
+    public Page<BlogResponse> getBlogAll(
             //查詢條件
             @RequestParam(required = false) Integer blogTypeId,
             @RequestParam(required = false) String search,
@@ -48,38 +48,21 @@ public class BlogController {
             @RequestParam(defaultValue = "5") @Max(1000) @Min(0) Integer limit,
             @RequestParam(defaultValue = "0") @Min(0) Integer offset
     ) {
-        BlogQueryParms blogQueryParms = new BlogQueryParms();
-        blogQueryParms.setBlogTypeId(blogTypeId);
-        blogQueryParms.setSearch(search);
-        blogQueryParms.setOrderBy(orderBy);
-        blogQueryParms.setSort(sort);
-        blogQueryParms.setLimit(limit);
-        blogQueryParms.setOffset(offset);
+        BlogQueryParms parms = new BlogQueryParms();   // 把 request 參數組成查詢物件（輸入對應，留 controller OK）
+        parms.setBlogTypeId(blogTypeId);
+        parms.setSearch(search);
+        parms.setOrderBy(orderBy);
+        parms.setSort(sort);
+        parms.setLimit(limit);
+        parms.setOffset(offset);
 
-        List<Blog> blogList = blogService.getBlogs(blogQueryParms);
-
-        Integer total = blogService.countBlogs(blogQueryParms);
-
-        Page<Blog> page = new Page<>();
-        page.setLimit(limit);
-        page.setOffset(offset);
-        page.setTotal(total);
-        page.setResults(blogList);
-
-        return ResponseEntity.status(HttpStatus.OK).body(page);
+        return blogService.getBlogPage(parms);         // 查詢/算總數/組Page/轉DTO 全在 service
     }
 
     @GetMapping("/blogs/{blogId}")
-    public ResponseEntity<Blog> getBlogOne(@PathVariable Integer blogId) {
+    public BlogResponse getBlogOne(@PathVariable Integer blogId) {
         //從service 去抓blogId
-        Blog blog = blogService.getBlogById(blogId);
-
-        if (blog != null) {
-            return ResponseEntity.status(HttpStatus.OK).body(blog);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
+       return blogService.getBlogDetail(blogId);
     }
 
     @GetMapping("/blogs/{blogId}/comments")
@@ -118,34 +101,15 @@ public class BlogController {
     /* ===== 寫作(會員) ===== */
 
     @PostMapping(value = "/blogs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Blog> createBlog(@ModelAttribute @Valid BlogRequest blogRequest) {
+    public ResponseEntity<BlogResponse> createBlog(@ModelAttribute @Valid BlogRequest blogRequest) {
 
-       Integer BlogId = blogService.createBlog(blogRequest);
-
-        Blog newBlog = blogService.getBlogById(BlogId);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(newBlog);
-
-
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.createBlog(blogRequest));
     }
 
     @PutMapping(value ="/blogs/{blogId}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Blog> updateBlog(@PathVariable Integer blogId, @ModelAttribute @Valid BlogRequest blogRequest) {
-       Blog blog = blogService.getBlogById(blogId);
+    public BlogResponse updateBlog(@PathVariable Integer blogId, @ModelAttribute @Valid BlogRequest blogRequest) {
 
-       if(blog == null) {
-           return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-       }
-        // 前端沒選新檔 → blogImg 會是 null → 沿用 DB 裡的舊圖
-        if(blogRequest.getBlogImg() == null) {
-            blogRequest.setBlogImg(blog.getBlogImg());
-        }
-
-       blogService.updateBlog(blogId, blogRequest);
-
-        Blog updateBlog = blogService.getBlogById(blogId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(updateBlog);
+        return blogService.updateBlog(blogId, blogRequest);
 
     }
 
@@ -199,18 +163,10 @@ public class BlogController {
 
     /* ===== 互動 ===== */
     @PostMapping("/blogs/{blogId}/like")
-    public ResponseEntity<Blog> likeBlog(@PathVariable Integer blogId,
+    public BlogResponse likeBlog(@PathVariable Integer blogId,
                                          @RequestParam Integer userId) {
         // TODO: 之後登入做好，userId 改成從 token 解析，不再由前端傳
-        Blog blog = blogService.getBlogById(blogId);
-
-        if (blog == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        blogService.likeBlog(blogId, userId);
-
-        return ResponseEntity.ok(blogService.getBlogById(blogId));
+        return blogService.likeBlog(blogId, userId);
     }
 
 
