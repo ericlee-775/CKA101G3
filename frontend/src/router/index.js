@@ -13,6 +13,7 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import FarmerLoginView from '@/views/FarmerLoginView.vue'
 import FarmerRegisterView from '@/views/FarmerRegisterView.vue'
+import FarmGameView from '@/views/FarmGameView.vue'
 
 const router = createRouter({
   // import.meta.env.BASE_URL 會自動讀 vite.config.js 的 base，
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/blogs',       name: 'blogs',      component: BlogsView },
     { path: '/farm-trips',  name: 'farm-trips', component: FarmTripsView },
     { path: '/farm-map',    name: 'farm-map',   component: FarmMapView },
+    { path: '/farm-game',   name: 'farm-game',  component: FarmGameView },
     { path: '/login',       name: 'login',      component: LoginView },
     { path: '/register',    name: 'register',   component: RegisterView },
     // 小農系統:與一般會員登入(/login、/register)分開的獨立入口
