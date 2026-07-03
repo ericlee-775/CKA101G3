@@ -43,8 +43,6 @@ public class GroupBuyController {
 			return ResponseEntity.notFound().build();
 		}
 	}
-	
-
 
 	// 一般消費者看的全部的可以團購清單
 	@GetMapping("/all")
@@ -61,19 +59,13 @@ public class GroupBuyController {
 		groupBuySvc.hostRequest(hostCreate, productId, hostUserId);
 		return ResponseEntity.ok("申請完成");
 	}
-	
-	//小農審核團購
+
+	// 小農審核團購
 	@PostMapping("/farmerResponse/{groupBuyId}")
-	public ResponseEntity<String> farmerResponse(
-	        @PathVariable Integer groupBuyId,
-	        @RequestBody @Valid GroupBuyReviewDTO farmerRes) {
-	    groupBuySvc.reviewGroupBuy(
-	            groupBuyId,
-	            farmerRes.getRequestStatus(),
-	            farmerRes.getRejectReason()
-	    );
-	    return ResponseEntity.ok("審核完成");
+	public ResponseEntity<String> farmerResponse(@PathVariable Integer groupBuyId,
+			@RequestBody @Valid GroupBuyReviewDTO farmerRes) {
+		groupBuySvc.reviewGroupBuy(groupBuyId, farmerRes.getRequestStatus(), farmerRes.getRejectReason());
+		return ResponseEntity.ok("審核完成");
 	}
-	
-	
+
 }
