@@ -1,75 +1,138 @@
 package com.farmily.product.dto;
 
-public class ProductGroupBuyDTO {
-	 private Integer productId;
-	 private String productName;
-	 private Integer groupPrice;
-	 private String unitPricingMeasure;
-	 private String description;
-	 private Integer subCatClassId;      // 子分類 id
-	 private String subCatClassName;     // 子分類名稱（給詳情頁直接顯示）
-	 
-	 
-	 public ProductGroupBuyDTO() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
-	 
-	 public ProductGroupBuyDTO(Integer productId, String productName, Integer groupPrice, String unitPricingMeasure,
-			String description, Integer subCatClassId, String subCatClassName) {
-		super();
-		this.productId = productId;
-		this.productName = productName;
-		this.groupPrice = groupPrice;
-		this.unitPricingMeasure = unitPricingMeasure;
-		this.description = description;
-		this.subCatClassId = subCatClassId;
-		this.subCatClassName = subCatClassName;
-	}
+import java.sql.Timestamp;
 
-	 public Integer getProductId() {
-		 return productId;
-	 }
-	 public void setProductId(Integer productId) {
-		 this.productId = productId;
-	 }
-	 public String getProductName() {
-		 return productName;
-	 }
-	 public void setProductName(String productName) {
-		 this.productName = productName;
-	 }
-	 public Integer getGroupPrice() {
-		 return groupPrice;
-	 }
-	 public void setGroupPrice(Integer groupPrice) {
-		 this.groupPrice = groupPrice;
-	 }
-	 public String getUnitPricingMeasure() {
-		 return unitPricingMeasure;
-	 }
-	 public void setUnitPricingMeasure(String unitPricingMeasure) {
-		 this.unitPricingMeasure = unitPricingMeasure;
-	 }
-	 public String getDescription() {
-		 return description;
-	 }
-	 public void setDescription(String description) {
-		 this.description = description;
-	 }
-	 public Integer getSubCatClassId() {
-		 return subCatClassId;
-	 }
-	 public void setSubCatClassId(Integer subCatClassId) {
-		 this.subCatClassId = subCatClassId;
-	 }
-	 public String getSubCatClassName() {
-		 return subCatClassName;
-	 }
-	 public void setSubCatClassName(String subCatClassName) {
-		 this.subCatClassName = subCatClassName;
-	 }
+import com.farmily.groupbuy.model.GroupBuyStatus;
+
+public class ProductGroupBuyDTO {
+	 private Integer groupBuyId;
+	    private Integer productId;
+	    private String productName;
+	    private Integer groupPrice;
+	    private Integer targetAmount;
+	    private Timestamp openDatetime;
+	    private Timestamp ddlDatetime;
+	    private String pickupAddress;
+	    private GroupBuyStatus status;
+	    private String unitPricingMeasure;
+	    private String description;
+	    private Integer subCatClassId;
+	    private String subCatClassName;
+	    public ProductGroupBuyDTO(
+	            Integer productId,
+	            String productName,
+	            Integer groupPrice,
+	            String unitPricingMeasure,
+	            String description,
+	            Integer subCatClassId,
+	            String subCatClassName) {
+	        this.productId = productId;
+	        this.productName = productName;
+	        this.groupPrice = groupPrice;
+	        this.unitPricingMeasure = unitPricingMeasure;
+	        this.description = description;
+	        this.subCatClassId = subCatClassId;
+	        this.subCatClassName = subCatClassName;
+	    }
+		public String getUnitPricingMeasure() {
+			return unitPricingMeasure;
+		}
+		public void setUnitPricingMeasure(String unitPricingMeasure) {
+			this.unitPricingMeasure = unitPricingMeasure;
+		}
+		public String getDescription() {
+			return description;
+		}
+		public void setDescription(String description) {
+			this.description = description;
+		}
+		public Integer getSubCatClassId() {
+			return subCatClassId;
+		}
+		public void setSubCatClassId(Integer subCatClassId) {
+			this.subCatClassId = subCatClassId;
+		}
+		public String getSubCatClassName() {
+			return subCatClassName;
+		}
+		public void setSubCatClassName(String subCatClassName) {
+			this.subCatClassName = subCatClassName;
+		}
+		public ProductGroupBuyDTO() {
+			super();
+			// TODO Auto-generated constructor stub
+		}
+		public Integer getGroupBuyId() {
+			return groupBuyId;
+		}
+		public void setGroupBuyId(Integer groupBuyId) {
+			this.groupBuyId = groupBuyId;
+		}
+		public Integer getProductId() {
+			return productId;
+		}
+		public void setProductId(Integer productId) {
+			this.productId = productId;
+		}
+		public String getProductName() {
+			return productName;
+		}
+		public void setProductName(String productName) {
+			this.productName = productName;
+		}
+		public Integer getGroupPrice() {
+			return groupPrice;
+		}
+		public void setGroupPrice(Integer groupPrice) {
+			this.groupPrice = groupPrice;
+		}
+		public Integer getTargetAmount() {
+			return targetAmount;
+		}
+		public void setTargetAmount(Integer targetAmount) {
+			this.targetAmount = targetAmount;
+		}
+		public Timestamp getOpenDatetime() {
+			return openDatetime;
+		}
+		public void setOpenDatetime(Timestamp openDatetime) {
+			this.openDatetime = openDatetime;
+		}
+		public Timestamp getDdlDatetime() {
+			return ddlDatetime;
+		}
+		public void setDdlDatetime(Timestamp ddlDatetime) {
+			this.ddlDatetime = ddlDatetime;
+		}
+		public String getPickupAddress() {
+			return pickupAddress;
+		}
+		public void setPickupAddress(String pickupAddress) {
+			this.pickupAddress = pickupAddress;
+		}
+		public GroupBuyStatus getStatus() {
+			return status;
+		}
+		public void setStatus(GroupBuyStatus status) {
+			this.status = status;
+		}
+		public ProductGroupBuyDTO(Integer groupBuyId, Integer productId, String productName, Integer groupPrice,
+				Integer targetAmount, Timestamp openDatetime, Timestamp ddlDatetime, String pickupAddress,
+				GroupBuyStatus status) {
+			super();
+			this.groupBuyId = groupBuyId;
+			this.productId = productId;
+			this.productName = productName;
+			this.groupPrice = groupPrice;
+			this.targetAmount = targetAmount;
+			this.openDatetime = openDatetime;
+			this.ddlDatetime = ddlDatetime;
+			this.pickupAddress = pickupAddress;
+			this.status = status;
+		}
 	 
+	 
+	
 	 
  
 }
