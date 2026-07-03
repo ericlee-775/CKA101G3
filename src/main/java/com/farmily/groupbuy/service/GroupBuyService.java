@@ -9,9 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.farmily.groupbuy.model.GroupBuyFarmerDTO;
 import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
+import com.farmily.groupbuy.model.GroupBuyParticipationRepository;
+import com.farmily.groupbuy.model.GroupBuyParticipationVO;
 import com.farmily.groupbuy.model.GroupBuyRepository;
+import com.farmily.groupbuy.model.GroupBuyShowToUserJoinDTO;
 import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.model.GroupBuyVO;
+import com.farmily.groupbuy.model.JoinStatus;
 import com.farmily.groupbuy.model.RequestStatus;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.model.ProductVO;
@@ -29,16 +33,39 @@ public class GroupBuyService {
 
 	@Autowired
 	UserRepository userRepository;
-
 	
-//	public void joinGroupBuy(Integer groupBuyId,Integer productId,Integer buyQty) {
-//		ProductVO product=productSvc.getGroupBuyProductById(productId);
-//		if(product==null) {
-//			throw new RuntimeException("查無此商品");
-//			
-//		}
+	@Autowired
+	GroupBuyParticipationRepository  participationRepository;
+	
+	
+	//加入團購
+	@Transactional
+	public void joinGroupBuy(GroupBuyShowToUserJoinDTO form,Integer groupBuyId,Integer userId) {
+		GroupBuyVO groupBuyVO=repository.findById(groupBuyId).orElseThrow(()->new RuntimeException("查無此團購"));
+		GroupBuyParticipationVO groupBuyParticipationVO=new GroupBuyParticipationVO();
+		if (form.getBuyQty()==null||form.getBuyQty()<=0) {
+				throw new RuntimeException("請輸入正確的購買數量");
+			}
+		User user = userRepository.findById(userId)
+	            .orElseThrow(() -> new RuntimeException("查無此會員"));
+
+		if(participationRepository.existsByGroupBuyIdAndUserId(groupBuyVO,user)) {
+			throw new RuntimeException("您已參加過此團購");
+		}
+		boolean isHost=groupBuyVO.getHostUser().getUserId().equals(userId);//從團購主表當中判斷是否為團購主
+		Integer paidAmount=(form.getBuyQty()*groupBuyVO.getGroupPrice());
+		Timestamp now=new Timestamp(System.currentTimeMillis());
+		groupBuyParticipationVO.setBuyQty(form.getBuyQty());
+		groupBuyParticipationVO.setUserId(user);
+		groupBuyParticipationVO.setGroupBuyId(groupBuyVO);
+		groupBuyParticipationVO.setJoinDatetime(now);
+		groupBuyParticipationVO.setJoinStatus(JoinStatus.active);
+		groupBuyParticipationVO.setPaidAmount(paidAmount);
+		groupBuyParticipationVO.setPaidDatetime(now);
+		groupBuyParticipationVO.setHost(isHost);
 		
-//	}
+		participationRepository.save(groupBuyParticipationVO);
+	}
 	// 團購主發起請求
 	@Transactional
 	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
