@@ -14,7 +14,7 @@ public interface GroupBuyRepository extends JpaRepository<GroupBuyVO, Integer> {
 //	@Query(value = "delete from emp3 where empno =?1", nativeQuery = true)
 //	void deleteByEmpno(int empno);
 //	
-
+	
 	List<GroupBuyVO> findByProduct_FarmerId(Integer farmerId);
 	List<GroupBuyVO> findByRequestStatus(RequestStatus requestStatus,GroupBuyStatus groupBuyStatus);
 //	
