@@ -1,9 +1,35 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import authStore from '@/stores/auth'
+import authApi from '@/api/auth'
+
+const router = useRouter()
 
 // 控制手機版選單的開合：點 ☰ 切換 true/false，
 // 在 <nav> 上用 :class 綁定，true 時才把選單展開。
 const isMenuOpen = ref(false)
+
+// 依身分決定「個人中心」連結
+const accountLink = computed(() => (authStore.isFarmer ? '/farmer/me' : '/member/me'))
+
+// 顯示名稱：會員用 userName、小農用 farmName，都沒有就退回 email
+const displayName = computed(() => {
+  const u = authStore.state.user
+  if (!u) return ''
+  return u.userName || u.farmName || u.email || '我的帳號'
+})
+
+// 登出：打後端清 session，再清前端狀態，導回首頁
+async function logout() {
+  try {
+    await authApi.logout()
+  } catch {
+    // 忽略錯誤，前端狀態仍要清掉
+  }
+  authStore.clear()
+  router.push('/')
+}
 </script>
 
 <template>
@@ -46,10 +72,19 @@ const isMenuOpen = ref(false)
       <router-link class="nav-link" to="/farm-map">產地地圖</router-link>
       <router-link class="nav-link" to="/farm-game">小農遊戲</router-link>
 
-      <!-- 右側使用者區：登入（外框）+ 註冊（實心），之後登入後可換成會員選單 -->
+      <!-- 右側使用者區：未登入顯示 登入/註冊；已登入顯示 個人中心 + 登出 -->
       <div class="user-zone">
-        <router-link class="login-btn" to="/login">登入</router-link>
-        <router-link class="register-btn" to="/register">註冊</router-link>
+        <template v-if="authStore.isLoggedIn">
+          <router-link class="account-btn" :to="accountLink">
+            <span class="account-avatar">👤</span>
+            <span class="account-name">{{ displayName }}</span>
+          </router-link>
+          <button class="logout-btn" type="button" @click="logout">登出</button>
+        </template>
+        <template v-else>
+          <router-link class="login-btn" to="/login">登入</router-link>
+          <router-link class="register-btn" to="/register">註冊</router-link>
+        </template>
       </div>
     </nav>
   </header>
@@ -177,6 +212,54 @@ const isMenuOpen = ref(false)
 .register-btn:hover {
   background: var(--leaf-dark);
   border-color: var(--leaf-dark);
+}
+
+/* 已登入：個人中心膠囊 + 登出 */
+.account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--leaf);
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  max-width: 180px;
+  transition: background 0.18s ease;
+}
+.account-btn:hover {
+  background: var(--leaf);
+  color: #fff;
+}
+.account-avatar {
+  font-size: 15px;
+  line-height: 1;
+}
+.account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+.logout-btn:hover {
+  border-color: #c0392b;
+  color: #c0392b;
 }
 
 /* ========== 響應式（窄螢幕 ≤ 820px） ========== */

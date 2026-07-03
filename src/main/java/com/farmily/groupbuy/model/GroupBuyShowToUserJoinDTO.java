@@ -4,11 +4,18 @@ import java.sql.Timestamp;
 
 public class GroupBuyShowToUserJoinDTO {
 	
+	private Integer buyQty;
 	private String productName;
 	private Integer target;
 	private Integer groupPrice;
 	private Timestamp ddlDatetime;
 	private String pickupAddress;//前端顯示為貨到時的取件地址
+	public Integer getBuyQty() {
+		return buyQty;
+	}
+	public void setBuyQty(Integer buyQty) {
+		this.buyQty = buyQty;
+	}
 	public String getProductName() {
 		return productName;
 	}
@@ -39,9 +46,10 @@ public class GroupBuyShowToUserJoinDTO {
 	public void setPickupAddress(String pickupAddress) {
 		this.pickupAddress = pickupAddress;
 	}
-	public GroupBuyShowToUserJoinDTO(String productName, Integer target, Integer groupPrice, Timestamp ddlDatetime,
-			String pickupAddress) {
+	public GroupBuyShowToUserJoinDTO(Integer buyQty, String productName, Integer target, Integer groupPrice,
+			Timestamp ddlDatetime, String pickupAddress) {
 		super();
+		this.buyQty = buyQty;
 		this.productName = productName;
 		this.target = target;
 		this.groupPrice = groupPrice;
@@ -49,8 +57,9 @@ public class GroupBuyShowToUserJoinDTO {
 		this.pickupAddress = pickupAddress;
 	}
 	public GroupBuyShowToUserJoinDTO() {
-		super();
 	}
+	
+	
 	
 	
 	

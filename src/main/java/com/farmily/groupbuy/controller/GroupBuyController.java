@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
 import com.farmily.groupbuy.model.GroupBuyReviewDTO;
+import com.farmily.groupbuy.model.GroupBuyShowToUserJoinDTO;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.dto.ProductGroupBuyDTO;
@@ -27,12 +28,29 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/groupBuy")
 public class GroupBuyController {
 
+	
 	@Autowired
 	GroupBuyService groupBuySvc;
 
 	@Autowired
 	ProductService productSvc;
 
+	//一般消費者加入團購用
+	
+	@PostMapping("/joinGroupBuy/{groupBuyId}")
+	public ResponseEntity<String>joinGroupBuy
+	(@RequestBody @Valid GroupBuyShowToUserJoinDTO join,
+	 @RequestParam Integer productId,@RequestParam Integer groupBuyId, @AuthenticationPrincipal MemberUserDetails me){
+		groupBuySvc.joinGroupBuy(join, groupBuyId, me.getUserId());
+		return ResponseEntity.ok("參加完成");
+	}
+	
+	
+	
+	
+	
+	
+	
 	// 給一般消費者看的單獨頁面
 	@GetMapping("/{groupBuyId}")
 	public ResponseEntity<GroupBuyVO> getOneGroupBuy(@PathVariable Integer groupBuyId) {
