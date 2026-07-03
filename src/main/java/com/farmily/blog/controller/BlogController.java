@@ -28,8 +28,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class BlogController {
 
+    private final BlogService blogService;
+
     @Autowired
-    private BlogService blogService;
+    public BlogController(BlogService blogService) {
+        this.blogService = blogService;
+    }
 
     /* ===== 公開 ===== */
 

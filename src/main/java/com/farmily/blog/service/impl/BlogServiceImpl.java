@@ -19,8 +19,12 @@ import java.util.List;
 @Service
 public class BlogServiceImpl implements BlogService {
 
+    private final BlogDao blogDao;
+
     @Autowired
-    private BlogDao blogDao;
+    public BlogServiceImpl(BlogDao blogDao) {
+        this.blogDao = blogDao;
+    }
 
     /* ===== 公開 ===== */
     @Override

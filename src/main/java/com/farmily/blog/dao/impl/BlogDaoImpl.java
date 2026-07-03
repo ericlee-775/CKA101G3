@@ -22,8 +22,12 @@ import java.util.Map;
 @Repository
 public class BlogDaoImpl implements BlogDao {
 
-    @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    //建構子注入
+    public BlogDaoImpl(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+    }
 
     /* ===== 公開 ===== */
 
