@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import memberApi from '@/api/member'
 
 const router = useRouter()
 
@@ -12,9 +13,10 @@ const confirm = ref('')
 
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 送出註冊（UI 階段，先做前端驗證）
-function handleRegister() {
+// 送出註冊：呼叫後端 POST /api/member/register
+async function handleRegister() {
   error.value = ''
 
   if (!name.value || !email.value || !password.value) {
@@ -25,8 +27,9 @@ function handleRegister() {
     error.value = '信箱格式不正確'
     return
   }
-  if (password.value.length < 6) {
-    error.value = '密碼至少需 6 個字元'
+  // 後端 @Size(min = 8)：密碼至少 8 碼
+  if (password.value.length < 8) {
+    error.value = '密碼至少需 8 個字元'
     return
   }
   // 確認兩次密碼一致
@@ -35,10 +38,22 @@ function handleRegister() {
     return
   }
 
-  // TODO：之後改成 fetch('/api/register', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬註冊成功後導到登入頁
-  setTimeout(() => router.push('/login'), 1000)
+  loading.value = true
+  try {
+    // 前端欄位 name 對應後端 userName
+    await memberApi.register({
+      email: email.value,
+      password: password.value,
+      userName: name.value,
+    })
+    done.value = true
+    // 註冊成功後導到登入頁
+    setTimeout(() => router.push('/login'), 1200)
+  } catch (e) {
+    error.value = e.message || '註冊失敗，請稍後再試'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -61,7 +76,7 @@ function handleRegister() {
 
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="至少 6 個字元" />
+          <input v-model="password" type="password" placeholder="至少 8 個字元" />
         </label>
 
         <label>
@@ -72,7 +87,9 @@ function handleRegister() {
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="done" class="auth-ok">註冊成功！正在帶你前往登入…</p>
 
-        <button class="auth-btn" type="submit">註冊</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '註冊中…' : '註冊' }}
+        </button>
       </form>
 
       <p class="auth-foot">
@@ -160,6 +177,10 @@ function handleRegister() {
 }
 .auth-btn:hover {
   background: var(--leaf-dark);
+}
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-foot {
