@@ -1,45 +1,76 @@
 package com.farmily.product.service;
 
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
+import com.farmily.product.dto.ProductInsertDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
+import com.farmily.product.model.Status;
+import com.farmily.product.model.SubCategoryVO;
 import com.farmily.product.model.WishListId;
 import com.farmily.product.model.WishListRepository;
 import com.farmily.product.model.WishListVO;
 
 @Service
-@Transactional   
-public class ProductServiceImpl implements ProductService{
+@Transactional
+public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private ProductRepository productRepository;
-	//取所有產品
+	// 取所有產品
 	@Autowired
 	private WishListRepository wishListRepository;
 
 	@Override
-	@Transactional(readOnly = true) 
+	@Transactional(readOnly = true)
 	public List<ProductSummeryDTO> getAllProducts() {
 		return productRepository.findAllProjectedToDto();
 	}
-	
+
 	@Transactional(readOnly = true)
 	public ProductVO getProductReferenceById(Integer productId) {
-	    return productRepository.getReferenceById(productId);
+		return productRepository.getReferenceById(productId);
 	}
-	//存單筆產品
+
+	// 存單筆產品
 	@Override
-	public void addProduct(ProductVO productVO) {
+	public Integer addProduct(ProductInsertDTO dto, Integer farmerId) {
+
+		ProductVO productVO = new ProductVO();
+		productVO.setProductName(dto.getProductName());
+		productVO.setRetailPrice(dto.getRetailPrice());
+		productVO.setGroupPrice(dto.getGroupPrice());
+		productVO.setUnitPricingMeasure(dto.getUnitPricingMeasure());
+		productVO.setIsGroupBuy(dto.getIsGroupBuy());
+		productVO.setDescription(dto.getDescription());
+
+		SubCategoryVO subCategoryVO = new SubCategoryVO();
+		subCategoryVO.setSubCatClassId(dto.getSubCatClassId());
+		productVO.setSubCategoryVO(subCategoryVO);
+
+		
+		if (dto.getProductImage() != null && !dto.getProductImage().isEmpty()) {
+			
+			productVO.setProductImage(dto.getProductImage());
+		}
+		
+		productVO.setFarmerId(farmerId);
+		productVO.setStatus(Status.INACTIVE);
+	
 		productRepository.save(productVO);
+		
+		return productVO.getProductId();
 	}
-	//更新價格
+
+	// 更新價格
 	@Override
 	public boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto) {
 		ProductVO product = productRepository.findById(productId).orElse(null);
@@ -55,31 +86,35 @@ public class ProductServiceImpl implements ProductService{
 		productRepository.save(product);
 		return true;
 	}
-	//取封面圖片
+
+	// 取封面圖片
 	@Override
 	@Transactional(readOnly = true)
 	public byte[] getProductImageBytes(Integer productId) {
 		return productRepository.findImageById(productId);
 	}
-	//取單筆產品
+
+	// 取單筆產品
 	@Override
 	@Transactional(readOnly = true)
 	public ProductDetailDTO getProductDetail(Integer productId) {
 		return productRepository.findDetailById(productId);
 	}
-	//給團購用的全部查詢
+
+	// 給團購用的全部查詢
 	@Override
 	@Transactional(readOnly = true)
 	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
 		return productRepository.findGroupBuyProducts();
 	}
-	//給團購用的單筆查詢
+
+	// 給團購用的單筆查詢
 	@Override
 	@Transactional(readOnly = true)
 	public ProductVO getGroupBuyProductById(Integer productId) {
-	    return productRepository.findById(productId)
-	                           .orElse(null);   // 找不到就回 null
+		return productRepository.findById(productId).orElse(null); // 找不到就回 null
 	}
+
 	@Override
 	public boolean addWishList(Integer productId, Integer userId) {
 
@@ -101,7 +136,7 @@ public class ProductServiceImpl implements ProductService{
 	public boolean deleteWishList(Integer productId, Integer userId) {
 
 		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
-			
+
 			WishListId id = new WishListId();
 			id.setProductId(productId);
 			id.setUserId(userId);

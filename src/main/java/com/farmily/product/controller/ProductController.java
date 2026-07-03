@@ -2,6 +2,7 @@ package com.farmily.product.controller;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLConnection;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -20,10 +22,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductDetailDTO;
+import com.farmily.product.dto.ProductInsertDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
-import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductService;
+import com.farmily.user.security.FarmerUserDetails;
+import com.farmily.user.security.MemberUserDetails;
 
 import jakarta.validation.Valid;
 
@@ -50,9 +54,11 @@ public class ProductController {
 
     // 新增商品
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity addProduct(@ModelAttribute ProductVO productVO) {
-        productService.addProduct(productVO);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<Integer> addProduct(@ModelAttribute ProductInsertDTO dto,@AuthenticationPrincipal FarmerUserDetails me) {
+    	
+       Integer productId = productService.addProduct(dto, me.getFarmerId());
+       
+       return ResponseEntity.created(URI.create("/api/products/"+productId)).body(productId);
     }
 
     // 修改商品價格（只開放零售價 / 團購價，其他欄位一律改不到）
@@ -103,24 +109,24 @@ public class ProductController {
     //     }
     // }
     
-    @PostMapping("/{productId}/wishlist/{userId}")
-    public ResponseEntity<Void>addWishList(@PathVariable Integer productId,@PathVariable Integer userId){
+    @PostMapping("/{productId}/wishlist")
+    public ResponseEntity<Void>addWishList(@PathVariable Integer productId, @AuthenticationPrincipal MemberUserDetails me){
 		
-		boolean added = productService.addWishList(productId,userId);
+		boolean added = productService.addWishList(productId, me.getUserId());
 		return added ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     	
     }
-    @DeleteMapping("/{productId}/wishlist/{userId}")
-    public ResponseEntity<Void>deleteWishList(@PathVariable Integer productId,@PathVariable Integer userId){
+    @DeleteMapping("/{productId}/wishlist")
+    public ResponseEntity<Void>deleteWishList(@PathVariable Integer productId, @AuthenticationPrincipal MemberUserDetails me){
 		
-		boolean deleted = productService.deleteWishList(productId,userId);
+		boolean deleted = productService.deleteWishList(productId, me.getUserId());
 		return deleted ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     	
     }
-    @GetMapping("/wishlist/{userId}")
-    public ResponseEntity<List<ProductSummeryDTO>>getWishList(@PathVariable Integer userId){
+    @GetMapping("/wishlist")
+    public ResponseEntity<List<ProductSummeryDTO>>getWishList(@AuthenticationPrincipal MemberUserDetails me){
 		
-    	 List<ProductSummeryDTO> wishlists = productService.getAllWishLists(userId);
+    	 List<ProductSummeryDTO> wishlists = productService.getAllWishLists(me.getUserId());
         return ResponseEntity.ok(wishlists);
     }
 }
