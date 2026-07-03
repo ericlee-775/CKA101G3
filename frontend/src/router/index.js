@@ -14,6 +14,14 @@ import RegisterView from '@/views/RegisterView.vue'
 import FarmerLoginView from '@/views/FarmerLoginView.vue'
 import FarmerRegisterView from '@/views/FarmerRegisterView.vue'
 import FarmGameView from '@/views/FarmGameView.vue'
+// 會員 / 小農 帳號相關頁
+import ForgotPasswordView from '@/views/ForgotPasswordView.vue'
+import ResetPasswordView from '@/views/ResetPasswordView.vue'
+import VerifyEmailView from '@/views/VerifyEmailView.vue'
+import ResendVerificationView from '@/views/ResendVerificationView.vue'
+import MemberProfileView from '@/views/MemberProfileView.vue'
+import FarmerProfileView from '@/views/FarmerProfileView.vue'
+import FarmerApplicationView from '@/views/FarmerApplicationView.vue'
 
 const router = createRouter({
   // import.meta.env.BASE_URL 會自動讀 vite.config.js 的 base，
@@ -35,7 +43,18 @@ const router = createRouter({
     { path: '/register',    name: 'register',   component: RegisterView },
     // 小農系統:與一般會員登入(/login、/register)分開的獨立入口
     { path: '/farmer/login',    name: 'farmer-login',    component: FarmerLoginView },
-    { path: '/farmer/register', name: 'farmer-register', component: FarmerRegisterView }
+    { path: '/farmer/register', name: 'farmer-register', component: FarmerRegisterView },
+
+    // 帳號共用：忘記/重設密碼、Email 驗證
+    { path: '/forgot-password', name: 'forgot-password', component: ForgotPasswordView },
+    { path: '/reset-password',  name: 'reset-password',  component: ResetPasswordView },
+    { path: '/verify-email',    name: 'verify-email',    component: VerifyEmailView },
+    { path: '/resend-verification', name: 'resend-verification', component: ResendVerificationView },
+
+    // 會員 / 小農 個人中心
+    { path: '/member/me',        name: 'member-me',        component: MemberProfileView },
+    { path: '/farmer/me',        name: 'farmer-me',        component: FarmerProfileView },
+    { path: '/farmer/application', name: 'farmer-application', component: FarmerApplicationView }
   ],
 })
 

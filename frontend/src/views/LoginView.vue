@@ -1,19 +1,24 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import memberApi from '@/api/member'
+import authStore from '@/stores/auth'
+import GoogleLoginButton from '@/components/GoogleLoginButton.vue'
 
 const router = useRouter()
 
 // 表單欄位（雙向綁定 v-model 用）
 const email = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 
-// 錯誤訊息 & 成功提示
+// 錯誤訊息 & 成功提示 & 送出中狀態
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 送出登入（目前是 UI 階段，先做前端驗證，還沒串後端）
-function handleLogin() {
+// 送出登入：呼叫後端 POST /api/member/login
+async function handleLogin() {
   error.value = ''
 
   // 基本驗證
@@ -26,10 +31,41 @@ function handleLogin() {
     return
   }
 
-  // TODO：之後這裡改成 fetch('/api/login', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬登入成功後導回首頁
-  setTimeout(() => router.push('/'), 1000)
+  loading.value = true
+  try {
+    const user = await memberApi.login({
+      email: email.value,
+      password: password.value,
+      rememberMe: rememberMe.value,
+    })
+    authStore.setUser(user, 'MEMBER')   // 記住登入者身分
+    done.value = true
+    setTimeout(() => router.push('/'), 800)
+  } catch (e) {
+    error.value = e.message || '登入失敗，請稍後再試'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Google 登入：拿到 id_token 後 POST /api/member/oauth/google
+async function handleGoogle(credential) {
+  error.value = ''
+  loading.value = true
+  try {
+    const user = await memberApi.googleLogin(credential)
+    authStore.setUser(user, 'MEMBER')
+    done.value = true
+    setTimeout(() => router.push('/'), 800)
+  } catch (e) {
+    error.value = e.message || 'Google 登入失敗'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleGoogleError(e) {
+  error.value = e.message || 'Google 登入元件載入失敗'
 }
 </script>
 
@@ -52,16 +88,37 @@ function handleLogin() {
           <input v-model="password" type="password" placeholder="請輸入密碼" />
         </label>
 
+        <!-- 記住我 + 忘記密碼 -->
+        <div class="auth-row">
+          <label class="auth-check">
+            <input v-model="rememberMe" type="checkbox" />
+            <span>記住我</span>
+          </label>
+          <router-link class="auth-link" to="/forgot-password">忘記密碼？</router-link>
+        </div>
+
         <!-- 只有有錯誤時才顯示（v-if） -->
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="done" class="auth-ok">登入成功！正在帶你回首頁…</p>
 
-        <button class="auth-btn" type="submit">登入</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '登入中…' : '登入' }}
+        </button>
       </form>
+
+      <!-- 分隔線 -->
+      <div class="auth-divider"><span>或</span></div>
+
+      <!-- Google 登入（拿到 id_token 後打 /api/member/oauth/google）-->
+      <GoogleLoginButton @credential="handleGoogle" @error="handleGoogleError" />
 
       <p class="auth-foot">
         還沒有帳號？
         <router-link to="/register">前往註冊</router-link>
+      </p>
+      <p class="auth-foot">
+        沒收到驗證信？
+        <router-link to="/resend-verification">重寄驗證信</router-link>
       </p>
     </div>
   </main>
@@ -121,6 +178,29 @@ function handleLogin() {
   border-color: var(--leaf);        /* 點選時邊框變綠 */
 }
 
+/* 記住我 / 忘記密碼 那一列 */
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-top: -4px;
+}
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.auth-link {
+  color: var(--leaf);
+  text-decoration: none;
+}
+.auth-link:hover {
+  text-decoration: underline;
+}
+
 /* 提示訊息 */
 .auth-error {
   margin: 0;
@@ -147,6 +227,30 @@ function handleLogin() {
 }
 .auth-btn:hover {
   background: var(--leaf-dark);
+}
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 「或」分隔線 */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.auth-divider span {
+  padding: 0 12px;
 }
 
 /* 底部切換連結 */

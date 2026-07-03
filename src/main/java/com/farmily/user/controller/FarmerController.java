@@ -28,15 +28,18 @@ public class FarmerController {
     private final FarmerUserDetailsService farmerUserDetailsService;
     private final SessionService sessionService;
     private final EmailService emailService;
+    private final SessionCookieSupport sessionCookieSupport;
 
     public FarmerController(FarmerService farmerService,
                             FarmerUserDetailsService farmerUserDetailsService,
                             SessionService sessionService,
-                            EmailService emailService) {
+                            EmailService emailService,
+                            SessionCookieSupport sessionCookieSupport) {
         this.farmerService = farmerService;
         this.farmerUserDetailsService = farmerUserDetailsService;
         this.sessionService = sessionService;
         this.emailService = emailService;
+        this.sessionCookieSupport = sessionCookieSupport;
     }
 
     // 小農註冊申請
@@ -69,20 +72,12 @@ public class FarmerController {
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 SecurityContextHolder.getContext());
 
-        // 把這個 session 登記進來（手動登入不會自動登記），
-        // 之後改 / 重設密碼才找得到並讓它失效
+        // 把這個 session 登記進來（手動登入不會自動登記），之後改/重設密碼才找得到並讓它失效
         sessionService.registerSession(session.getId(), userDetails);
 
-        // step4: 依「記住我」設定 session 多久沒操作就過期 (單位：秒)，
-        //        並決定 JSESSIONID cookie 要不要寫進硬碟 (關瀏覽器後是否保留)
-        if (req.isRememberMe()) {
-            session.setMaxInactiveInterval(60 * 60 * 24 * 14);   // 勾記住我：server session 14 天
-            // 在 getSession(true) 之後才寫，這個 Set-Cookie 會排在 Tomcat 預設那個之後，
-            // 瀏覽器採用後者 → 變成帶 Max-Age 的 persistent cookie，關掉瀏覽器仍保留
-            SessionCookieSupport.writeRememberMeCookie(session, httpResponse);
-        } else {
-            session.setMaxInactiveInterval(60 * 30);             // 不勾：30 分鐘，沿用預設 session cookie (關瀏覽器即刪)
-        }
+        // step4: 依「記住我」決定 server session 壽命 + JSESSIONID cookie 是否寫進硬碟
+        sessionCookieSupport.applyRememberMe(session, httpResponse, req.isRememberMe());
+
         return ResponseEntity.ok(response);
     }
 

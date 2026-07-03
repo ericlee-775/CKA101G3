@@ -1,20 +1,22 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import farmerApi from '@/api/farmer'
+import authStore from '@/stores/auth'
 
 const router = useRouter()
 
 // 表單欄位
 const email = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 小農登入（UI 階段，先做前端驗證，還沒串後端）
-// 注意：小農系統與一般會員系統「分開」，
-// 之後要打的是小農專屬端點，例如 /api/farmer/login，不是 /api/login。
-function handleLogin() {
+// 小農登入：呼叫後端 POST /api/farmer/login（與一般會員系統分開）
+async function handleLogin() {
   error.value = ''
 
   if (!email.value || !password.value) {
@@ -26,10 +28,22 @@ function handleLogin() {
     return
   }
 
-  // TODO：之後改成 fetch('/api/farmer/login', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬登入成功後導回首頁（之後可改導向小農後台）
-  setTimeout(() => router.push('/'), 1000)
+  loading.value = true
+  try {
+    const farmer = await farmerApi.login({
+      email: email.value,
+      password: password.value,
+      rememberMe: rememberMe.value,
+    })
+    authStore.setUser(farmer, 'FARMER')
+    done.value = true
+    // 登入成功導向小農個人中心
+    setTimeout(() => router.push('/farmer/me'), 800)
+  } catch (e) {
+    error.value = e.message || '登入失敗，請稍後再試'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -51,15 +65,31 @@ function handleLogin() {
           <input v-model="password" type="password" placeholder="請輸入密碼" />
         </label>
 
+        <!-- 記住我 + 忘記密碼（帶 type=FARMER）-->
+        <div class="auth-row">
+          <label class="auth-check">
+            <input v-model="rememberMe" type="checkbox" />
+            <span>記住我</span>
+          </label>
+          <router-link class="auth-link" to="/forgot-password?type=FARMER">忘記密碼？</router-link>
+        </div>
+
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="done" class="auth-ok">登入成功！正在帶你前往…</p>
 
-        <button class="auth-btn" type="submit">登入</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '登入中…' : '登入' }}
+        </button>
       </form>
 
       <p class="auth-foot">
         還不是小農夥伴？
         <router-link to="/farmer/register">申請小農帳號</router-link>
+      </p>
+      <!-- 尚未通過初審 / 未完成 Email 驗證而無法登入者，走免登入的申請進度入口 -->
+      <p class="auth-foot">
+        無法登入？
+        <router-link to="/farmer/application">查詢申請進度 / 重寄啟用信</router-link>
       </p>
       <p class="auth-note">這是小農帳號入口，與一般會員帳號分開。</p>
     </div>
@@ -131,6 +161,28 @@ function handleLogin() {
   border-color: var(--leaf);
 }
 
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-top: -4px;
+}
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.auth-link {
+  color: var(--leaf);
+  text-decoration: none;
+}
+.auth-link:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
   margin: 0;
   color: #c0392b;
@@ -155,6 +207,10 @@ function handleLogin() {
 }
 .auth-btn:hover {
   background: var(--leaf-dark);
+}
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-foot {

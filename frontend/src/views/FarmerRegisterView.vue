@@ -1,36 +1,71 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import farmerApi from '@/api/farmer'
+import cityDistrictApi from '@/api/cityDistrict'
 
 const router = useRouter()
 
-// 表單欄位
-const farmName = ref('')   // 農場名稱
-const owner = ref('')      // 負責人姓名
+// 表單欄位（對齊後端 FarmerRegisterRequest）
+const farmName = ref('')          // 農場名稱
 const email = ref('')
-const phone = ref('')
+const phone = ref('')             // farmerPhoneNum
+const farmAddress = ref('')       // 農場地址（後端必填）
+const farmDesc = ref('')          // 農場介紹（後端必填）
+const districtId = ref('')        // 行政區 id
 const password = ref('')
 const confirm = ref('')
 
+// 縣市 / 行政區下拉資料（來自 /api/city-districts）
+const districtList = ref([])      // 全部行政區的扁平清單
+const selectedCity = ref('')      // 先選縣市，再選行政區
+
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 小農註冊（UI 階段，先做前端驗證）
-// 注意：小農系統與一般會員系統「分開」，
-// 之後要打的是小農專屬端點，例如 /api/farmer/register，不是 /api/register。
-function handleRegister() {
+// 載入縣市/行政區
+onMounted(async () => {
+  try {
+    districtList.value = await cityDistrictApi.listAll()
+  } catch {
+    // 下拉載入失敗不擋註冊，只是無法選區
+    districtList.value = []
+  }
+})
+
+// 不重複的縣市清單
+const cities = computed(() => {
+  const set = new Set(districtList.value.map((d) => d.cityName))
+  return [...set]
+})
+
+// 依選到的縣市過濾出行政區
+const districtsInCity = computed(() =>
+  districtList.value.filter((d) => d.cityName === selectedCity.value)
+)
+
+// 換縣市時清掉已選的行政區
+function onCityChange() {
+  districtId.value = ''
+}
+
+// 送出小農註冊申請：POST /api/farmer/register
+async function handleRegister() {
   error.value = ''
 
-  if (!farmName.value || !owner.value || !email.value || !password.value) {
-    error.value = '請完整填寫農場名稱、負責人、信箱與密碼'
+  if (!farmName.value || !email.value || !phone.value ||
+      !farmAddress.value || !farmDesc.value || !password.value) {
+    error.value = '請完整填寫農場名稱、信箱、電話、地址、介紹與密碼'
     return
   }
   if (!email.value.includes('@')) {
     error.value = '信箱格式不正確'
     return
   }
-  if (password.value.length < 6) {
-    error.value = '密碼至少需 6 個字元'
+  // 後端 @Size(min = 8)
+  if (password.value.length < 8) {
+    error.value = '密碼至少需 8 個字元'
     return
   }
   if (password.value !== confirm.value) {
@@ -38,10 +73,26 @@ function handleRegister() {
     return
   }
 
-  // TODO：之後改成 fetch('/api/farmer/register', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬註冊成功後導到小農登入頁
-  setTimeout(() => router.push('/farmer/login'), 1000)
+  loading.value = true
+  try {
+    await farmerApi.register({
+      email: email.value,
+      password: password.value,
+      farmName: farmName.value,
+      farmAddress: farmAddress.value,
+      farmerPhoneNum: phone.value,
+      farmDesc: farmDesc.value,
+      // districtId 為選填，有選才送（轉成數字）
+      districtId: districtId.value ? Number(districtId.value) : null,
+    })
+    done.value = true
+    // 申請成功導到小農登入頁
+    setTimeout(() => router.push('/farmer/login'), 1200)
+  } catch (e) {
+    error.value = e.message || '申請失敗，請稍後再試'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -59,11 +110,6 @@ function handleRegister() {
         </label>
 
         <label>
-          <span>負責人姓名</span>
-          <input v-model="owner" type="text" placeholder="你的名字" />
-        </label>
-
-        <label>
           <span>電子信箱</span>
           <input v-model="email" type="email" placeholder="farmer@example.com" />
         </label>
@@ -73,9 +119,39 @@ function handleRegister() {
           <input v-model="phone" type="tel" placeholder="0912-345-678" />
         </label>
 
+        <!-- 縣市 / 行政區（選填，選了地址才完整）-->
+        <div class="auth-grid">
+          <label>
+            <span>縣市</span>
+            <select v-model="selectedCity" @change="onCityChange">
+              <option value="">請選擇縣市</option>
+              <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </label>
+          <label>
+            <span>行政區</span>
+            <select v-model="districtId" :disabled="!selectedCity">
+              <option value="">請選擇行政區</option>
+              <option v-for="d in districtsInCity" :key="d.districtId" :value="d.districtId">
+                {{ d.distName }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          <span>農場地址</span>
+          <input v-model="farmAddress" type="text" placeholder="門牌詳細地址" />
+        </label>
+
+        <label>
+          <span>農場介紹</span>
+          <textarea v-model="farmDesc" rows="3" placeholder="簡單介紹你的農場與產品"></textarea>
+        </label>
+
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="至少 6 個字元" />
+          <input v-model="password" type="password" placeholder="至少 8 個字元" />
         </label>
 
         <label>
@@ -86,7 +162,9 @@ function handleRegister() {
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="done" class="auth-ok">申請成功！正在帶你前往登入…</p>
 
-        <button class="auth-btn" type="submit">送出申請</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '送出中…' : '送出申請' }}
+        </button>
       </form>
 
       <p class="auth-foot">
@@ -107,7 +185,7 @@ function handleRegister() {
 }
 .auth-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 420px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -150,16 +228,31 @@ function handleRegister() {
   font-size: 14px;
   color: var(--ink-soft);
 }
-.auth-form input {
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
   padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   font-size: 15px;
   outline: none;
   transition: border-color 0.18s ease;
+  font-family: inherit;
 }
-.auth-form input:focus {
+.auth-form input:focus,
+.auth-form select:focus,
+.auth-form textarea:focus {
   border-color: var(--leaf);
+}
+.auth-form textarea {
+  resize: vertical;
+}
+
+/* 縣市 + 行政區 兩欄並排 */
+.auth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .auth-error {
@@ -186,6 +279,10 @@ function handleRegister() {
 }
 .auth-btn:hover {
   background: var(--leaf-dark);
+}
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-foot {
