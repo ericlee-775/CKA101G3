@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +19,6 @@ import com.farmily.product.service.ProductServiceImpl;
 import com.farmily.user.model.User;
 import com.farmily.user.repository.UserRepository;
 
-
 @Service
 public class GroupBuyService {
 	@Autowired
@@ -32,6 +30,15 @@ public class GroupBuyService {
 	@Autowired
 	UserRepository userRepository;
 
+	
+//	public void joinGroupBuy(Integer groupBuyId,Integer productId,Integer buyQty) {
+//		ProductVO product=productSvc.getGroupBuyProductById(productId);
+//		if(product==null) {
+//			throw new RuntimeException("查無此商品");
+//			
+//		}
+		
+//	}
 	// 團購主發起請求
 	@Transactional
 	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
@@ -86,15 +93,19 @@ public class GroupBuyService {
 		repository.save(groupBuyVO);
 	}
 
-	//給小農前台查看團購清單用
-	// 查資料庫的 GroupBuyVO->轉成前端要看的 GroupBuyFarmerDTO->回傳給小農頁面(把資料庫查到的 GroupBuyVO清單，轉成前端要看的 GroupBuyFarmerDTO 清單)
+
+
+	// 給小農前台查看團購清單用
+	// 查資料庫的 GroupBuyVO->轉成前端要看的 GroupBuyFarmerDTO->回傳給小農頁面(把資料庫查到的
+	// GroupBuyVO清單，轉成前端要看的 GroupBuyFarmerDTO 清單)
 	@Transactional(readOnly = true)
 	public List<GroupBuyFarmerDTO> showGroupBuyList(Integer farmerId) {
 		List<GroupBuyVO> list = repository.findByProduct_FarmerId(farmerId);
-		return list.stream().map(gb -> new GroupBuyFarmerDTO(gb.getGroupBuyId(), gb.getProduct().getProductId(),
-						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUser().getUserId(),
+		return list.stream()
+				.map(gb -> new GroupBuyFarmerDTO(gb.getGroupBuyId(), gb.getProduct().getProductId(),
+						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUser().getUserName(),
 						gb.getTargetAmount(), gb.getOpenDatetime(), gb.getDdlDatetime(), gb.getPickupAddress(),
-						gb.getRequestStatus(), gb.getStatus(), gb.getRequestDatetime(), gb.getReplyDatetime(),
+						gb.getRequestStatus(), gb.getRequestDatetime(), gb.getStatus(), gb.getReplyDatetime(),
 						gb.getRejectReason()))
 				.toList();
 	}
@@ -106,9 +117,8 @@ public class GroupBuyService {
 	public GroupBuyVO getOneGroupBuyId(Integer groupBuyId) {
 		return repository.findById(groupBuyId).orElse(null);
 	}
-	
-	
-	//顯示可團購之商品
+
+	// 顯示可團購之商品
 	public List<ProductGroupBuyDTO> getConsumerGroupBuyList() {
 		List<GroupBuyVO> groupBuyList = repository.findByRequestStatus(RequestStatus.approved, GroupBuyStatus.open);
 		return groupBuyList.stream()
