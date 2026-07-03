@@ -44,6 +44,7 @@ const isMenuOpen = ref(false)
       <router-link class="nav-link" to="/blogs">部落格</router-link>
       <router-link class="nav-link" to="/farm-trips">體驗活動</router-link>
       <router-link class="nav-link" to="/farm-map">產地地圖</router-link>
+      <router-link class="nav-link" to="/farm-game">小農遊戲</router-link>
 
       <!-- 右側使用者區：登入（外框）+ 註冊（實心），之後登入後可換成會員選單 -->
       <div class="user-zone">
