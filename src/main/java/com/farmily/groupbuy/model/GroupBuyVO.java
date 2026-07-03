@@ -9,6 +9,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,9 +31,9 @@ public class GroupBuyVO implements java.io.Serializable {
 	@JoinColumn(name = "product_id")
 	private ProductVO product;
 
-	@ManyToOne
-	@JoinColumn(name = "host_user_id")
-	private User hostUser; // 團購主會員
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "host_user_id", insertable = false, updatable = false)
+	private User hostUser;
 
 	@Column(name = "target_amount")
 	private Integer targetAmount;
