@@ -441,11 +441,11 @@ INSERT INTO USER
  user_name, user_nickname, birthday, user_phone_num, user_status,
  monthly_spending, auth_provider, provider_id)
 VALUES
-    ('a0928826097@gmail.com',  2, '桃園區提八路1號',      TRUE, '$2a$12$jUA/0ty7AeeXWaKjysIHheumlQfBRupsGrmcrFYRzzzii759aGsze', '2026-07-03 18:50:11', 'chris',     '06chris', '1997-03-16', '0928826097', 'ACTIVE',  8000,  'LOCAL',  NULL),
-     ('user2@example.com',  2, '桃園區中正路50號',          TRUE, '$2b$12$Husx6NWgvI7KFkVszwGPD.p2FiEv1hdScVX.NDZKu9WyUS2l1/oXG', '2024-02-03 14:05:47', '林淑惠',     '惠惠', '1988-07-22', '0922333444', 'WARNED',  2150, 'LOCAL',  NULL),
-     ('userg3@gmail.com',   3, '信義區松高路11號',          TRUE, '$2b$12$9v39B9kiotoUje71Cn2luO5cNyU0BixHrOTkJxl8j03pzHKns1XCq', '2024-06-01 13:22:09', 'Alex Tsai', '小蔡', '1993-04-08', '0977888999', 'ACTIVE',  4200, 'LOCAL',  NULL),
-     ('userg4@gmail.com',   4, '臺中市西屯區臺灣大道300號',  TRUE, NULL, '2024-06-14 10:11:44', 'Jessica Wu', 'Jess', '1996-12-14', '0911222333', 'ACTIVE',  760,  'GOOGLE', '113985620174639205841'),
-     ('userg5@gmail.com',   5, '高雄市鳳山區青年路200號',    TRUE, NULL, '2024-07-08 16:38:27', 'Kevin Lin',  NULL,   '1990-08-19', '0922888777', 'ACTIVE',  0,    'GOOGLE', '102758493016283749561');
+    ('user1@gmail.com',  2, '桃園區提八路1號',      TRUE, '$2a$12$jUA/0ty7AeeXWaKjysIHheumlQfBRupsGrmcrFYRzzzii759aGsze', '2026-07-03 18:50:11', 'chris',     '06chris', '1997-03-16', '0928826097', 'ACTIVE',  8000,  'LOCAL',  NULL),
+     ('user2@gmail.com',  2, '桃園區中正路50號',          TRUE, '$2b$12$Husx6NWgvI7KFkVszwGPD.p2FiEv1hdScVX.NDZKu9WyUS2l1/oXG', '2024-02-03 14:05:47', '林淑惠',     '惠惠', '1988-07-22', '0922333444', 'WARNED',  2150, 'LOCAL',  NULL),
+     ('user3@gmail.com',   3, '信義區松高路11號',          TRUE, '$2b$12$9v39B9kiotoUje71Cn2luO5cNyU0BixHrOTkJxl8j03pzHKns1XCq', '2024-06-01 13:22:09', 'Alex Tsai', '小蔡', '1993-04-08', '0977888999', 'ACTIVE',  4200, 'LOCAL',  NULL),
+     ('user4@gmail.com',   4, '臺中市西屯區臺灣大道300號',  TRUE, NULL, '2024-06-14 10:11:44', 'Jessica Wu', 'Jess', '1996-12-14', '0911222333', 'ACTIVE',  760,  'GOOGLE', '113985620174639205841'),
+     ('user5@gmail.com',   5, '高雄市鳳山區青年路200號',    TRUE, NULL, '2024-07-08 16:38:27', 'Kevin Lin',  NULL,   '1990-08-19', '0922888777', 'ACTIVE',  0,    'GOOGLE', '102758493016283749561');
 
 
 -- 1. 會員系統 - 消費級距
