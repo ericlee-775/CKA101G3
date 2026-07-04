@@ -5,6 +5,8 @@ import memberApi from '@/api/member'
 import authApi from '@/api/auth'
 import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
+import PasswordInput from '@/components/PasswordInput.vue'
+import { confirm } from '@/composables/useConfirm'
 
 const router = useRouter()
 
@@ -127,6 +129,7 @@ async function changePassword() {
 }
 
 async function logout() {
+  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
   try {
     await authApi.logout()
   } catch {
@@ -137,7 +140,13 @@ async function logout() {
 }
 
 async function deleteAccount() {
-  if (!confirm('確定要註銷帳號嗎？此動作無法復原。')) return
+  const ok = await confirm({
+    title: '註銷帳號',
+    message: '確定要註銷帳號嗎？此動作無法復原。',
+    confirmText: '註銷',
+    danger: true,
+  })
+  if (!ok) return
   try {
     await memberApi.deleteMe()
     authStore.clear()
@@ -213,10 +222,10 @@ async function deleteAccount() {
           <h2>修改密碼</h2>
           <form class="form" @submit.prevent="changePassword">
             <label v-if="profile.hasPassword">
-              <span>目前密碼</span><input v-model="pw.oldPassword" type="password" />
+              <span>目前密碼</span><PasswordInput v-model="pw.oldPassword" autocomplete="current-password" />
             </label>
-            <label><span>新密碼</span><input v-model="pw.newPassword" type="password" placeholder="至少 8 個字元" /></label>
-            <label><span>確認新密碼</span><input v-model="pw.confirm" type="password" /></label>
+            <label><span>新密碼</span><PasswordInput v-model="pw.newPassword" placeholder="至少 8 個字元" autocomplete="new-password" /></label>
+            <label><span>確認新密碼</span><PasswordInput v-model="pw.confirm" autocomplete="new-password" /></label>
 
             <p v-if="pwErr" class="msg-err">{{ pwErr }}</p>
             <p v-if="pwMsg" class="msg-ok">{{ pwMsg }}</p>

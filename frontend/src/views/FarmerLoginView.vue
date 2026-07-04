@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import authStore from '@/stores/auth'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 
@@ -62,7 +63,7 @@ async function handleLogin() {
 
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="請輸入密碼" />
+          <PasswordInput v-model="password" placeholder="請輸入密碼" autocomplete="current-password" />
         </label>
 
         <!-- 記住我 + 忘記密碼（帶 type=FARMER）-->

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import memberApi from '@/api/member'
 import authStore from '@/stores/auth'
 import GoogleLoginButton from '@/components/GoogleLoginButton.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 
@@ -85,7 +86,7 @@ function handleGoogleError(e) {
 
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="請輸入密碼" />
+          <PasswordInput v-model="password" placeholder="請輸入密碼" autocomplete="current-password" />
         </label>
 
         <!-- 記住我 + 忘記密碼 -->

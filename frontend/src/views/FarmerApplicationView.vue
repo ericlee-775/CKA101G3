@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
+import PasswordInput from '@/components/PasswordInput.vue'
+import { confirm } from '@/composables/useConfirm'
 
 // 身分驗證（免登入用 email + password）
 const email = ref('')
@@ -88,6 +90,12 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
+  const ok = await confirm({
+    title: '重新送審',
+    message: '確定要以目前填寫的資料重新送審嗎？送出後將等待管理員審核。',
+    confirmText: '送出送審',
+  })
+  if (!ok) return
   savingApply.value = true
   try {
     const res = await farmerApi.application.resubmit({
@@ -118,7 +126,7 @@ async function resubmit() {
         <h2>驗證身分</h2>
         <div class="form">
           <label><span>電子信箱</span><input v-model="email" type="email" placeholder="farmer@example.com" /></label>
-          <label><span>密碼</span><input v-model="password" type="password" /></label>
+          <label><span>密碼</span><PasswordInput v-model="password" autocomplete="current-password" /></label>
           <p v-if="globalErr" class="msg-err">{{ globalErr }}</p>
           <p v-if="globalMsg" class="msg-ok">{{ globalMsg }}</p>
           <div class="btn-row">

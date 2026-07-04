@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import authApi from '@/api/auth'
+import { confirm } from '@/composables/useConfirm'
 
 const router = useRouter()
 
@@ -20,8 +21,9 @@ const displayName = computed(() => {
   return u.userName || u.farmName || u.email || '我的帳號'
 })
 
-// 登出：打後端清 session，再清前端狀態，導回首頁
+// 登出：先跳彈窗確認，再打後端清 session、清前端狀態，導回首頁
 async function logout() {
+  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
   try {
     await authApi.logout()
   } catch {
