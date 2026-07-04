@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import memberApi from '@/api/member'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 
@@ -76,12 +77,12 @@ async function handleRegister() {
 
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="至少 8 個字元" />
+          <PasswordInput v-model="password" placeholder="至少 8 個字元" autocomplete="new-password" />
         </label>
 
         <label>
           <span>確認密碼</span>
-          <input v-model="confirm" type="password" placeholder="再輸入一次密碼" />
+          <PasswordInput v-model="confirm" placeholder="再輸入一次密碼" autocomplete="new-password" />
         </label>
 
         <p v-if="error" class="auth-error">{{ error }}</p>

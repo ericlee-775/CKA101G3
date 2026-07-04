@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import authApi from '@/api/auth'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -68,11 +69,11 @@ async function handleSubmit() {
         <form v-if="!done" class="auth-form" @submit.prevent="handleSubmit">
           <label>
             <span>新密碼</span>
-            <input v-model="newPassword" type="password" placeholder="至少 8 個字元" />
+            <PasswordInput v-model="newPassword" placeholder="至少 8 個字元" autocomplete="new-password" />
           </label>
           <label>
             <span>確認新密碼</span>
-            <input v-model="confirm" type="password" placeholder="再輸入一次新密碼" />
+            <PasswordInput v-model="confirm" placeholder="再輸入一次新密碼" autocomplete="new-password" />
           </label>
 
           <p v-if="error" class="auth-error">{{ error }}</p>
