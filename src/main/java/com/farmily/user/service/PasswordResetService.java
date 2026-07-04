@@ -71,8 +71,8 @@ public class PasswordResetService {
         String token = tokenService.createToken(
                 email, accountType, AccountToken.TokenType.PASSWORD_RESET, resetTtlMinutes);
 
-        // 指向前端 SPA 的重設密碼頁面（hash 路由），頁面再帶 token 與新密碼 POST 回後端
-        String resetLink = frontendBaseUrl + "/#/reset-password?token=" + token;
+        // 指向前端 SPA 的重設密碼頁面（history 模式，非 hash），頁面再帶 token 與新密碼 POST 回後端
+        String resetLink = frontendBaseUrl + "/reset-password?token=" + token;
         emailService.sendResetPasswordEmail(email, resetLink);
     }
 
