@@ -5,6 +5,8 @@ import farmerApi from '@/api/farmer'
 import authApi from '@/api/auth'
 import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
+import PasswordInput from '@/components/PasswordInput.vue'
+import { confirm } from '@/composables/useConfirm'
 
 const router = useRouter()
 
@@ -95,7 +97,12 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
-  if (!confirm('修改這些欄位會重新送審，期間狀態會變為待審核。確定要送出嗎？')) return
+  const ok = await confirm({
+    title: '重新送審',
+    message: '修改這些欄位會重新送審，期間狀態會變為待審核。確定要送出嗎？',
+    confirmText: '送出送審',
+  })
+  if (!ok) return
   savingApply.value = true
   try {
     const updated = await farmerApi.resubmit({
@@ -139,6 +146,7 @@ async function changePassword() {
 }
 
 async function logout() {
+  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
   try {
     await authApi.logout()
   } catch {
@@ -223,10 +231,10 @@ async function logout() {
           <h2>修改密碼</h2>
           <form class="form" @submit.prevent="changePassword">
             <label v-if="profile.hasPassword">
-              <span>目前密碼</span><input v-model="pw.oldPassword" type="password" />
+              <span>目前密碼</span><PasswordInput v-model="pw.oldPassword" autocomplete="current-password" />
             </label>
-            <label><span>新密碼</span><input v-model="pw.newPassword" type="password" placeholder="至少 8 個字元" /></label>
-            <label><span>確認新密碼</span><input v-model="pw.confirm" type="password" /></label>
+            <label><span>新密碼</span><PasswordInput v-model="pw.newPassword" placeholder="至少 8 個字元" autocomplete="new-password" /></label>
+            <label><span>確認新密碼</span><PasswordInput v-model="pw.confirm" autocomplete="new-password" /></label>
             <p v-if="pwErr" class="msg-err">{{ pwErr }}</p>
             <p v-if="pwMsg" class="msg-ok">{{ pwMsg }}</p>
             <button class="btn" type="submit" :disabled="savingPw">
