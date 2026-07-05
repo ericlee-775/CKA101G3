@@ -4,6 +4,7 @@ import com.farmily.user.security.service.AdminUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -127,6 +128,9 @@ public class UserSecurityConfig {
                         .requestMatchers("/api/farmer/register",
                                 "/api/farmer/login",
                                 "/api/farmer/application/**").permitAll()
+                        
+                        
+                       
                         .anyRequest().hasRole("FARMER")
                         
                         
@@ -144,9 +148,8 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
                         
-
-
-
+                        
+                      
 
                         .anyRequest().hasRole("USER")
                 )
@@ -168,7 +171,9 @@ public class UserSecurityConfig {
 
                         // 前端靜態檔（Vue 打包輸出在 /farmily-web/ 子路徑）
                         .requestMatchers("/farmily-web/**").permitAll()
-
+                        
+                        //團購
+                        .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()
