@@ -3,65 +3,39 @@ package com.farmily.groupbuy.model;
 import java.sql.Timestamp;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 
-@Entity
-@Table(name = "gb_order")
-public class GroupBuyOrderVO implements java.io.Serializable {
-	private static final long serialVersionUID = 1L;
-
-	@Id
-	@Column(name = "order_id")
+public class GroupBuyOrderDTO {
 	private Integer orderId;
 
-	@ManyToOne
-	@JoinColumn(name = "group_buy_id")
-	private GroupBuyVO groupBuyId;
+	private Integer groupBuyId;
 
-	@Column(name = "total_quantity")
 	private Integer totalQuantity;
 
-	@Column(name = "group_price")
 	private Integer groupPrice;
 
-	@Column(name = "total_amount")
 	private Integer totalAmount;
 
-	@ManyToOne
-	@JoinColumn(name = "shipping_address")
-	private GroupBuyVO shippingAddress;
+	private String shippingAddress;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "shipped_status")
 	private ShippedStatus shippedStatus;
 
-	@Column(name = "shipped_at")
 	private Timestamp shippedAt;
 
-	@Column(name = "tracking_num")
 	private String trackingNum;
 
-	@Column(name = "created_at")
 	private Timestamp createdAt;
 
-	@Column(name = "received_at")
 	private Timestamp receivedAt;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "order_status")
 	private OrderStatus orderStatus;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "paid_status")
 	private PaidStatus paidStatus;
 
-	@Column(name = "completed_at")
 	private Timestamp completedAt;
 
 	public Integer getOrderId() {
@@ -72,13 +46,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.orderId = orderId;
 	}
 
-	public GroupBuyVO getGroupBuyId() {
-		return groupBuyId;
-	}
 
-	public void setGroupBuyId(GroupBuyVO groupBuyId) {
-		this.groupBuyId = groupBuyId;
-	}
 
 	public Integer getTotalQuantity() {
 		return totalQuantity;
@@ -104,11 +72,12 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.totalAmount = totalAmount;
 	}
 
-	public GroupBuyVO getShippingAddress() {
+
+	public String getShippingAddress() {
 		return shippingAddress;
 	}
 
-	public void setShippingAddress(GroupBuyVO shippingAddress) {
+	public void setShippingAddress(String shippingAddress) {
 		this.shippingAddress = shippingAddress;
 	}
 
@@ -176,8 +145,20 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.completedAt = completedAt;
 	}
 
-	public GroupBuyOrderVO(Integer orderId, GroupBuyVO groupBuyId, Integer totalQuantity, Integer groupPrice,
-			Integer totalAmount, GroupBuyVO shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
+	public GroupBuyOrderDTO() {
+		super();
+	}
+
+	public Integer getGroupBuyId() {
+		return groupBuyId;
+	}
+
+	public void setGroupBuyId(Integer groupBuyId) {
+		this.groupBuyId = groupBuyId;
+	}
+
+	public GroupBuyOrderDTO(Integer orderId, Integer groupBuyId, Integer totalQuantity, Integer groupPrice,
+			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
 			String trackingNum, Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
 			PaidStatus paidStatus, Timestamp completedAt) {
 		super();
@@ -197,8 +178,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.completedAt = completedAt;
 	}
 
-	public GroupBuyOrderVO() {
-		super();
-	}
-
+	
+	
+	
 }
