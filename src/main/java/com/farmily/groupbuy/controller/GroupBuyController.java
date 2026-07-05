@@ -35,8 +35,7 @@ public class GroupBuyController {
 	@Autowired
 	ProductService productSvc;
 
-	//一般消費者加入團購用
-	
+	//消費者加入團購
 	@PostMapping("/joinGroupBuy/{groupBuyId}")
 	public ResponseEntity<String>joinGroupBuy
 	(@RequestBody @Valid GroupBuyShowToUserJoinDTO join,
@@ -46,12 +45,7 @@ public class GroupBuyController {
 	}
 	
 	
-	
-	
-	
-	
-	
-	// 給一般消費者看的單獨頁面
+	// 給一般消費者看的單一團購頁面
 	@GetMapping("/{groupBuyId}")
 	public ResponseEntity<GroupBuyVO> getOneGroupBuy(@PathVariable Integer groupBuyId) {
 		GroupBuyVO groupBuy = groupBuySvc.getOneGroupBuyId(groupBuyId);
@@ -60,6 +54,13 @@ public class GroupBuyController {
 		} else {
 			return ResponseEntity.notFound().build();
 		}
+	}
+	
+	//給管理員看的總表
+	@GetMapping("/admin")
+	public ResponseEntity<List<GroupBuyVO>>getGroupBuyForAdmin(){
+		List<GroupBuyVO> list=groupBuySvc.showAllGroupBuyToAdmin(null);
+		return ResponseEntity.ok(list);
 	}
 
 	// 一般消費者看的全部的可以團購清單
@@ -77,6 +78,8 @@ public class GroupBuyController {
 		groupBuySvc.hostRequest(hostCreate, productId, hostUserId);
 		return ResponseEntity.ok("申請完成");
 	}
+	
+	
 
 	// 小農審核團購
 	@PostMapping("/farmerResponse/{groupBuyId}")

@@ -66,6 +66,10 @@ public class GroupBuyService {
 		
 		participationRepository.save(groupBuyParticipationVO);
 	}
+	
+	
+	
+	
 	// 團購主發起請求
 	@Transactional
 	public void hostRequest(GroupBuyHostCreateDTO form, Integer productId, Integer hostUserId) {
@@ -92,6 +96,9 @@ public class GroupBuyService {
 		repository.save(groupBuyVO);
 	}
 
+	
+	
+	
 	// 給小農審核團購申請用
 	@Transactional
 	public void reviewGroupBuy(Integer groupBuyId, RequestStatus requestStatus, String rejectReason) {
@@ -120,6 +127,8 @@ public class GroupBuyService {
 		repository.save(groupBuyVO);
 	}
 
+	
+	
 
 
 	// 給小農前台查看團購清單用
@@ -137,10 +146,18 @@ public class GroupBuyService {
 				.toList();
 	}
 
+	//給管理員的總表
+	@Transactional(readOnly=true)
+	public List<GroupBuyVO>showAllGroupBuyToAdmin(Integer adminId){
+		return repository.findAll();
+	}
+	
 	public List<GroupBuyVO> getOpenGroupBuys() {
 		return repository.findByRequestStatus(RequestStatus.approved, GroupBuyStatus.open);
 	}
 
+	
+	
 	public GroupBuyVO getOneGroupBuyId(Integer groupBuyId) {
 		return repository.findById(groupBuyId).orElse(null);
 	}

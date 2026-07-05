@@ -128,6 +128,9 @@ public class UserSecurityConfig {
                                 "/api/farmer/login",
                                 "/api/farmer/application/**").permitAll()
                         .anyRequest().hasRole("FARMER")
+                        
+                        
+                        
                 )
                 .build();
     }
@@ -140,7 +143,7 @@ public class UserSecurityConfig {
                 .securityMatcher("/api/member/**")
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
-
+                        
 
 
 
