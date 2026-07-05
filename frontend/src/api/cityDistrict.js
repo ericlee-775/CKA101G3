@@ -6,4 +6,6 @@ export const cityDistrictApi = {
   listAll: () => http.get('/api/city-districts'),
 }
 
+// 同時提供 default 匯出：讓 `import cityDistrictApi from '@/api/cityDistrict'` 也能用
 export default cityDistrictApi
+

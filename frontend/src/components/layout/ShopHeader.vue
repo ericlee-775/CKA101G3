@@ -287,7 +287,3 @@ async function logout() {
   }
 }
 </style>
-
-<style>
-
-</style>
