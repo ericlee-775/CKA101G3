@@ -2,8 +2,6 @@ package com.farmily.notification.dto;
 
 import java.time.LocalDateTime;
 
-import com.farmily.notification.model.NotificationStatus;
-
 // 用於回傳給前端顯示的通知列表資訊
 public class NotificationResponseDTO {
 	

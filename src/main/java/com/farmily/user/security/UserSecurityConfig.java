@@ -141,6 +141,10 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
                         
+                        // 通知
+                        .requestMatchers("/api/member/notifications/**").permitAll()
+                      
+
                         .anyRequest().hasRole("USER")
                 )
                 // OAuth 2.0 社交登入 - 交給 Spring Security 處理

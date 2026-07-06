@@ -6,15 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.farmily.notification.dto.NotificationResponseDTO;
 import com.farmily.notification.model.NotificationRecipientType;
 import com.farmily.notification.service.NotificationService;
 import com.farmily.user.security.AdminUserDetails;
-import com.farmily.user.security.FarmerUserDetails;
-import com.farmily.user.security.MemberUserDetails;
 
 @RestController
 @RequestMapping("/api/admin/notifications")
@@ -25,18 +22,18 @@ public class AdminNotificationController {
 	
 	
 	// 取得該用戶全部通知，(分頁，未讀放前面)
-	// 收用戶身分, 用戶 Id
+	// 收 用戶 Id
 	// 收 query 參數 targetType 判斷是否分類
 	// 收 page 做分頁排序
 	@GetMapping
 	public ResponseEntity<Page<NotificationResponseDTO>> getMyNotif(
-			@AuthenticationPrincipal UserDetails user, 
+			@AuthenticationPrincipal AdminUserDetails user, 
 			@RequestParam(required = false) String targetType, 
 			@RequestParam(defaultValue = "0") int page){
 		
 		// 取得用戶身分、Id
-		NotificationRecipientType recipientType = getUserType(user);
-		Integer recipientId = getUserId(user);
+		NotificationRecipientType recipientType = NotificationRecipientType.admin;
+		Integer recipientId = user.getAdminId();
 		
 		// 判斷是否需要分類篩選通知
 		// targetType: ACCOUNT, PRODUCT, ORDER, GROUPBUY, TRIP, BLOG,...
@@ -67,11 +64,11 @@ public class AdminNotificationController {
 		
 	// 全部已讀鈕
 	@PatchMapping("/read-all")
-	public ResponseEntity<Void> updatAllStatus(@AuthenticationPrincipal UserDetails user) {
+	public ResponseEntity<Void> updatAllStatus(@AuthenticationPrincipal AdminUserDetails user) {
 		// markAllAsRead(NotificationRecipientType recipientType, Integer recipientId)
 		// 取得用戶身分、用戶 Id
-		NotificationRecipientType recipientType = getUserType(user);
-		Integer recipientId = getUserId(user);
+		NotificationRecipientType recipientType = NotificationRecipientType.admin;
+		Integer recipientId = user.getAdminId();
 		nSvc.markAllAsRead(recipientType, recipientId);
 	
 		return ResponseEntity.ok().build();
@@ -82,10 +79,10 @@ public class AdminNotificationController {
 	// 取得小鈴鐺預覽最新通知列表
 	// getNotifForPreview(NotificationRecipientType recipientType, Integer recipientId)
 	@GetMapping("/preview")
-	public ResponseEntity<List<NotificationResponseDTO>> getNotifPreview(@AuthenticationPrincipal UserDetails user){
+	public ResponseEntity<List<NotificationResponseDTO>> getNotifPreview(@AuthenticationPrincipal AdminUserDetails user){
 		// 取得用戶身分、用戶 Id
-		NotificationRecipientType recipientType = getUserType(user);
-		Integer recipientId = getUserId(user);
+		NotificationRecipientType recipientType = NotificationRecipientType.admin;
+		Integer recipientId = user.getAdminId();
 		
 		List<NotificationResponseDTO> list = nSvc.getNotifForPreview(recipientType, recipientId);
 		
@@ -97,43 +94,15 @@ public class AdminNotificationController {
 	// 取得小鈴鐺上紅點未讀數字 (count)
 	// countUnread(NotificationRecipientType recipientType, Integer recipientId)
 	@GetMapping("/unread-count")
-	public ResponseEntity<Long> getNotifUnreadCount(@AuthenticationPrincipal UserDetails user) {
+	public ResponseEntity<Long> getNotifUnreadCount(@AuthenticationPrincipal AdminUserDetails user) {
 		// 取得用戶身分、用戶 Id
-		NotificationRecipientType recipientType = getUserType(user);
-		Integer recipientId = getUserId(user);
+		NotificationRecipientType recipientType = NotificationRecipientType.admin;
+		Integer recipientId = user.getAdminId();
 		
 		long count = nSvc.countUnread(recipientType, recipientId);
 		
 		return ResponseEntity.ok(count);
 	}
 	
-
-	// ============== 取得用戶身分 instanceof 版 ==============
-	public NotificationRecipientType getUserType(UserDetails user) {
-		if (user instanceof MemberUserDetails) {
-			return NotificationRecipientType.user;
-		}
-		if (user instanceof FarmerUserDetails) {
-			return NotificationRecipientType.farmer;
-		}
-		if (user instanceof AdminUserDetails) {
-			return NotificationRecipientType.admin;
-		}
-		throw new IllegalStateException("未知的登入身分");
-	}
-	
-	// ============== 取得用戶Id instanceof 版 ==============
-	public Integer getUserId(UserDetails user) {
-		if (user instanceof MemberUserDetails m) {
-			return m.getUserId();
-		}
-		if (user instanceof FarmerUserDetails f) {
-			return f.getFarmerId();
-		}
-		if (user instanceof AdminUserDetails a) {
-			return a.getAdminId();
-		}
-		throw new IllegalStateException("未知的登入身分");
-	}
 
 }
