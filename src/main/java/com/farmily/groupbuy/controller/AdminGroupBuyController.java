@@ -42,7 +42,6 @@ public class AdminGroupBuyController {
 	@GetMapping("/order/{groupBuyId}")
 	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer groupBuyId){
 		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(groupBuyId);
-		
 		return ResponseEntity.ok(groupBuy);
 	}
 	

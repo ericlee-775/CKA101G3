@@ -42,9 +42,8 @@ public class MemberGroupBuyController {
 	}
 	
 	
-	
-	
-	
+	//給會員中心看的已參加的團購清單(已成訂單)
+
 	
 	//消費者加入團購
 	@PostMapping("/joinGroupBuy/{groupBuyId}")
