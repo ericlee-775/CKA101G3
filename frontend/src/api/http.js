@@ -31,8 +31,13 @@ async function request(url, { method = 'GET', body, headers = {} } = {}) {
   }
 
   if (body !== undefined && body !== null) {
-    options.headers['Content-Type'] = 'application/json'
-    options.body = JSON.stringify(body)
+    if (body instanceof FormData) {
+      // multipart/form-data：不要手動設 Content-Type，讓瀏覽器自動補上 boundary
+      options.body = body
+    } else {
+      options.headers['Content-Type'] = 'application/json'
+      options.body = JSON.stringify(body)
+    }
   }
 
   const response = await fetch(url, options)

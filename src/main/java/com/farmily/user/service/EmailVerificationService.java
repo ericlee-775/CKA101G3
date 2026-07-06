@@ -60,6 +60,12 @@ public class EmailVerificationService {
         emailService.sendFarmerVerifyEmail(email, verifyLink);
     }
 
+    // 小農審核退件後：寄出「退件通知」信，附上重新送審頁連結（不需 token，純通知）
+    public void sendFarmerRejected(String email, String rejectReason) {
+        String applicationLink = frontendBaseUrl + "/farmer/application";
+        emailService.sendFarmerRejectedEmail(email, rejectReason, applicationLink);
+    }
+
     // 使用者點連結後，驗證 token 並把帳號設為已驗證 setEmailVerified(true)
     public void verify(String token) {
 

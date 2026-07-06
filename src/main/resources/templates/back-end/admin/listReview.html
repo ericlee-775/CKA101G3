@@ -27,7 +27,7 @@
             <td th:text="${r.farmName}"></td>
             <td th:text="${r.farmerEmail}"></td>
             <td th:text="${r.reviewRound}"></td>
-            <td th:text="${r.submittedAt}"></td>
+            <td th:text="${r.submittedAt != null ? #temporals.format(r.submittedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
             <td>
                 <form method="post" th:action="@{/admin/reviews/{id}/start(id=${r.reviewId})}">
                     <button class="btn btn-sm btn-primary">開始審核</button>

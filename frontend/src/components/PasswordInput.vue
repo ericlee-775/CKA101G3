@@ -74,6 +74,11 @@ const visible = ref(false)
 .pw-input:focus {
   border-color: var(--leaf);
 }
+/* 關掉 Edge/IE 對 type=password 自動加的原生眼睛/清除鈕，避免和自訂按鈕重複 */
+.pw-input::-ms-reveal,
+.pw-input::-ms-clear {
+  display: none;
+}
 /* 眼睛切換鈕：絕對定位貼在輸入框右側 */
 .pw-toggle {
   position: absolute;
