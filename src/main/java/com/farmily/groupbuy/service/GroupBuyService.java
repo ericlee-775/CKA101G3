@@ -160,7 +160,7 @@ public class GroupBuyService {
 		List<GroupBuyVO> list = repository.findByProduct_FarmerId(farmerId);
 		return list.stream()
 				.map(gb -> new GroupBuyFarmerDTO(gb.getGroupBuyId(), gb.getProduct().getProductId(),
-						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUser().getUserName(),
+						gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getHostUser() != null ? gb.getHostUser().getUserName() : null,
 						gb.getTargetAmount(), gb.getOpenDatetime(), gb.getDdlDatetime(), gb.getPickupAddress(),
 						gb.getRequestStatus(), gb.getRequestDatetime(), gb.getStatus(), gb.getReplyDatetime(),
 						gb.getRejectReason()))
@@ -220,4 +220,8 @@ public class GroupBuyService {
 						groupBuy.getStatus()))
 				.toList();
 	}
+	
+	
+	
+
 }

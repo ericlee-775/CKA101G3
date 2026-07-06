@@ -4,6 +4,7 @@ package com.farmily.groupbuy.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,20 +30,28 @@ public class MemberGroupBuyController {
 	@Autowired
 	ProductService productSvc;
 
+	//給會員看的已加入清單
+	
+	
+	
+	
+	
+	
 	//消費者加入團購
 	@PostMapping("/joinGroupBuy/{groupBuyId}")
-	public ResponseEntity<String>joinGroupBuy
-	(@RequestBody @Valid GroupBuyShowToUserJoinDTO join,
-	 @RequestParam Integer productId,@RequestParam Integer groupBuyId, @AuthenticationPrincipal MemberUserDetails me){
-		groupBuySvc.joinGroupBuy(join, groupBuyId, me.getUserId());
-		return ResponseEntity.ok("參加完成");
+	public ResponseEntity<String> joinGroupBuy(
+	        @PathVariable Integer groupBuyId,
+	        @RequestBody @Valid GroupBuyShowToUserJoinDTO join,
+	        @AuthenticationPrincipal MemberUserDetails me) {
+
+	    groupBuySvc.joinGroupBuy(join, groupBuyId, me.getUserId());
+	    return ResponseEntity.ok("參加完成");
 	}
-	
 
 	// 團購主的發起請求
-	@PostMapping("/hostCreate")
+	@PostMapping("/hostCreate/{productId}")
 	public ResponseEntity<String> createGroupBuy(@RequestBody @Valid GroupBuyHostCreateDTO hostCreate,
-			@RequestParam Integer productId, @AuthenticationPrincipal MemberUserDetails me) {
+			 @PathVariable Integer productId, @AuthenticationPrincipal MemberUserDetails me) {
 		Integer hostUserId = me.getUserId();
 		groupBuySvc.hostRequest(hostCreate, productId, hostUserId);
 		return ResponseEntity.ok("申請完成");
