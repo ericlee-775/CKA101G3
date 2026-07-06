@@ -32,6 +32,7 @@ public class PublicGroupBuyController {
 	}
 	
 	// 一般消費者看的全部的可以團購清單
+	//這邊要濾掉被停權小農的相關商品
 	
 	@GetMapping("/all")
 	public ResponseEntity<List<ProductGroupBuyDTO>> getAllGroupBuy() {
