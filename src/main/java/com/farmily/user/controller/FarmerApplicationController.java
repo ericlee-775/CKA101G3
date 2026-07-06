@@ -5,7 +5,9 @@ import com.farmily.user.dto.LoginRequest;
 import com.farmily.user.dto.PublicFarmerResubmitRequest;
 import com.farmily.user.service.FarmerApplicationService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,9 +30,9 @@ public class FarmerApplicationController {
         return ResponseEntity.ok(farmerApplicationService.checkStatus(log));
     }
 
-    // 重新送審
-    @PostMapping("/resubmit")
-    public ResponseEntity<FarmerReviewResponse> resubmit(@RequestBody @Valid PublicFarmerResubmitRequest req) {
+    // 重新送審（含證明文件圖片，走 multipart/form-data）
+    @PostMapping(value = "/resubmit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<FarmerReviewResponse> resubmit(@ModelAttribute @Valid PublicFarmerResubmitRequest req) {
         return ResponseEntity.ok(farmerApplicationService.resubmit(req));
     }
 

@@ -14,7 +14,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -82,12 +84,12 @@ public class FarmerServiceImpl implements FarmerService {
         // 必須先存 farmer 拿到 farmer_id，review 的 farmer_id 外鍵才有對象可指
         Farmer savedFarmer = farmerRepository.save(newFarmer);
 
-        // step4: 為剛申請的小農，建立第一筆審核快照
+        // step4: 為剛申請的小農，建立第一筆審核快照（上傳檔案轉 byte[] 存 DB）
         FarmerReview review = newReviewSnapshot(
                 savedFarmer, 1,                 // round 1
                 reg.getFarmName(), reg.getFarmAddress(),
                 district, reg.getLocLat(), reg.getLocLong(),
-                reg.getCertFileLand(), reg.getCertFileProduct(), reg.getCertFileIdentity());
+                toBytes(reg.getCertFileLand()), toBytes(reg.getCertFileProduct()), toBytes(reg.getCertFileIdentity()));
         FarmerReview savedReview = farmerReviewRepository.save(review);
 
         return FarmerProfileResponse.from(savedFarmer, savedReview);
@@ -163,13 +165,15 @@ public class FarmerServiceImpl implements FarmerService {
                         : 1;
 
         // 呼叫方法 newReviewSnapshot()，組裝一個審核快照物件
+        // 證明文件：這輪有上傳就用新的，沒上傳（null/空）就沿用上一輪的圖片
         FarmerReview review = newReviewSnapshot(
                 farmer, nextRound,
                 req.getFarmName(), req.getFarmAddress(),
                 findDistrict(req.getDistrictId()),
                 req.getLocLat(), req.getLocLong(),
-                req.getCertFileLand(), req.getCertFileProduct(),
-                req.getCertFileIdentity()
+                certOrCarry(req.getCertFileLand(), latest.getCertFileLand()),
+                certOrCarry(req.getCertFileProduct(), latest.getCertFileProduct()),
+                certOrCarry(req.getCertFileIdentity(), latest.getCertFileIdentity())
         );
 
         // 把 FarmerReview 物件存進 DB，回傳帶上 farmerId 的 FarmerReview 物件
@@ -227,6 +231,24 @@ public class FarmerServiceImpl implements FarmerService {
     private Farmer findFarmer(Integer farmerId) {
         return farmerRepository.findById(farmerId)
                 .orElseThrow(() -> new IllegalArgumentException("查無此小農"));
+    }
+
+    // 自定義方法: 上傳檔案 → byte[]（沒選檔回 null；讀取失敗轉 RuntimeException，同 ProductVO 做法）
+    private byte[] toBytes(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("證明文件讀取失敗", e);
+        }
+    }
+
+    // 自定義方法: 這輪有上傳就用新檔，沒上傳就沿用上一輪的圖片（重新送審用）
+    private byte[] certOrCarry(MultipartFile uploaded, byte[] previous) {
+        byte[] bytes = toBytes(uploaded);
+        return bytes != null ? bytes : previous;
     }
 
     // 自定義方法: 依 id 撈區域
