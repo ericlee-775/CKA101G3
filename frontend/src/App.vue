@@ -6,7 +6,7 @@
   // App 一啟動就以「後端 session」為準重新確認登入狀態：
   // 有記住身分就向後端 /me 驗證，session 失效(401)會自動清掉。
   onMounted(() => {
-    authStore.hydrate();
+    authStore.ensureHydrated();
   });
 </script>
 

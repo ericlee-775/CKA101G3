@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import authStore from '@/stores/auth'
 
 // 版型（Layout）：決定一群頁面共用的外框
 import ShopLayout from '@/components/layout/ShopLayout.vue'      // 商城前台：頂部導覽 + 頁尾
@@ -80,8 +81,8 @@ const router = createRouter({
         { path: 'verify-email',        name: 'verify-email',        component: VerifyEmailView },
         { path: 'resend-verification', name: 'resend-verification', component: ResendVerificationView },
 
-        // 會員個人中心
-        { path: 'member/me', name: 'member-me', component: MemberProfileView },
+        // 會員個人中心（需登入會員）
+        { path: 'member/me', name: 'member-me', component: MemberProfileView, meta: { requiresAuth: 'MEMBER' } },
       ],
     },
 
@@ -89,6 +90,8 @@ const router = createRouter({
     {
       path: '/farmer',
       component: FarmerLayout,
+      // 整個小農後台都需登入小農身分（meta 會被子路由繼承）
+      meta: { requiresAuth: 'FARMER' },
       // 直接開 /farmer 時導到商家資料
       redirect: { name: 'farmer-me' },
       children: [
@@ -102,6 +105,24 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+// ===== 全站導航守衛 =====
+// 伺服器端只看得到 index.html 這個殼，擋不住前端路由；真正「哪些頁面要登入」在這裡把關。
+// 受保護頁面（meta.requiresAuth）未登入或身分不符時，導去對應登入頁，
+// 並用 query.redirect 記住原本要去的地方，登入後接回。
+router.beforeEach(async (to) => {
+  const need = to.meta.requiresAuth
+  if (!need) return true
+
+  // F5 或直接貼網址進來時，App 的 hydrate 可能還沒跑完，先確保已向後端確認過 session
+  await authStore.ensureHydrated()
+
+  const ok = need === 'FARMER' ? authStore.isFarmer : authStore.isMember
+  if (authStore.isLoggedIn && ok) return true
+
+  const loginName = need === 'FARMER' ? 'farmer-login' : 'login'
+  return { name: loginName, query: { redirect: to.fullPath } }
 })
 
 export default router
