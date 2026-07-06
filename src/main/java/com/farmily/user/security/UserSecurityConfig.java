@@ -174,6 +174,8 @@ public class UserSecurityConfig {
                         
                         //團購
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
+                        
+                        .requestMatchers(HttpMethod.GET,"/api/products/**").permitAll()
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()

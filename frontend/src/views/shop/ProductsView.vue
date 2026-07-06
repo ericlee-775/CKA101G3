@@ -153,14 +153,25 @@ onMounted(loadProducts)
         :key="product.productId"
         class="product-card"
       >
-        <img
-          class="product-card__img"
-          :src="productImage(product)"
-          :alt="product.productName"
-          loading="lazy"
-        />
+        <!-- 點圖片或名稱 → 進商品詳情頁（/products/:productId） -->
+        <RouterLink
+          class="product-card__link"
+          :to="{ name: 'product-detail', params: { productId: product.productId } }"
+        >
+          <img
+            class="product-card__img"
+            :src="productImage(product)"
+            :alt="product.productName"
+            loading="lazy"
+          />
+        </RouterLink>
         <div class="product-card__body">
-          <h2 class="product-card__name">{{ product.productName }}</h2>
+          <RouterLink
+            class="product-card__name-link"
+            :to="{ name: 'product-detail', params: { productId: product.productId } }"
+          >
+            <h2 class="product-card__name">{{ product.productName }}</h2>
+          </RouterLink>
           <p class="product-card__unit">{{ product.unitPricingMeasure }}</p>
           <p class="product-card__price">{{ formatPrice(product.retailPrice) }}</p>
           <button
@@ -236,12 +247,22 @@ onMounted(loadProducts)
   transform: translateY(-4px);
   box-shadow: var(--shadow-hover);
 }
+.product-card__link {
+  display: block;
+}
 .product-card__img {
   width: 100%;
   height: 160px;
   object-fit: cover;
   display: block;
   background: var(--line);
+}
+.product-card__name-link {
+  text-decoration: none;
+  color: inherit;
+}
+.product-card__name-link:hover .product-card__name {
+  color: var(--leaf-dark);
 }
 .product-card__body {
   padding: 16px;
