@@ -10,6 +10,7 @@ import HomeView from '@/views/shop/HomeView.vue'
 import NewsView from '@/views/shop/NewsView.vue'
 import FarmilyView from '@/views/shop/Farmily.vue'
 import ProductsView from '@/views/shop/ProductsView.vue'
+import ProductView from '@/views/shop/ProductView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
 import BlogsView from '@/views/shop/BlogsView.vue'
 import FarmTripsView from '@/views/shop/FarmTripsView.vue'
@@ -56,6 +57,8 @@ const router = createRouter({
         { path: 'news',        name: 'news',       component: NewsView },
         { path: 'farmily',     name: 'farmily',    component: FarmilyView },
         { path: 'products',    name: 'products',   component: ProductsView },
+        // 商品詳情頁：/products/:productId（圖片 + 描述等，資料走 /api/products/{id} 與 /photo）
+        { path: 'products/:productId', name: 'product-detail', component: ProductView },
         { path: 'group-buys',  name: 'group-buys', component: GroupBuysView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
