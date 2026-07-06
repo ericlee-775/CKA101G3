@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmily.trip.dto.CommentCreateRequest;   // 【新增】
+import com.farmily.trip.dto.CommentResponse;         // 【新增】
 import com.farmily.trip.dto.OrderCreateRequest;
 import com.farmily.trip.dto.OrderResponse;
+import com.farmily.trip.dto.SessionResponse;         // 【新增】
 import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.service.FarmTripService;
@@ -58,6 +61,25 @@ public class CustomerController {
 	@PutMapping("/orders/{farmTripOrderId}/cancel")
 	public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Integer farmTripOrderId) {
 		return ResponseEntity.ok(farmTripService.cancelOrder(farmTripOrderId));
+	}
+
+	// 【新增】GET /api/farm-trips/3/sessions → 該活動的可報名場次
+	@GetMapping("/{farmTripId}/sessions")
+	public ResponseEntity<List<SessionResponse>> getSessions(@PathVariable Integer farmTripId) {
+		return ResponseEntity.ok(farmTripService.getSessionsByTrip(farmTripId));
+	}
+
+	// 【新增】GET /api/farm-trips/3/comments → 評論列表
+	@GetMapping("/{farmTripId}/comments")
+	public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Integer farmTripId) {
+		return ResponseEntity.ok(farmTripService.getComments(farmTripId));
+	}
+
+	// 【新增】POST /api/farm-trips/3/comments → 新增評論／評分
+	@PostMapping("/{farmTripId}/comments")
+	public ResponseEntity<CommentResponse> addComment(@PathVariable Integer farmTripId,
+			@RequestBody CommentCreateRequest request) {
+		return ResponseEntity.ok(farmTripService.addComment(farmTripId, request));
 	}
 
 }

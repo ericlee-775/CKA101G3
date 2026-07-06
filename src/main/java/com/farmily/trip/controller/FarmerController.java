@@ -2,11 +2,14 @@ package com.farmily.trip.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;          // 【新增】
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmily.trip.dto.SessionCreateRequest;   // 【新增】
+import com.farmily.trip.dto.SessionResponse;         // 【新增】
 import com.farmily.trip.dto.TripCreateRequest;
 import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.service.FarmTripService;
@@ -27,6 +30,13 @@ public class FarmerController {
 	@PostMapping
 	public ResponseEntity<TripDetailResponse> create(@RequestBody TripCreateRequest request) {
 		return ResponseEntity.ok(farmTripService.createTrip(request));
+	}
+
+	// 【新增】POST /api/farmer/farm-trips/{farmTripId}/sessions → 小農幫活動開新場次
+	@PostMapping("/{farmTripId}/sessions")
+	public ResponseEntity<SessionResponse> createSession(@PathVariable Integer farmTripId,
+			@RequestBody SessionCreateRequest request) {
+		return ResponseEntity.ok(farmTripService.createSession(farmTripId, request));
 	}
 
 }
