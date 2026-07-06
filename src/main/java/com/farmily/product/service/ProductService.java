@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
+import com.farmily.product.dto.ProductInsertDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
@@ -11,7 +12,7 @@ import com.farmily.product.model.ProductVO;
 
 public interface ProductService {
 
-	void addProduct(ProductVO productVO);
+	Integer addProduct(ProductInsertDTO dto, Integer farmerId);
 	
 	boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto);
 

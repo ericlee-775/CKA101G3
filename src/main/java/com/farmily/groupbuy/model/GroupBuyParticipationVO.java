@@ -2,6 +2,8 @@ package com.farmily.groupbuy.model;
 
 import java.sql.Timestamp;
 
+import com.farmily.user.model.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,8 +27,9 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 	@JoinColumn(name="group_buy_id")
 	private GroupBuyVO groupBuyId;
 	
-	@Column(name="user_id")
-	private Integer userId;
+	@ManyToOne
+	@JoinColumn(name="user_id")
+	private User userId;
 	
 	@Column(name="is_host")
 	private boolean isHost;
@@ -51,9 +54,7 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 		super();
 	}
 
-
-
-	public GroupBuyParticipationVO(Integer participationId, GroupBuyVO groupBuyId, Integer userId, boolean isHost,
+	public GroupBuyParticipationVO(Integer participationId, GroupBuyVO groupBuyId, User userId, boolean isHost,
 			Integer buyQty, Timestamp joinDatetime, JoinStatus joinStatus, Integer paidAmount, Timestamp paidDatetime) {
 		super();
 		this.participationId = participationId;
@@ -67,20 +68,6 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 		this.paidDatetime = paidDatetime;
 	}
 
-
-
-	public GroupBuyVO getGroupBuyId() {
-		return groupBuyId;
-	}
-
-
-
-	public void setGroupBuyId(GroupBuyVO groupBuyId) {
-		this.groupBuyId = groupBuyId;
-	}
-
-
-
 	public Integer getParticipationId() {
 		return participationId;
 	}
@@ -89,13 +76,19 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 		this.participationId = participationId;
 	}
 
+	public GroupBuyVO getGroupBuyId() {
+		return groupBuyId;
+	}
 
+	public void setGroupBuyId(GroupBuyVO groupBuyId) {
+		this.groupBuyId = groupBuyId;
+	}
 
-	public Integer getUserId() {
+	public User getUserId() {
 		return userId;
 	}
 
-	public void setUserId(Integer userId) {
+	public void setUserId(User userId) {
 		this.userId = userId;
 	}
 
@@ -146,6 +139,9 @@ public class GroupBuyParticipationVO implements java.io.Serializable {
 	public void setPaidDatetime(Timestamp paidDatetime) {
 		this.paidDatetime = paidDatetime;
 	}
+
+
+
 	
 	
 	

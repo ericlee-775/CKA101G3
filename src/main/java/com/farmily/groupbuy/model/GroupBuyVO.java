@@ -3,11 +3,13 @@ package com.farmily.groupbuy.model;
 import java.sql.Timestamp;
 
 import com.farmily.product.model.ProductVO;
+import com.farmily.user.model.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,74 +21,68 @@ import jakarta.persistence.Table;
 @Table(name = "group_buy")
 public class GroupBuyVO implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
-	
+
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name="group_buy_id",updatable=false)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "group_buy_id", updatable = false)
 	private Integer groupBuyId;
-	
+
 	@ManyToOne
-	@JoinColumn(name="product_id")
+	@JoinColumn(name = "product_id")
 	private ProductVO product;
 
-//	@ManyToOne
-	@Column(name="host_user_id")
-	private Integer hostUser ; //之後要改成User
-	
-	@Column(name="target_amount")
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "host_user_id")
+	private User hostUser;
+
+	@Column(name = "target_amount")
 	private Integer targetAmount;
-	
-	@Column(name="group_price")
-	private Integer groupPrice ;
-	
-	@Column(name="open_datetime")
-	private Timestamp openDatetime ;
- 	
-	@Column(name="ddl_datetime")
-	private Timestamp ddlDatetime ;
-	
+
+	@Column(name = "group_price")
+	private Integer groupPrice;
+
+	@Column(name = "open_datetime")
+	private Timestamp openDatetime;
+
+	@Column(name = "ddl_datetime")
+	private Timestamp ddlDatetime;
+
 	@Enumerated(EnumType.STRING)
-	@Column(name = "status",
-	    columnDefinition = "ENUM('open','success','failed','cancelled','pending')")
+	@Column(name = "status", columnDefinition = "ENUM('open','success','failed','cancelled','pending')")
 	private GroupBuyStatus status;
-	
-	
-	@Column(name="created_at")//小農按下通過後系統自動生成當下時間
+
+	@Column(name = "created_at") // 小農按下通過後系統自動生成當下時間
 	private Timestamp createdAt;
-	
+
 	@Enumerated(EnumType.STRING)
-	@Column(name = "request_status",columnDefinition = "ENUM('pending','approved','rejected')")
+	@Column(name = "request_status", columnDefinition = "ENUM('pending','approved','rejected')")
 	private RequestStatus requestStatus;
-	
-	@Column(name="request_datetime")
+
+	@Column(name = "request_datetime")
 	private Timestamp requestDatetime;
-	
-	@Column(name="reply_datetime")
+
+	@Column(name = "reply_datetime")
 	private Timestamp replyDatetime;
-	
-	@Column(name="reject_reason")
+
+	@Column(name = "reject_reason")
 	private String rejectReason;
-	
-	@Column(name="pickup_address")
+
+	@Column(name = "pickup_address")
 	private String pickupAddress;
 
 	public Integer getGroupBuyId() {
 		return groupBuyId;
 	}
-	
-	
-	
 
 	public void setGroupBuyId(Integer groupBuyId) {
 		this.groupBuyId = groupBuyId;
 	}
 
-
-	public Integer getHostUserId() {
+	public User getHostUser() {
 		return hostUser;
 	}
 
-	public void setHostUserId(Integer hostUser) {
+	public void setHostUser(User hostUser) {
 		this.hostUser = hostUser;
 	}
 
@@ -190,10 +186,10 @@ public class GroupBuyVO implements java.io.Serializable {
 		super();
 	}
 
-	public GroupBuyVO(Integer groupBuyId, ProductVO product, Integer hostUserId, Integer targetAmount,
-			Integer groupPrice, Timestamp openDatetime, Timestamp ddlDatetime, GroupBuyStatus status,
-			Timestamp createdAt, RequestStatus requestStatus, Timestamp requestDatetime, Timestamp replyDatetime,
-			String rejectReason, String pickupAddress) {
+	public GroupBuyVO(Integer groupBuyId, ProductVO product, User hostUser, Integer targetAmount, Integer groupPrice,
+			Timestamp openDatetime, Timestamp ddlDatetime, GroupBuyStatus status, Timestamp createdAt,
+			RequestStatus requestStatus, Timestamp requestDatetime, Timestamp replyDatetime, String rejectReason,
+			String pickupAddress) {
 		super();
 		this.groupBuyId = groupBuyId;
 		this.product = product;
@@ -210,10 +206,7 @@ public class GroupBuyVO implements java.io.Serializable {
 		this.rejectReason = rejectReason;
 		this.pickupAddress = pickupAddress;
 	}
-	
 
-	
 
-	
+
 }
-

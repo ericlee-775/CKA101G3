@@ -1,0 +1,240 @@
+package com.farmily.user.service.impl;
+
+import com.farmily.user.dto.*;
+import com.farmily.user.model.CityDistrict;
+import com.farmily.user.model.Farmer;
+import com.farmily.user.model.FarmerReview;
+import com.farmily.user.repository.CityDistrictRepository;
+import com.farmily.user.repository.FarmerRepository;
+import com.farmily.user.repository.FarmerReviewRepository;
+import com.farmily.user.service.EmailUniquenessChecker;
+import com.farmily.user.service.EmailVerificationService;
+import com.farmily.user.service.FarmerService;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Service
+@Transactional
+public class FarmerServiceImpl implements FarmerService {
+
+    private final FarmerRepository farmerRepository;
+    private final FarmerReviewRepository farmerReviewRepository;
+    private final CityDistrictRepository cityDistrictRepository;
+    private final EmailUniquenessChecker emailUniquenessChecker;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
+
+
+    public FarmerServiceImpl(FarmerRepository farmerRepository, FarmerReviewRepository farmerReviewRepository,
+                             CityDistrictRepository cityDistrictRepository, EmailUniquenessChecker emailUniquenessChecker,
+                             PasswordEncoder passwordEncoder, EmailVerificationService emailVerificationService) {
+        this.farmerRepository = farmerRepository;
+        this.farmerReviewRepository = farmerReviewRepository;
+        this.cityDistrictRepository = cityDistrictRepository;
+        this.emailUniquenessChecker = emailUniquenessChecker;
+        this.passwordEncoder = passwordEncoder;
+        this.emailVerificationService = emailVerificationService;
+    }
+
+    // 小農註冊申請
+    @Override
+    public FarmerProfileResponse register(FarmerRegisterRequest reg) {
+
+        // step1: 先檢查是否存在相同小農帳號 (email)
+        Farmer existingFarmer = farmerRepository.findByEmail(reg.getEmail()).orElse(null);
+
+        // 帳號不為 null = 重複註冊
+        if(existingFarmer != null){
+            throw new IllegalStateException("帳號已註冊使用");
+        }
+
+        // step2: 若 email = null，跨表檢查 email 全域唯一
+        emailUniquenessChecker.emailAvailable(reg.getEmail());
+
+        // step3: 小農帳號 (email) 不存在，走本地註冊流程
+        Farmer newFarmer = new Farmer();
+        newFarmer.setEmail(reg.getEmail());
+
+        // hash 原始密碼
+        String hashedPassword = passwordEncoder.encode(reg.getPassword());
+        newFarmer.setPassword(hashedPassword);
+
+        newFarmer.setFarmName(reg.getFarmName());
+        newFarmer.setFarmAddress(reg.getFarmAddress());
+        newFarmer.setFarmDesc(reg.getFarmDesc());
+        newFarmer.setFarmerPhoneNum(reg.getFarmerPhoneNum());
+        newFarmer.setLocLat(reg.getLocLat());
+        newFarmer.setLocLong(reg.getLocLong());
+
+        CityDistrict district = findDistrict(reg.getDistrictId());
+        newFarmer.setCityDistrict(district);
+
+        newFarmer.setFarmerStatus(Farmer.FarmerStatus.PENDING);
+        newFarmer.setFarmerCreatedAt(LocalDateTime.now());
+        newFarmer.setUploadedAt(LocalDateTime.now());
+        newFarmer.setEmailVerified(false);
+
+        // 必須先存 farmer 拿到 farmer_id，review 的 farmer_id 外鍵才有對象可指
+        Farmer savedFarmer = farmerRepository.save(newFarmer);
+
+        // step4: 為剛申請的小農，建立第一筆審核快照
+        FarmerReview review = newReviewSnapshot(
+                savedFarmer, 1,                 // round 1
+                reg.getFarmName(), reg.getFarmAddress(),
+                district, reg.getLocLat(), reg.getLocLong(),
+                reg.getCertFileLand(), reg.getCertFileProduct(), reg.getCertFileIdentity());
+        FarmerReview savedReview = farmerReviewRepository.save(review);
+
+        return FarmerProfileResponse.from(savedFarmer, savedReview);
+    }
+
+    // 本地登入
+    @Override
+    @Transactional(readOnly = true)
+    public FarmerProfileResponse login(LoginRequest log) {
+        Farmer farmer = farmerRepository.findByEmail(log.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("帳號或密碼錯誤"));
+
+        // step1. 先檢查 hash 密碼是否相等
+        if(!passwordEncoder.matches(log.getPassword(), farmer.getPassword())){
+            throw new BadCredentialsException("帳號或密碼錯誤");
+        }
+        // step2. 再檢查小農狀態
+        if (farmer.getFarmerStatus() == Farmer.FarmerStatus.PENDING) {
+            throw new IllegalStateException("您的小農申請審核中，通過後才能登入");
+        }
+        if(farmer.getFarmerStatus() == Farmer.FarmerStatus.SUSPENDED){              // 由 Admin 管制 (非審核流程)
+            throw new IllegalStateException("此帳號已遭停權，若有任何疑問請聯繫客服");
+        }
+        // step3. 通過審核（ACTIVE）後，仍須點啟用信連結完成 Email 驗證才能登入，未驗證不得自行直接登入
+        if (farmer.getEmailVerified() == null || !farmer.getEmailVerified()) {
+            throw new IllegalStateException("您的小農帳號已通過審核，請先點擊啟用信中的連結完成 Email 驗證後再登入");
+        }
+        // 內含 farmer + 查最新 review
+        return toResponse(farmer);
+    }
+
+    // 查資料
+    @Override
+    @Transactional(readOnly = true)
+    public FarmerProfileResponse getMyProfile(Integer farmerId) {
+        return toResponse(findFarmer(farmerId));
+    }
+
+    // 修改資料 (非重審)
+    @Override
+    public FarmerProfileResponse updateContactInfo(Integer farmerId, FarmerProfileUpdateRequest req) {
+        Farmer farmer = findFarmer(farmerId);
+        if(req.getFarmerPhoneNum() != null)
+            farmer.setFarmerPhoneNum(req.getFarmerPhoneNum());
+        if(req.getFarmDesc() != null)
+            farmer.setFarmDesc(req.getFarmDesc());
+
+        // repository 將修改資料存進 DB
+        return toResponse(farmerRepository.save(farmer));
+    }
+
+    // 修改資料 (需重審)
+    @Override
+    public FarmerProfileResponse updateReviewRequiredInfo(Integer farmerId, FarmerResubmitRequest req) {
+        // 撈出小農和審核物件
+        Farmer farmer = findFarmer(farmerId);
+        FarmerReview latest = farmerReviewRepository.findTopByFarmer_FarmerIdOrderByReviewRoundDesc(farmerId);
+
+        // latest 防呆（active 小農理論上至少有一筆審核）
+        if (latest == null) {
+            throw new IllegalStateException("查無審核紀錄");
+        }
+
+        // 已提交審核（PENDING / REVIEWING）就不能再送審，要等審核完成
+        if (latest.getReviewStatus() == FarmerReview.ReviewStatus.PENDING
+                || latest.getReviewStatus() == FarmerReview.ReviewStatus.REVIEWING) {
+            throw new IllegalStateException("您已提交審核變更，請待審核完成後再送出");
+        }
+
+        // 計算重審次數
+        int nextRound = (latest != null && latest.getReviewRound() != null)
+                        ? latest.getReviewRound() + 1
+                        : 1;
+
+        // 呼叫方法 newReviewSnapshot()，組裝一個審核快照物件
+        FarmerReview review = newReviewSnapshot(
+                farmer, nextRound,
+                req.getFarmName(), req.getFarmAddress(),
+                findDistrict(req.getDistrictId()),
+                req.getLocLat(), req.getLocLong(),
+                req.getCertFileLand(), req.getCertFileProduct(),
+                req.getCertFileIdentity()
+        );
+
+        // 把 FarmerReview 物件存進 DB，回傳帶上 farmerId 的 FarmerReview 物件
+        FarmerReview savedReview = farmerReviewRepository.save(review);
+        return FarmerProfileResponse.from(farmer, savedReview);
+    }
+
+    // 修改密碼
+    @Override
+    public void changePassword(Integer farmerId, ChangePasswordRequest pw) {
+        Farmer farmer = findFarmer(farmerId);
+
+        // 已有本地密碼，必須先驗證舊密碼正確
+        if (farmer.getPassword() != null) {
+            if (pw.getOldPassword() == null
+                    || !passwordEncoder.matches(pw.getOldPassword(), farmer.getPassword())) {
+                throw new BadCredentialsException("舊密碼錯誤");
+            }
+        }
+        farmer.setPassword(passwordEncoder.encode(pw.getNewPassword()));
+        farmerRepository.save(farmer);
+    }
+
+
+    // 自定義方法：組裝每次審核 (n+1) 的資料，回傳一個物件（register/resubmit 共用）
+    private FarmerReview newReviewSnapshot(
+            Farmer farmer, int round,
+            String farmName, String farmAddress, CityDistrict district,
+            BigDecimal locLat, BigDecimal locLong,
+            byte[] certLand, byte[] certProduct, byte[] certIdentity) {
+
+        FarmerReview review = new FarmerReview();
+        review.setFarmer(farmer);
+        review.setReviewStatus(FarmerReview.ReviewStatus.PENDING);
+        review.setReviewRound(round);
+        review.setSubmittedAt(LocalDateTime.now());
+        review.setSubmittedFarmName(farmName);
+        review.setSubmittedFarmAddress(farmAddress);
+        review.setSubmittedDistrict(district);
+        review.setSubmittedLocLat(locLat);
+        review.setSubmittedLocLong(locLong);
+        review.setCertFileLand(certLand);
+        review.setCertFileProduct(certProduct);
+        review.setCertFileIdentity(certIdentity);
+        return review;
+    }
+
+    // 自定義方法: 查最新 review，連同 farmer 包成回應 DTO
+    private FarmerProfileResponse toResponse(Farmer farmer) {
+        FarmerReview latest = farmerReviewRepository.findTopByFarmer_FarmerIdOrderByReviewRoundDesc(farmer.getFarmerId());
+        return FarmerProfileResponse.from(farmer, latest);
+    }
+
+    // 自定義方法: 依 id 撈小農
+    private Farmer findFarmer(Integer farmerId) {
+        return farmerRepository.findById(farmerId)
+                .orElseThrow(() -> new IllegalArgumentException("查無此小農"));
+    }
+
+    // 自定義方法: 依 id 撈區域
+    private CityDistrict findDistrict(Integer districtId) {
+        if (districtId == null) {
+            return null;
+        }
+        return cityDistrictRepository.findById(districtId)
+                .orElseThrow(() -> new IllegalArgumentException("查無此區域 districtId=" + districtId));
+    }
+}

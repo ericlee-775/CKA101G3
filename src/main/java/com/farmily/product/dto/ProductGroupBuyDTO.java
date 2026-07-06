@@ -14,6 +14,50 @@ public class ProductGroupBuyDTO {
 	    private Timestamp ddlDatetime;
 	    private String pickupAddress;
 	    private GroupBuyStatus status;
+	    private String unitPricingMeasure;
+	    private String description;
+	    private Integer subCatClassId;
+	    private String subCatClassName;
+	    public ProductGroupBuyDTO(
+	            Integer productId,
+	            String productName,
+	            Integer groupPrice,
+	            String unitPricingMeasure,
+	            String description,
+	            Integer subCatClassId,
+	            String subCatClassName) {
+	        this.productId = productId;
+	        this.productName = productName;
+	        this.groupPrice = groupPrice;
+	        this.unitPricingMeasure = unitPricingMeasure;
+	        this.description = description;
+	        this.subCatClassId = subCatClassId;
+	        this.subCatClassName = subCatClassName;
+	    }
+		public String getUnitPricingMeasure() {
+			return unitPricingMeasure;
+		}
+		public void setUnitPricingMeasure(String unitPricingMeasure) {
+			this.unitPricingMeasure = unitPricingMeasure;
+		}
+		public String getDescription() {
+			return description;
+		}
+		public void setDescription(String description) {
+			this.description = description;
+		}
+		public Integer getSubCatClassId() {
+			return subCatClassId;
+		}
+		public void setSubCatClassId(Integer subCatClassId) {
+			this.subCatClassId = subCatClassId;
+		}
+		public String getSubCatClassName() {
+			return subCatClassName;
+		}
+		public void setSubCatClassName(String subCatClassName) {
+			this.subCatClassName = subCatClassName;
+		}
 		public ProductGroupBuyDTO() {
 			super();
 			// TODO Auto-generated constructor stub
