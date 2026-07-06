@@ -1,8 +1,11 @@
 package com.farmily.user.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 
 // 重新送審用（暫存，通過才生效） - 適用於已通過初審
+// 證明文件走 multipart/form-data；沒上傳（null/空）時 service 端會沿用上一輪審核的圖片
 public class FarmerResubmitRequest {
 
     private String farmName;
@@ -10,9 +13,9 @@ public class FarmerResubmitRequest {
     private String farmAddress;
     private BigDecimal locLat;
     private BigDecimal locLong;
-    private byte[] certFileLand;
-    private byte[] certFileProduct;
-    private byte[] certFileIdentity;
+    private MultipartFile certFileLand;
+    private MultipartFile certFileProduct;
+    private MultipartFile certFileIdentity;
 
     public String getFarmName() {
         return farmName;
@@ -54,27 +57,27 @@ public class FarmerResubmitRequest {
         this.locLong = locLong;
     }
 
-    public byte[] getCertFileLand() {
+    public MultipartFile getCertFileLand() {
         return certFileLand;
     }
 
-    public void setCertFileLand(byte[] certFileLand) {
+    public void setCertFileLand(MultipartFile certFileLand) {
         this.certFileLand = certFileLand;
     }
 
-    public byte[] getCertFileProduct() {
+    public MultipartFile getCertFileProduct() {
         return certFileProduct;
     }
 
-    public void setCertFileProduct(byte[] certFileProduct) {
+    public void setCertFileProduct(MultipartFile certFileProduct) {
         this.certFileProduct = certFileProduct;
     }
 
-    public byte[] getCertFileIdentity() {
+    public MultipartFile getCertFileIdentity() {
         return certFileIdentity;
     }
 
-    public void setCertFileIdentity(byte[] certFileIdentity) {
+    public void setCertFileIdentity(MultipartFile certFileIdentity) {
         this.certFileIdentity = certFileIdentity;
     }
 }

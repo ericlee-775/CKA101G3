@@ -125,16 +125,9 @@ public class UserSecurityConfig {
         return commonSetup(http)
                 .securityMatcher("/api/farmer/**")
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/farmer/register",
-                                "/api/farmer/login",
-                                "/api/farmer/application/**").permitAll()
-                        
-                        
-                       
+                        .requestMatchers("/api/farmer/register","/api/farmer/login","/api/farmer/application/**").permitAll()
+
                         .anyRequest().hasRole("FARMER")
-                        
-                        
-                        
                 )
                 .build();
     }
@@ -148,9 +141,6 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
                         
-                        
-                      
-
                         .anyRequest().hasRole("USER")
                 )
                 // OAuth 2.0 社交登入 - 交給 Spring Security 處理
@@ -176,6 +166,10 @@ public class UserSecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
                         
                         .requestMatchers(HttpMethod.GET,"/api/products/**").permitAll()
+                        //trip
+                        .requestMatchers(HttpMethod.GET,"/api/farm-trips/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/farmer/farm-trips/**").permitAll()
+                        
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()

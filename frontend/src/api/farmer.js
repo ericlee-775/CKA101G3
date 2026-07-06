@@ -5,8 +5,9 @@ import http from './http'
 const BASE = '/api/farmer'
 
 export const farmerApi = {
-  // 註冊申請；reg = { email, password(≥8), farmName, farmAddress, farmerPhoneNum, farmDesc,
-  //                   districtId?, locLat?, locLong?, certFileLand?, certFileProduct?, certFileIdentity? }
+  // 註冊申請；因含證明文件圖片，請傳 FormData（multipart/form-data），欄位：
+  //   email, password(≥8), farmName, farmAddress, farmerPhoneNum, farmDesc,
+  //   certFileLand, certFileProduct, certFileIdentity(File), districtId?, locLat?, locLong?
   register: (reg) => http.post(`${BASE}/register`, reg),
 
   // 登入；log = { email, password, rememberMe }
@@ -18,8 +19,11 @@ export const farmerApi = {
   // 修改「非審核」欄位（電話、農場描述），立即生效；{ farmerPhoneNum?, farmDesc? }
   updateContact: (req) => http.put(`${BASE}/me`, req),
 
-  // 修改「審核相關」欄位，會重新送審；{ farmName?, districtId?, farmAddress?, locLat?, locLong?, cert...? }
-  resubmit: (req) => http.put(`${BASE}/me/application`, req),
+  // 修改「審核相關」欄位，會重新送審；含證明文件圖片，請傳 FormData（multipart/form-data）：
+  //   farmName?, districtId?, farmAddress?, locLat?, locLong?,
+  //   certFileLand?, certFileProduct?, certFileIdentity?(File；不帶則後端沿用上一輪)
+  // 用 POST（非 PUT）：PUT+multipart 在 Tomcat 不會被解析，會 403
+  resubmit: (req) => http.post(`${BASE}/me/application`, req),
 
   // 修改密碼；{ oldPassword, newPassword(≥8) }
   changePassword: (pw) => http.put(`${BASE}/me/password`, pw),
@@ -29,7 +33,9 @@ export const farmerApi = {
     // 查最新審核狀態 + 退件理由；{ email, password }
     status: (log) => http.post(`${BASE}/application/status`, log),
 
-    // 免登入重新送審；{ email, password, farmName?, farmAddress?, districtId?, ... }
+    // 免登入重新送審；含證明文件圖片，請傳 FormData（multipart/form-data），欄位：
+    //   email, password, farmName?, farmAddress?, districtId?,
+    //   certFileLand, certFileProduct, certFileIdentity(File)
     resubmit: (req) => http.post(`${BASE}/application/resubmit`, req),
 
     // 重寄啟用信；{ email, password }

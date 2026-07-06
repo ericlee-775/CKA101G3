@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public interface GroupBuyOrderRepository extends JpaRepository<GroupBuyOrderVO, Integer> {
-
 	
 	
 }

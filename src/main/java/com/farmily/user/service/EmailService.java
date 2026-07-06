@@ -51,6 +51,23 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    // 寄出小農審核「退件」通知信
+    @Async
+    public void sendFarmerRejectedEmail(String toEmail, String rejectReason, String applicationLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Farmily 小農申請審核結果通知");
+        message.setText("您好，\n\n"
+                + "很抱歉，您申請的小農帳號本次審核未通過。\n"
+                + "退件理由：" + (rejectReason == null || rejectReason.isBlank() ? "（未提供）" : rejectReason) + "\n\n"
+                + "您可以點擊以下連結查看審核進度，並修正資料後重新送審：\n"
+                + applicationLink + "\n\n"
+                + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
+
+        mailSender.send(message);
+    }
+
     // 寄出重設密碼信 (會員/小農)
     @Async
     public void sendResetPasswordEmail(String toEmail, String resetLink) {
