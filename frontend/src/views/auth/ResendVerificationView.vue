@@ -1,57 +1,50 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import authApi, { ACCOUNT_TYPE } from '@/api/auth'
 
-const router = useRouter()
+const route = useRoute()
 
-// 表單欄位
-const name = ref('')
 const email = ref('')
-const password = ref('')
-const confirm = ref('')
+// 身分：預設從網址 ?type=FARMER 帶入，否則會員
+const accountType = ref(route.query.type === 'FARMER' ? ACCOUNT_TYPE.FARMER : ACCOUNT_TYPE.MEMBER)
 
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 送出註冊（UI 階段，先做前端驗證）
-function handleRegister() {
+async function handleSubmit() {
   error.value = ''
-
-  if (!name.value || !email.value || !password.value) {
-    error.value = '請完整填寫姓名、信箱與密碼'
+  if (!email.value || !email.value.includes('@')) {
+    error.value = '請輸入正確的信箱'
     return
   }
-  if (!email.value.includes('@')) {
-    error.value = '信箱格式不正確'
-    return
+  loading.value = true
+  try {
+    await authApi.resendVerification(email.value, accountType.value)
+    // 後端不論帳號是否存在都回相同訊息，避免洩漏帳號
+    done.value = true
+  } catch (e) {
+    error.value = e.message || '寄送失敗，請稍後再試'
+  } finally {
+    loading.value = false
   }
-  if (password.value.length < 6) {
-    error.value = '密碼至少需 6 個字元'
-    return
-  }
-  // 確認兩次密碼一致
-  if (password.value !== confirm.value) {
-    error.value = '兩次輸入的密碼不一致'
-    return
-  }
-
-  // TODO：之後改成 fetch('/api/register', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬註冊成功後導到登入頁
-  setTimeout(() => router.push('/login'), 1000)
 }
 </script>
 
 <template>
   <main class="auth-page">
     <div class="auth-card">
-      <h1>會員註冊</h1>
-      <p class="auth-sub">加入 Farmily，享受產地直送 🌱</p>
+      <h1>重寄驗證信</h1>
+      <p class="auth-sub">沒收到 Email 驗證信？輸入註冊信箱重新寄送</p>
 
-      <form class="auth-form" @submit.prevent="handleRegister">
+      <form v-if="!done" class="auth-form" @submit.prevent="handleSubmit">
         <label>
-          <span>姓名</span>
-          <input v-model="name" type="text" placeholder="你的名字" />
+          <span>身分</span>
+          <select v-model="accountType">
+            <option value="MEMBER">一般會員</option>
+            <option value="FARMER">小農</option>
+          </select>
         </label>
 
         <label>
@@ -59,25 +52,21 @@ function handleRegister() {
           <input v-model="email" type="email" placeholder="you@example.com" />
         </label>
 
-        <label>
-          <span>密碼</span>
-          <input v-model="password" type="password" placeholder="至少 6 個字元" />
-        </label>
-
-        <label>
-          <span>確認密碼</span>
-          <input v-model="confirm" type="password" placeholder="再輸入一次密碼" />
-        </label>
-
         <p v-if="error" class="auth-error">{{ error }}</p>
-        <p v-if="done" class="auth-ok">註冊成功！正在帶你前往登入…</p>
 
-        <button class="auth-btn" type="submit">註冊</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '寄送中…' : '重新寄送驗證信' }}
+        </button>
       </form>
 
+      <div v-else class="auth-done">
+        <p class="auth-ok">若此信箱有註冊帳號，系統已重新寄出驗證信，請至信箱確認。</p>
+      </div>
+
       <p class="auth-foot">
-        已經有帳號了？
-        <router-link to="/login">前往登入</router-link>
+        <router-link to="/login">回會員登入</router-link>
+        ｜
+        <router-link to="/farmer/login">小農登入</router-link>
       </p>
     </div>
   </main>
@@ -111,7 +100,6 @@ function handleRegister() {
   color: var(--muted);
   font-size: 14px;
 }
-
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -124,18 +112,20 @@ function handleRegister() {
   font-size: 14px;
   color: var(--ink-soft);
 }
-.auth-form input {
+.auth-form input,
+.auth-form select {
   padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   font-size: 15px;
   outline: none;
   transition: border-color 0.18s ease;
+  font-family: inherit;
 }
-.auth-form input:focus {
+.auth-form input:focus,
+.auth-form select:focus {
   border-color: var(--leaf);
 }
-
 .auth-error {
   margin: 0;
   color: #c0392b;
@@ -144,9 +134,13 @@ function handleRegister() {
 .auth-ok {
   margin: 0;
   color: var(--leaf);
-  font-size: 13px;
+  font-size: 14px;
+  text-align: center;
+  line-height: 1.6;
 }
-
+.auth-done {
+  padding: 12px 0;
+}
 .auth-btn {
   margin-top: 4px;
   padding: 12px;
@@ -161,7 +155,10 @@ function handleRegister() {
 .auth-btn:hover {
   background: var(--leaf-dark);
 }
-
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .auth-foot {
   margin: 20px 0 0;
   text-align: center;

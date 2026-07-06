@@ -1,8 +1,12 @@
 package com.farmily.user.security;
 
+import com.farmily.user.security.service.AdminUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -67,42 +71,56 @@ public class UserSecurityConfig {
                         (request, response, authEx) -> response.sendError(401)));
     }
 
-
-    // ===== 管理員 SecurityFilterChain：負責處理 /api/admin/** =====
+    // 只認「管理員帳號」的驗證器：用 AdminUserDetailsService 查帳號、用 BCrypt 比對密碼
+    // 密碼比對、帳號是否啟用(isEnabled) 都由 Spring Security 自動處理
     @Bean
-    @Order(1)
-    public SecurityFilterChain adminChain(HttpSecurity http) throws Exception {
-        return commonSetup(http)
-                .securityMatcher("/api/admin/**")
-                .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/admin/login").permitAll()
+    public AuthenticationProvider adminAuthenticationProvider(AdminUserDetailsService adminUserDetailsService) {
+        DaoAuthenticationProvider provider =  new DaoAuthenticationProvider(adminUserDetailsService);         // 「查帳號 + 比對密碼」的標準元件 DaoAuthenticationProvider
+//        provider.setUserDetailsService(adminUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
 
-                        // 細部權限管理 (ADMIN_ROLE) 注意有順序
-                        .requestMatchers("/api/admin/admins/**").hasAuthority("PERM_ADMIN")
+    // ===== 管理員「頁面」過濾鏈：負責 /admin/**（Thymeleaf 後台）=====
+    // 放在最前面 (Order 0)，且不走 commonSetup（因為它會關 CSRF、未登入回 401，這些是給 Vue 用）
+    @Bean
+    @Order(0)
+    public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider) throws Exception {
+        return http
+                .securityMatcher("/admin/**")
+                .authenticationProvider(adminAuthenticationProvider)
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers("/admin/login").permitAll()
+                        .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
+                        .requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
 
-                        .requestMatchers("/api/admin/farmers/**", "/api/admin/reviews/**")
-                        .hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
+                        .anyRequest().hasRole("ADMIN"))
 
-                        .requestMatchers("/api/admin/members/**")
-                        .hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+                // formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .usernameParameter("email")      // 表單欄位 name="email"
+                        .passwordParameter("password")   // 表單欄位 name="password"
+                        .defaultSuccessUrl("/admin/dashboard", true)
+                        .failureUrl("/admin/login?error")
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/admin/logout")
+                        .logoutSuccessUrl("/admin/login?logout"))
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry()))
 
-
-                        // ============= 補上其他組員的 API =============
-//                        .requestMatchers("/api/admin/news/**")
-//                        .hasAnyAuthority("PERM_ADMIN", "PERM_NEWS")
-
-
-
-
-                        // 其餘 ("/api/admin/me")，登入的管理員都能用
-                        .anyRequest().hasRole("ADMIN")
-                )
+                // 注意沒有關閉 CSRF，後台維持開啟 (Thymeleaf 表單會自動帶 token)
                 .build();
     }
 
+
     // ===== 小農 SecurityFilterChain：負責處理 /api/farmer/** =====
     @Bean
-    @Order(2)
+    @Order(1)
     public SecurityFilterChain farmerChain(HttpSecurity http) throws Exception {
         return commonSetup(http)
                 .securityMatcher("/api/farmer/**")
@@ -110,21 +128,29 @@ public class UserSecurityConfig {
                         .requestMatchers("/api/farmer/register",
                                 "/api/farmer/login",
                                 "/api/farmer/application/**").permitAll()
+                        
+                        
+                       
                         .anyRequest().hasRole("FARMER")
+                        
+                        
+                        
                 )
                 .build();
     }
 
     // ===== 會員 SecurityFilterChain：負責處理 /api/member/** =====
     @Bean
-    @Order(3)
+    @Order(2)
     public SecurityFilterChain memberChain(HttpSecurity http) throws Exception {
         return commonSetup(http)
                 .securityMatcher("/api/member/**")
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/member/register",
-                                "/api/member/login",
-                                "/api/member/oauth/**").permitAll()
+                        .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
+                        
+                        
+                      
+
                         .anyRequest().hasRole("USER")
                 )
                 // OAuth 2.0 社交登入 - 交給 Spring Security 處理
@@ -138,15 +164,19 @@ public class UserSecurityConfig {
 
     // ===== 其餘所有 url 需登入 =====
     @Bean
-    @Order(4)
+    @Order(3)
     public SecurityFilterChain defaultChain(HttpSecurity http) throws Exception {
         return commonSetup(http)
                 .authorizeHttpRequests(request -> request
+
                         // 前端靜態檔（Vue 打包輸出在 /farmily-web/ 子路徑）
                         .requestMatchers("/farmily-web/**").permitAll()
+                        
+                        //團購
+                        .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
 
                         // 前端靜態檔
-                        .requestMatchers("/", "/index.html", "/admin.html", "/css/**", "/js/**", "/vendors/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()
                         .requestMatchers("/oauth-test.html").permitAll()        // OAuth2.0 測試用
 
                         // 公開：註冊/申請表單的縣市與行政區下拉要用

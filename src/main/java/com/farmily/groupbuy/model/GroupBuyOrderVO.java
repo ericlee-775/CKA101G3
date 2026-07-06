@@ -58,7 +58,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	private OrderStatus orderStatus;
 
 	@Enumerated(EnumType.STRING)
-	@Column(name = "paid_Status")
+	@Column(name = "paid_status")
 	private PaidStatus paidStatus;
 
 	@Column(name = "completed_at")
