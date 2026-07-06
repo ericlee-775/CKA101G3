@@ -21,8 +21,8 @@ import jakarta.persistence.Table;
 	    @Column(name = "farm_session_id", updatable = false)
 		private Integer farmSessionId;
 
-	    @Column(name = "farme_trip_id")
-	    private Integer farmerTripId;
+	    @Column(name = "farm_trip_id")
+	    private Integer farmTripId;
 
 	    @Column(name = "farm_trip_start")
 	    private Timestamp farmTripStart;
@@ -52,11 +52,11 @@ import jakarta.persistence.Table;
 		}
 
 		public Integer getFarmerTripId() {
-			return farmerTripId;
+			return farmTripId;
 		}
 
 		public void setFarmerTripId(Integer farmerTripId) {
-			this.farmerTripId = farmerTripId;
+			this.farmTripId = farmerTripId;
 		}
 
 		public Timestamp getFarmTripStart() {
