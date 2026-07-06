@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,7 +31,13 @@ public class AdminGroupBuyController {
 		List<GroupBuyVO> list = groupBuySvc.showAllGroupBuyToAdmin();
 		return ResponseEntity.ok(list);
 	}
-
+	
+	//測試直接讓團購成團
+	@PostMapping("/checkExpired") 
+	public ResponseEntity<String> checkExpired() {
+	groupBuySvc.checkExpiredGroupBuys(); return ResponseEntity.ok("團購結算完成"); }
+	
+	
 	//給管理員看的訂單資料
 	@GetMapping("/order/{groupBuyId}")
 	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer groupBuyId){

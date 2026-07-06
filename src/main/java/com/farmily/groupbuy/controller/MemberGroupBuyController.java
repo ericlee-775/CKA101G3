@@ -1,18 +1,21 @@
 package com.farmily.groupbuy.controller;
 
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
 import com.farmily.groupbuy.model.GroupBuyShowToUserJoinDTO;
+import com.farmily.groupbuy.model.ShowJoinedGroupBuyDTO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.service.ProductService;
 import com.farmily.user.security.MemberUserDetails;
@@ -30,7 +33,13 @@ public class MemberGroupBuyController {
 	@Autowired
 	ProductService productSvc;
 
-	//給會員看的已加入清單
+	//給會員看的已參加的團購清單(尚未成團)
+	@GetMapping("/joinedGroupBuyList")
+	public ResponseEntity<List<ShowJoinedGroupBuyDTO>>JoinedList
+	(@AuthenticationPrincipal MemberUserDetails me){
+		List<ShowJoinedGroupBuyDTO>list=groupBuySvc.showJoinedGroupBuy(me.getUserId());
+		return ResponseEntity.ok(list);
+	}
 	
 	
 	
