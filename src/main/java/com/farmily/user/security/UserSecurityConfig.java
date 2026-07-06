@@ -126,11 +126,9 @@ public class UserSecurityConfig {
                 .securityMatcher("/api/farmer/**")
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/farmer/register",
-                                "/api/farmer/login",
-                                "/api/farmer/application/**").permitAll()
-                        
-                        
-                       
+                                "/api/farmer/login","/api/farmer/application/**").permitAll()
+
+
                         .anyRequest().hasRole("FARMER")
                         
                         
@@ -170,7 +168,7 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(request -> request
 
                         // 前端靜態檔（Vue 打包輸出在 /farmily-web/ 子路徑）
-                        .requestMatchers("/farmily-web/**").permitAll()
+                        .requestMatchers("/farmily-web/").permitAll()
                         
                         //團購
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
