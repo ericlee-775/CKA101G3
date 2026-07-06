@@ -8,6 +8,7 @@ import FarmerLayout from '@/components/layout/FarmerLayout.vue'  // 小農管理
 // 商城前台頁面
 import HomeView from '@/views/shop/HomeView.vue'
 import NewsView from '@/views/shop/NewsView.vue'
+import NewsDetailView from '@/views/shop/NewsDetailView.vue'
 import FarmilyView from '@/views/shop/Farmily.vue'
 import ProductsView from '@/views/shop/ProductsView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
@@ -33,6 +34,9 @@ import FarmerProductsView from '@/views/farmer/FarmerProductsView.vue'
 import FarmerGroupBuysView from '@/views/farmer/FarmerGroupBuysView.vue'
 import FarmerOrdersView from '@/views/farmer/FarmerOrdersView.vue'
 import FarmerFarmTripsView from '@/views/farmer/FarmerFarmTripsView.vue'
+import FarmerBlogView from '@/views/farmer/FarmerBlogView.vue'
+import FarmerBlogEditView from '@/views/farmer/FarmerBlogEditView.vue'
+import FarmerBlogDetailView from '@/views/farmer/FarmerBlogDetailView.vue'
 import FarmerCouponsView from '@/views/farmer/FarmerCouponsView.vue'
 import FarmerNotificationsView from '@/views/farmer/FarmerNotificationsView.vue'
 
@@ -54,6 +58,7 @@ const router = createRouter({
       children: [
         { path: '',            name: 'home',       component: HomeView },
         { path: 'news',        name: 'news',       component: NewsView },
+        { path: 'news/:newsId', name: 'news-detail', component: NewsDetailView },
         { path: 'farmily',     name: 'farmily',    component: FarmilyView },
         { path: 'products',    name: 'products',   component: ProductsView },
         { path: 'group-buys',  name: 'group-buys', component: GroupBuysView },
@@ -94,6 +99,10 @@ const router = createRouter({
         { path: 'group-buys',    name: 'farmer-group-buys',    component: FarmerGroupBuysView },
         { path: 'orders',        name: 'farmer-orders',        component: FarmerOrdersView },
         { path: 'farm-trips',    name: 'farmer-farm-trips',    component: FarmerFarmTripsView },
+        { path: 'blog',          name: 'farmer-blog',          component: FarmerBlogView },
+        { path: 'blog/new',      name: 'farmer-blog-new',      component: FarmerBlogEditView },
+        { path: 'blog/:id/edit', name: 'farmer-blog-edit',     component: FarmerBlogEditView },
+        { path: 'blog/:id',      name: 'farmer-blog-detail',   component: FarmerBlogDetailView },
         { path: 'coupons',       name: 'farmer-coupons',       component: FarmerCouponsView },
         { path: 'notifications', name: 'farmer-notifications', component: FarmerNotificationsView },
       ],
