@@ -106,7 +106,7 @@ public class BlogServiceImpl implements BlogService {
         return blogDao.getPhotoBytes(photoId);
     }
 
-    /* ===== 寫作(會員) ===== */
+    /* ===== 寫作(會員/小農) ===== */
     private static final Integer FARMBLOGTYPEID = 1;
 
     @Override
@@ -209,6 +209,46 @@ public class BlogServiceImpl implements BlogService {
 
     }
 
+    @Override
+    public Page<BlogResponse> getMyBlogs(Integer farmerId, Integer offset, Integer limit) {
+        BlogQueryParms parms = new BlogQueryParms();
+        parms.setFarmerId(farmerId);           // 只撈這個小農的
+        parms.setBlogTypeId(FARMBLOGTYPEID);   // 只撈產地日記(=1)
+        parms.setOrderBy("blog_time");
+        parms.setSort("desc");                 // 新到舊
+        parms.setLimit(limit);
+        parms.setOffset(offset);
+        return getBlogPage(parms);             // 沿用現有分頁查詢
+    }
+
+    @Override
+    public BlogResponse createMyBlog(Integer farmerId, BlogRequest blogRequest) {
+        blogRequest.setFarmerId(farmerId);         // 作者 = 登入的小農（session）
+        blogRequest.setUserId(null);               // 確保不是會員作者
+        blogRequest.setBlogTypeId(FARMBLOGTYPEID); // 強制產地日記(=1)
+        return createBlog(blogRequest);            // 沿用現有建立
+    }
+
+    @Override
+    public BlogResponse getMyBlog(Integer farmerId, Integer blogId) {
+        Blog blog = getOwnedBlog(farmerId, blogId);   // 撈出+驗證擁有者
+        return BlogResponse.from(blog);               // 轉 DTO 回去
+    }
+
+    @Override
+    public BlogResponse updateMyBlog(Integer farmerId, Integer blogId, BlogRequest blogRequest) {
+        getOwnedBlog(farmerId, blogId);            // 驗證：存在且是我的（不是就丟 404/403）
+        blogRequest.setBlogTypeId(FARMBLOGTYPEID); // 鎖死產地日記，避免被改成別的類別
+        return updateBlog(blogId, blogRequest);    // 沿用現有更新（含「沒傳新圖沿用舊圖」）
+    }
+
+    @Override
+    public void deleteMyBlog(Integer farmerId, Integer blogId) {
+        getOwnedBlog(farmerId, blogId);   // 驗證擁有者
+        deleteBlog(blogId);               // 沿用現有刪除（會連帶刪留言/照片/讚等）
+
+    }
+
     /* ===== 互動 ===== */
 
     @Override
@@ -292,5 +332,17 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public BlogCommentReport getCommentReportById(Integer reportCommentId) {
         return blogDao.getCommentReportById(reportCommentId);
+    }
+
+    /* ===== 方法 ===== */
+    private Blog getOwnedBlog(Integer farmerId, Integer blogId) {
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
+        if (!farmerId.equals(blog.getFarmerId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "沒有權限操作這篇文章");
+        }
+        return blog;
     }
 }

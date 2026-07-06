@@ -451,6 +451,10 @@ public class BlogDaoImpl implements BlogDao {
             sql = sql + " AND blog_type_id = :blogTypeId";
             map.put("blogTypeId", blogQueryParms.getBlogTypeId());
         }
+        if (blogQueryParms.getFarmerId() != null) {
+            sql = sql + " AND farmer_id = :farmerId";
+            map.put("farmerId", blogQueryParms.getFarmerId());
+        }
         if (blogQueryParms.getSearch() != null && !blogQueryParms.getSearch().isBlank()) {
             sql = sql + " AND (blog_title LIKE :search OR blog_content LIKE :search)";
             map.put("search", "%" + blogQueryParms.getSearch() + "%");

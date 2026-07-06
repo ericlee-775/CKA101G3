@@ -47,6 +47,16 @@ public interface BlogService {
 
     void deletePhoto(Integer photoId);
 
+    Page<BlogResponse> getMyBlogs(Integer farmerId, Integer offset, Integer limit);
+
+    BlogResponse createMyBlog(Integer farmerId, BlogRequest blogRequest);
+
+    BlogResponse getMyBlog(Integer farmerId, Integer blogId);
+
+    BlogResponse updateMyBlog(Integer farmerId, Integer blogId, BlogRequest blogRequest);
+
+    void deleteMyBlog(Integer farmerId, Integer blogId);
+
     /* ===== 互動 ===== */
     // toggle：回傳 true=這次變成已按讚，false=這次取消讚
     BlogResponse likeBlog(Integer blogId, Integer userId);

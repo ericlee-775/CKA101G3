@@ -3,6 +3,7 @@ package com.farmily.blog.dto;
 public class BlogQueryParms {
 
     private Integer blogTypeId ;
+    private Integer farmerId;
     private String search;
     private String sort ;
     private String orderBy;
@@ -16,6 +17,14 @@ public class BlogQueryParms {
 
     public void setBlogTypeId(Integer blogTypeId) {
         this.blogTypeId = blogTypeId;
+    }
+
+    public Integer getFarmerId() {
+        return farmerId;
+    }
+
+    public void setFarmerId(Integer farmerId) {
+        this.farmerId = farmerId;
     }
 
     public String getSearch() {
