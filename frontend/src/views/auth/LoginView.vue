@@ -1,12 +1,15 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import memberApi from '@/api/member'
 import authStore from '@/stores/auth'
 import GoogleLoginButton from '@/components/GoogleLoginButton.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
+const route = useRoute()
+// 被導航守衛擋下來時會帶 ?redirect=原本要去的頁；登入成功後接回，沒有就回首頁
+const afterLogin = () => router.push(route.query.redirect || '/')
 
 // 表單欄位（雙向綁定 v-model 用）
 const email = ref('')
@@ -41,7 +44,7 @@ async function handleLogin() {
     })
     authStore.setUser(user, 'MEMBER')   // 記住登入者身分
     done.value = true
-    setTimeout(() => router.push('/'), 800)
+    setTimeout(afterLogin, 800)
   } catch (e) {
     error.value = e.message || '登入失敗，請稍後再試'
   } finally {
@@ -57,7 +60,7 @@ async function handleGoogle(credential) {
     const user = await memberApi.googleLogin(credential)
     authStore.setUser(user, 'MEMBER')
     done.value = true
-    setTimeout(() => router.push('/'), 800)
+    setTimeout(afterLogin, 800)
   } catch (e) {
     error.value = e.message || 'Google 登入失敗'
   } finally {
