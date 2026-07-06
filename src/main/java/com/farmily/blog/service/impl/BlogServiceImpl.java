@@ -59,8 +59,8 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public BlogResponse getBlogDetail(Integer blogId) {
        Blog blog = blogDao.getBlogById(blogId); //dao 撈entity
-       if(blog != null) {
-           throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文張不存在：" + blogId);
+       if(blog == null) {
+           throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
        }
         return BlogResponse.from(blog); //轉成 DTO回去
     }
