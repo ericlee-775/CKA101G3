@@ -1,99 +1,102 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import memberApi from '@/api/member'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 
 // 表單欄位
-const farmName = ref('')   // 農場名稱
-const owner = ref('')      // 負責人姓名
+const name = ref('')
 const email = ref('')
-const phone = ref('')
 const password = ref('')
 const confirm = ref('')
 
 const error = ref('')
 const done = ref(false)
+const loading = ref(false)
 
-// 小農註冊（UI 階段，先做前端驗證）
-// 注意：小農系統與一般會員系統「分開」，
-// 之後要打的是小農專屬端點，例如 /api/farmer/register，不是 /api/register。
-function handleRegister() {
+// 送出註冊：呼叫後端 POST /api/member/register
+async function handleRegister() {
   error.value = ''
 
-  if (!farmName.value || !owner.value || !email.value || !password.value) {
-    error.value = '請完整填寫農場名稱、負責人、信箱與密碼'
+  if (!name.value || !email.value || !password.value) {
+    error.value = '請完整填寫姓名、信箱與密碼'
     return
   }
   if (!email.value.includes('@')) {
     error.value = '信箱格式不正確'
     return
   }
-  if (password.value.length < 6) {
-    error.value = '密碼至少需 6 個字元'
+  // 後端 @Size(min = 8)：密碼至少 8 碼
+  if (password.value.length < 8) {
+    error.value = '密碼至少需 8 個字元'
     return
   }
+  // 確認兩次密碼一致
   if (password.value !== confirm.value) {
     error.value = '兩次輸入的密碼不一致'
     return
   }
 
-  // TODO：之後改成 fetch('/api/farmer/register', ...) 呼叫 Spring Boot
-  done.value = true
-  // 模擬註冊成功後導到小農登入頁
-  setTimeout(() => router.push('/farmer/login'), 1000)
+  loading.value = true
+  try {
+    // 前端欄位 name 對應後端 userName
+    await memberApi.register({
+      email: email.value,
+      password: password.value,
+      userName: name.value,
+    })
+    done.value = true
+    // 註冊成功後導到登入頁
+    setTimeout(() => router.push('/login'), 1200)
+  } catch (e) {
+    error.value = e.message || '註冊失敗，請稍後再試'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
   <main class="auth-page">
-    <div class="auth-card auth-card--farmer">
-      <span class="auth-badge">🌾 小農專區</span>
-      <h1>申請小農帳號</h1>
-      <p class="auth-sub">成為 Farmily 的小農夥伴，開始販售你的好物</p>
+    <div class="auth-card">
+      <h1>會員註冊</h1>
+      <p class="auth-sub">加入 Farmily，享受產地直送 🌱</p>
 
       <form class="auth-form" @submit.prevent="handleRegister">
         <label>
-          <span>農場名稱</span>
-          <input v-model="farmName" type="text" placeholder="例如：陽光有機農場" />
-        </label>
-
-        <label>
-          <span>負責人姓名</span>
-          <input v-model="owner" type="text" placeholder="你的名字" />
+          <span>姓名</span>
+          <input v-model="name" type="text" placeholder="你的名字" />
         </label>
 
         <label>
           <span>電子信箱</span>
-          <input v-model="email" type="email" placeholder="farmer@example.com" />
-        </label>
-
-        <label>
-          <span>聯絡電話</span>
-          <input v-model="phone" type="tel" placeholder="0912-345-678" />
+          <input v-model="email" type="email" placeholder="you@example.com" />
         </label>
 
         <label>
           <span>密碼</span>
-          <input v-model="password" type="password" placeholder="至少 6 個字元" />
+          <PasswordInput v-model="password" placeholder="至少 8 個字元" autocomplete="new-password" />
         </label>
 
         <label>
           <span>確認密碼</span>
-          <input v-model="confirm" type="password" placeholder="再輸入一次密碼" />
+          <PasswordInput v-model="confirm" placeholder="再輸入一次密碼" autocomplete="new-password" />
         </label>
 
         <p v-if="error" class="auth-error">{{ error }}</p>
-        <p v-if="done" class="auth-ok">申請成功！正在帶你前往登入…</p>
+        <p v-if="done" class="auth-ok">註冊成功！正在帶你前往登入…</p>
 
-        <button class="auth-btn" type="submit">送出申請</button>
+        <button class="auth-btn" type="submit" :disabled="loading">
+          {{ loading ? '註冊中…' : '註冊' }}
+        </button>
       </form>
 
       <p class="auth-foot">
-        已經是小農夥伴了？
-        <router-link to="/farmer/login">前往登入</router-link>
+        已經有帳號了？
+        <router-link to="/login">前往登入</router-link>
       </p>
-      <p class="auth-note">這是小農帳號入口，與一般會員帳號分開。</p>
     </div>
   </main>
 </template>
@@ -114,26 +117,15 @@ function handleRegister() {
   box-shadow: var(--shadow);
   padding: 32px;
 }
-.auth-card--farmer {
-  border-top: 4px solid var(--leaf);
-}
-.auth-badge {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--leaf-soft);
-  color: var(--leaf-dark);
-  font-size: 12px;
-  font-weight: 600;
-}
 .auth-card h1 {
   margin: 0;
   font-size: 24px;
   color: var(--ink);
+  text-align: center;
 }
 .auth-sub {
   margin: 6px 0 24px;
+  text-align: center;
   color: var(--muted);
   font-size: 14px;
 }
@@ -187,6 +179,10 @@ function handleRegister() {
 .auth-btn:hover {
   background: var(--leaf-dark);
 }
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .auth-foot {
   margin: 20px 0 0;
@@ -201,11 +197,5 @@ function handleRegister() {
 }
 .auth-foot a:hover {
   text-decoration: underline;
-}
-.auth-note {
-  margin: 10px 0 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
 }
 </style>

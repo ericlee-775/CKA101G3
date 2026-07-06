@@ -43,8 +43,8 @@ public class EmailVerificationService {
         String token = tokenService.createToken(
                 email, accountType, AccountToken.TokenType.EMAIL_VERIFY, verifyTtlMinutes);
 
-        // 指向前端 SPA 的驗證頁(hash 路由)，頁面再帶 token 呼叫後端驗證 API、顯示結果並導回首頁
-        String verifyLink = frontendBaseUrl + "/#/verify-email?token=" + token;
+        // 指向前端 SPA 的驗證頁(history 模式，非 hash)，頁面再帶 token 呼叫後端驗證 API、顯示結果
+        String verifyLink = frontendBaseUrl + "/verify-email?token=" + token;
 
         emailService.sendVerifyEmail(email, verifyLink);
     }
@@ -55,7 +55,7 @@ public class EmailVerificationService {
         String token = tokenService.createToken(
                 email, AccountToken.AccountType.FARMER, AccountToken.TokenType.EMAIL_VERIFY, verifyTtlMinutes);
 
-        String verifyLink = frontendBaseUrl + "/#/verify-email?token=" + token;
+        String verifyLink = frontendBaseUrl + "/verify-email?token=" + token;
 
         emailService.sendFarmerVerifyEmail(email, verifyLink);
     }

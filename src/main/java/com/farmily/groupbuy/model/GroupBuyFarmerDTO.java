@@ -3,6 +3,7 @@ package com.farmily.groupbuy.model;
 import java.sql.Timestamp;
 
 public class GroupBuyFarmerDTO {
+
 	private Integer groupBuyId;
 	private Integer productId;
 	private String productName;
