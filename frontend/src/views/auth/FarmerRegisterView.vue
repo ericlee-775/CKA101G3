@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
 import PasswordInput from '@/components/PasswordInput.vue'
+import { validateCertFile } from '@/utils/certFile'
 
 const router = useRouter()
 
@@ -16,6 +17,32 @@ const farmDesc = ref('')          // 農場介紹（後端必填）
 const districtId = ref('')        // 行政區 id
 const password = ref('')
 const confirm = ref('')
+
+// 證明文件（三張皆必填）：農地、產品、身分
+const certLand = ref(null)        // certFileLand
+const certProduct = ref(null)     // certFileProduct
+const certIdentity = ref(null)    // certFileIdentity
+
+const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
+
+// 使用者在該欄位選檔：驗證通過才存入對應 ref，並清掉舊錯誤
+function onCertChange(key, event) {
+  error.value = ''
+  const target = certRefs[key]
+  const file = event.target.files && event.target.files[0]
+  if (!file) {
+    target.value = null
+    return
+  }
+  const msg = validateCertFile(file)
+  if (msg) {
+    error.value = msg
+    target.value = null
+    event.target.value = ''   // 驗證失敗清空，允許重選同一檔
+    return
+  }
+  target.value = file
+}
 
 // 縣市 / 行政區下拉資料（來自 /api/city-districts）
 const districtList = ref([])      // 全部行政區的扁平清單
@@ -73,19 +100,28 @@ async function handleRegister() {
     error.value = '兩次輸入的密碼不一致'
     return
   }
+  // 三張證明文件皆必填
+  if (!certLand.value || !certProduct.value || !certIdentity.value) {
+    error.value = '請上傳農地、產品與身分三項證明文件'
+    return
+  }
 
   loading.value = true
   try {
-    await farmerApi.register({
-      email: email.value,
-      password: password.value,
-      farmName: farmName.value,
-      farmAddress: farmAddress.value,
-      farmerPhoneNum: phone.value,
-      farmDesc: farmDesc.value,
-      // districtId 為選填，有選才送（轉成數字）
-      districtId: districtId.value ? Number(districtId.value) : null,
-    })
+    // 走 multipart/form-data：欄位名稱需對齊後端 FarmerRegisterRequest
+    const fd = new FormData()
+    fd.append('email', email.value)
+    fd.append('password', password.value)
+    fd.append('farmName', farmName.value)
+    fd.append('farmAddress', farmAddress.value)
+    fd.append('farmerPhoneNum', phone.value)
+    fd.append('farmDesc', farmDesc.value)
+    // districtId 為選填，有選才送
+    if (districtId.value) fd.append('districtId', Number(districtId.value))
+    fd.append('certFileLand', certLand.value)
+    fd.append('certFileProduct', certProduct.value)
+    fd.append('certFileIdentity', certIdentity.value)
+    await farmerApi.register(fd)
     done.value = true
     // 申請成功導到小農登入頁
     setTimeout(() => router.push('/farmer/login'), 1200)
@@ -149,6 +185,26 @@ async function handleRegister() {
           <span>農場介紹</span>
           <textarea v-model="farmDesc" rows="3" placeholder="簡單介紹你的農場與產品"></textarea>
         </label>
+
+        <!-- 證明文件（三張皆必填，JPG / PNG，單張 ≤ 2MB）-->
+        <div class="cert-group">
+          <p class="cert-title">證明文件（皆須上傳，JPG / PNG，單張 ≤ 5MB）</p>
+          <label class="cert-item">
+            <span>農地證明</span>
+            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+            <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+          </label>
+          <label class="cert-item">
+            <span>產品證明</span>
+            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+            <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+          </label>
+          <label class="cert-item">
+            <span>身分證明</span>
+            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+            <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+          </label>
+        </div>
 
         <label>
           <span>密碼</span>
@@ -254,6 +310,40 @@ async function handleRegister() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+/* 證明文件上傳區 */
+.cert-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.cert-title {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.cert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.cert-item input[type='file'] {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.cert-name {
+  color: var(--leaf-dark);
+  font-size: 12px;
 }
 
 .auth-error {
