@@ -52,7 +52,7 @@ public class FarmTripAudits {
 		return farmTripId;
 	}
 
-	public void setFarmSessionId(Integer farmSessionId) {
+	public void setFarmTripId(Integer farmSessionId) {
 		this.farmTripId = farmSessionId;
 	}
 

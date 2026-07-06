@@ -33,6 +33,10 @@ import com.farmily.trip.repository.FarmTripOrderRepository;
 import com.farmily.trip.repository.FarmTripRepository;
 import com.farmily.trip.repository.FarmTripSessionRepository;
 import com.farmily.trip.service.FarmTripService;
+import com.farmily.trip.dto.OrderUpdateRequest;
+import com.farmily.trip.model.FarmTripAudits;
+import com.farmily.trip.model.AuditsStatus;
+
 
 @Service
 public class FarmTripServiceImpl implements FarmTripService {
@@ -343,4 +347,60 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setCreatedAt(comment.getCreatedAt());
 		return dto;
 	}
+	
+	// ================= 會員修改預約 =================
+		@Override
+		@Transactional
+		public OrderResponse updateOrder(Integer farmTripOrderId, OrderUpdateRequest request) {
+			FarmTripOrder order = farmTripOrderRepository.findById(farmTripOrderId)
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此訂單"));
+
+			// 只有「預約成功(CONFIRMED)」的訂單可以修改
+			if (order.getOrderStatus() != OrderStatus.CONFIRMED) {
+				throw new ResponseStatusException(HttpStatus.CONFLICT,
+						"此訂單目前狀態為 " + order.getOrderStatus() + "，不可修改");
+			}
+
+			// 若有改人數：先算差額，同步更新場次的已報名人數
+			if (request.getNumPeople() != null) {
+				if (request.getNumPeople() < 1) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "報名人數至少 1 人");
+				}
+				int oldPeople = order.getNumPeople() == null ? 0 : order.getNumPeople();
+				int delta = request.getNumPeople() - oldPeople;
+				if (delta != 0) {
+					FarmTripSession session = farmTripSessionRepository.findById(order.getFarmSessionId())
+							.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此場次"));
+					int attendance = session.getAttendance() == null ? 0 : session.getAttendance();
+					session.setAttendance(Math.max(0, attendance + delta));
+					farmTripSessionRepository.save(session);
+				}
+				order.setNumPeople(request.getNumPeople());
+			}
+
+			// 聯絡資訊：有送才更新（null 就維持原值）
+			if (request.getUserName() != null) order.setUserName(request.getUserName());
+			if (request.getUserPhoneNum() != null) order.setUserPhoneNum(request.getUserPhoneNum());
+			if (request.getNote() != null) order.setNote(request.getNote());
+
+			FarmTripOrder saved = farmTripOrderRepository.save(order);
+			return toOrderResponse(saved);
+		}
+
+		// ================= 小農前台 =================
+
+		// 小農查自己發起的所有活動（含 PENDING / ACTIVE / REJECTED 各狀態）
+		@Override
+		public List<FarmTrip> getTripsByFarmer(Integer farmerId) {
+			return farmTripRepository.findByFarmerId(farmerId);
+		}
+
+		// 小農查自己活動底下的所有報名訂單（repository 已寫好 JPQL：訂單→場次→活動→farmerId）
+		@Override
+		public List<OrderResponse> getFarmerOrders(Integer farmerId) {
+			return farmTripOrderRepository.findOrdersByFarmerId(farmerId)
+					.stream()
+					.map(this::toOrderResponse)
+					.toList();
+		}
 }

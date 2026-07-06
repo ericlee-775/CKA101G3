@@ -176,6 +176,10 @@ public class UserSecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
                         
                         .requestMatchers(HttpMethod.GET,"/api/products/**").permitAll()
+                        //trip
+                        .requestMatchers(HttpMethod.GET,"/api/farm-trips/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/farmer/farm-trips/**").permitAll()
+                        
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()

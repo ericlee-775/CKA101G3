@@ -14,12 +14,12 @@ import com.farmily.trip.service.FarmTripService;
 
 @RestController
 @RequestMapping("/api/admin/farm-trips")
-public class AdminController {
+public class AdminTripController {
 
 	private final FarmTripService farmTripService;
 
 	@Autowired
-	public AdminController(FarmTripService farmTripService) {
+	public AdminTripController(FarmTripService farmTripService) {
 		this.farmTripService = farmTripService;
 	}
 
