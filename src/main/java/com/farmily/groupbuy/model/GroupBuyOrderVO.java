@@ -6,6 +6,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -17,6 +19,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "order_id")
 	private Integer orderId;
 
@@ -33,9 +36,9 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	@Column(name = "total_amount")
 	private Integer totalAmount;
 
-	@ManyToOne
-	@JoinColumn(name = "shipping_address")
-	private GroupBuyVO shippingAddress;
+	
+	@Column(name = "shipping_address")
+	private String shippingAddress;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "shipped_status")
@@ -104,11 +107,12 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.totalAmount = totalAmount;
 	}
 
-	public GroupBuyVO getShippingAddress() {
+
+	public String getShippingAddress() {
 		return shippingAddress;
 	}
 
-	public void setShippingAddress(GroupBuyVO shippingAddress) {
+	public void setShippingAddress(String shippingAddress) {
 		this.shippingAddress = shippingAddress;
 	}
 
@@ -177,7 +181,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	}
 
 	public GroupBuyOrderVO(Integer orderId, GroupBuyVO groupBuyId, Integer totalQuantity, Integer groupPrice,
-			Integer totalAmount, GroupBuyVO shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
+			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
 			String trackingNum, Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
 			PaidStatus paidStatus, Timestamp completedAt) {
 		super();
