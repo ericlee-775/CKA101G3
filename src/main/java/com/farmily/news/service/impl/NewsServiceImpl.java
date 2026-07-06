@@ -48,7 +48,7 @@ public class NewsServiceImpl implements NewsService {
         Pageable pageable = PageRequest.of(offset / limit, limit , Sort.by("publishTime").descending());
         //spring data 的 Page
         org.springframework.data.domain.Page<News> data =
-                newsRepository.findByNewsStatus(NewStatus.ACTIVE, pageable);
+                newsRepository.findByNewsStatus(NewStatus.VISIBLE, pageable);
 
         List<NewsResponse> results = new ArrayList<>();
         for (News n : data.getContent()) {
@@ -66,7 +66,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional(readOnly = true)
     public NewsResponse getPublishedNewsOne(Integer newsId) {
-        News news = newsRepository.findByNewIdAndNewsStatus(newsId, NewStatus.ACTIVE)
+        News news = newsRepository.findByNewIdAndNewsStatus(newsId, NewStatus.VISIBLE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "最新消息不存在: " + newsId));
 
         return NewsResponse.from(news);
@@ -147,7 +147,7 @@ public class NewsServiceImpl implements NewsService {
 
         if(publish) {
             //發布：上架
-            news.setNewsStatus(NewStatus.ACTIVE);
+            news.setNewsStatus(NewStatus.VISIBLE);
             //若沒設定發布時間，補上 現在
             if (news.getPublishTime() == null) {
                 news.setPublishTime(Timestamp.valueOf(LocalDateTime.now().withNano(0)));
@@ -155,7 +155,7 @@ public class NewsServiceImpl implements NewsService {
 
         }else {
             //下架
-            news.setNewsStatus(NewStatus.CLOSED);
+            news.setNewsStatus(NewStatus.HIDDEN);
         }
 
         return NewsResponse.from(newsRepository.save(news));
@@ -180,9 +180,9 @@ public class NewsServiceImpl implements NewsService {
         // 撈出「該上架的」：DRAFT 且發布時間已過
         List<News> dueList = newsRepository.findByNewsStatusAndPublishTimeLessThanEqual(NewStatus.DRAFT, now);
 
-        // 逐筆改成 ACTIVE
+        // 逐筆改成 VISIBLE
         for (News news : dueList) {
-            news.setNewsStatus(NewStatus.ACTIVE);
+            news.setNewsStatus(NewStatus.VISIBLE);
         }
 
         // 存回

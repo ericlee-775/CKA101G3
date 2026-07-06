@@ -11,7 +11,7 @@ public class News implements java.io.Serializable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "new_id", updatable = false)
+    @Column(name = "news_id", updatable = false)
     private Integer newId;
 
     @Column(name = "admin_id")
@@ -24,7 +24,7 @@ public class News implements java.io.Serializable{
     private String content;
 
     @Lob
-    @Column(name = "cover_img")
+    @Column(name = "cover_image")
     private byte[] coverImg;
 
     @Column(name = "publish_time")
