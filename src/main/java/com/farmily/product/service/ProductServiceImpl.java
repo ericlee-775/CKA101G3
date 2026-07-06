@@ -68,11 +68,12 @@ public class ProductServiceImpl implements ProductService{
 		return productRepository.findDetailById(productId);
 	}
 	//給團購用的全部查詢
-	@Override
-	@Transactional(readOnly = true)
-	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
-		return productRepository.findGroupBuyProducts();
-	}
+	// [暫時停用] 依賴 ProductRepository.findGroupBuyProducts()，待 ProductGroupBuyDTO 建構子修正後再啟用
+//	@Override
+//	@Transactional(readOnly = true)
+//	public List<ProductGroupBuyDTO> getAllGroupBuyProducts() {
+//		return productRepository.findGroupBuyProducts();
+//	}
 	//給團購用的單筆查詢
 	@Override
 	@Transactional(readOnly = true)

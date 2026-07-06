@@ -21,7 +21,8 @@ public interface ProductService {
 
 	byte[] getProductImageBytes(Integer productId);
 
-	List<ProductGroupBuyDTO> getAllGroupBuyProducts();
+	// [暫時停用] 待 ProductGroupBuyDTO 補上對應建構子後再啟用
+//	List<ProductGroupBuyDTO> getAllGroupBuyProducts();
 	
 	ProductVO getGroupBuyProductById(Integer ProductId);
 

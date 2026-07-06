@@ -11,7 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity 
-@Table(name = "farm_trip_order") 
+@Table(name = "farm_trip") 
 
 public class FarmTrip {
 	
@@ -47,7 +47,7 @@ public class FarmTrip {
     private TripStatus tripStatus;
 
     @Column(name = "comment_numbers")
-    private Integer comentNumbers;
+    private Integer commentNumbers;
 
     @Column(name = "star_numbers")
     private Integer starNumbers;
@@ -124,12 +124,12 @@ public class FarmTrip {
 		this.tripStatus = tripStatus;
 	}
 
-	public Integer getComentNumbers() {
-		return comentNumbers;
+	public Integer getCommentNumbers() {
+		return commentNumbers;
 	}
 
-	public void setComentNumbers(Integer comentNumbers) {
-		this.comentNumbers = comentNumbers;
+	public void setCommentNumbers(Integer comentNumbers) {
+		this.commentNumbers = comentNumbers;
 	}
 
 	public Integer getStarNumbers() {
