@@ -13,5 +13,5 @@ public interface ProductShoppingCartService {
 	List<ShoppingcartDTO> getcard(Integer userId);
 	void addToCart(Integer productId,Integer quantity,Integer userId);
 	void updatedQuantity(Integer productId,Integer quantity,Integer userId);
-	void deleteCart(Integer userId,Integer productId);
+	void deleteCart(Integer productId,Integer userId);
 }

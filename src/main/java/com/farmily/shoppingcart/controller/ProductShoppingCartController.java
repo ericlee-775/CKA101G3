@@ -1,6 +1,5 @@
 package com.farmily.shoppingcart.controller;
 
-import java.lang.reflect.Member;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +25,9 @@ public class ProductShoppingCartController {
 	@Autowired
 	private ProductShoppingCartService cartService;
 	
-	@GetMapping({"userId"})
-	public ResponseEntity<List<ShoppingcartDTO>> getShopByUserId(@PathVariable Integer userId){
-		return ResponseEntity.ok(cartService.getcard(userId));
+	@GetMapping
+	public ResponseEntity<List<ShoppingcartDTO>> getCart(@AuthenticationPrincipal MemberUserDetails me){
+		return ResponseEntity.ok(cartService.getcard(me.getUserId()));
 	}
 	@PostMapping("/{productId}")
 	public ResponseEntity<Void> insertCart(@PathVariable Integer productId,

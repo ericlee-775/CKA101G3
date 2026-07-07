@@ -11,7 +11,7 @@ import com.farmily.shoppingcart.dto.ShoppingcartDTO;
 
 public interface ProductShoppingCartRepository extends JpaRepository<ProductShoppingCartVO, ProductShoppingCartId>{
 	 @Query("SELECT new com.farmily.shoppingcart.dto.ShoppingcartDTO("
-	         + "p.productId, p.productName, p.retailPrice, c.quantity) "
+	         + "p.productId, p.productName, p.retailPrice, p.unitPricingMeasure, c.quantity) "
 	         + "FROM ProductShoppingCartVO c, ProductVO p "
 	         + "WHERE c.productId = p.productId AND c.userId = :userId "
 	         + "ORDER BY p.productId")

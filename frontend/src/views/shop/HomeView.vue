@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import cartStore from '@/stores/cart'
 
 // 首頁的三個賣點（特色區用 v-for 渲染）
 const features = ref([
@@ -15,6 +16,19 @@ const products = ref([
   { id: 3, name: '高山高麗菜', price: 90,  image: 'https://picsum.photos/seed/cabbage/400/300' },
   { id: 4, name: '產地鮮乳',   price: 95,  image: 'https://picsum.photos/seed/milk/400/300' },
 ])
+
+// 加入購物車：把首頁的示範商品欄位映射成購物車 store 需要的格式。
+function addToCart(p) {
+  cartStore.addItem(
+    {
+      productId: p.id,
+      productName: p.name,
+      retailPrice: p.price,
+      unitPricingMeasure: '',
+    },
+    1,
+  )
+}
 </script>
 
 <template>
@@ -53,7 +67,7 @@ const products = ref([
           <div class="product-body">
             <h3>{{ p.name }}</h3>
             <p class="price">NT$ {{ p.price }}</p>
-            <button class="btn btn-primary btn-sm" type="button">加入購物車</button>
+            <button class="btn btn-primary btn-sm" type="button" @click="addToCart(p)">加入購物車</button>
           </div>
         </article>
       </div>

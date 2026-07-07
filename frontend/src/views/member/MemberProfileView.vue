@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import memberApi from '@/api/member'
-import authApi from '@/api/auth'
 import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
@@ -128,17 +127,6 @@ async function changePassword() {
   }
 }
 
-async function logout() {
-  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
-  try {
-    await authApi.logout()
-  } catch {
-    // 忽略，仍清前端狀態
-  }
-  authStore.clear()
-  router.push('/login')
-}
-
 async function deleteAccount() {
   const ok = await confirm({
     title: '註銷帳號',
@@ -161,9 +149,9 @@ async function deleteAccount() {
 <template>
   <main class="profile-page">
     <div class="profile-wrap">
+      <!-- 標題：這頁現在是會員中心底下的「個人資料」分頁；登出鈕在左側選單 -->
       <header class="profile-head">
-        <h1>會員中心</h1>
-        <button class="btn-ghost" @click="logout">登出</button>
+        <h1>個人資料</h1>
       </header>
 
       <p v-if="loadError" class="msg-err">{{ loadError }}</p>
@@ -247,13 +235,9 @@ async function deleteAccount() {
 </template>
 
 <style scoped>
-.profile-page {
-  padding: 40px 18px;
-  min-height: 60vh;
-}
+/* 外距和置中交給 MemberLayout 的內容區管，這裡只限制表單寬度方便閱讀 */
 .profile-wrap {
   max-width: 640px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -339,18 +323,6 @@ async function deleteAccount() {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-.btn-ghost {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-.btn-ghost:hover {
-  border-color: var(--leaf);
-  color: var(--leaf);
 }
 .card-danger {
   border-color: #f0c9c4;
