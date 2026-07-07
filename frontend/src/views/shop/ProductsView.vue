@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import cartStore from '@/stores/cart'
 // 「暫無圖片」佔位圖（放在 src/assets，打包後 Vite 會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
@@ -83,25 +84,18 @@ onUnmounted(revokeImageUrls)
 const cartStatus = ref({})
 
 // 加入購物車。
-// 後端還沒寫，這裡先用合理的預設：POST /api/cart，body 送 { productId, quantity }。
-// 之後後端網址或欄位若不同，改這個函式即可，其他都不用動。
-async function addToCart(product) {
+// 後端購物車 API 尚未完成，目前先寫進前端本地購物車（cartStore，存 localStorage），
+// header 小紅點與 /cart 購物車頁都讀這個 store，所以按下去馬上會反映。
+// 之後後端好了，把 cartStore.addItem 換成呼叫後端 API（或在 store 內部改成打 API）即可，
+// 這個函式其他邏輯都不用動。
+function addToCart(product) {
   const id = product.productId
   // 加入中就不再重複送。
   if (cartStatus.value[id] === 'adding') return
 
   cartStatus.value[id] = 'adding'
   try {
-    const res = await fetch('/api/cart', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // 靠 session(cookie) 辨識使用者，所以要帶上 cookie。
-      credentials: 'include',
-      body: JSON.stringify({ productId: id, quantity: 1 }),
-    })
-    if (!res.ok) {
-      throw new Error(`伺服器回應 ${res.status}`)
-    }
+    cartStore.addItem(product, 1)
     cartStatus.value[id] = 'done'
   } catch (e) {
     cartStatus.value[id] = 'error'

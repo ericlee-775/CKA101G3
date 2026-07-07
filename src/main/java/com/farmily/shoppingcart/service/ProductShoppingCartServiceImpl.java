@@ -24,12 +24,17 @@ public class ProductShoppingCartServiceImpl implements ProductShoppingCartServic
 	@Override
 	@Transactional
 	public void addToCart(Integer productId,Integer quantity,Integer userId) {
-		ProductShoppingCartVO cartVO = new ProductShoppingCartVO();
-		cartVO.setUserId(userId);
-		cartVO.setQuantity(quantity);
-		cartVO.setProductId(productId);
-		cartRepository.save(cartVO);
-		
+		// 同一商品已在購物車 → 累加數量；否則新增一筆
+		cartRepository.findByUserIdAndProductId(userId, productId)
+			.ifPresentOrElse(
+				vo -> vo.setQuantity(vo.getQuantity() + quantity),
+				() -> {
+					ProductShoppingCartVO cartVO = new ProductShoppingCartVO();
+					cartVO.setUserId(userId);
+					cartVO.setQuantity(quantity);
+					cartVO.setProductId(productId);
+					cartRepository.save(cartVO);
+				});
 	}
 
 	@Override
