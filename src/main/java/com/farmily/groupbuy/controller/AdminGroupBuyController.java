@@ -38,11 +38,10 @@ public class AdminGroupBuyController {
 	groupBuySvc.checkExpiredGroupBuys(); return ResponseEntity.ok("團購結算完成"); }
 	
 	
-	//給管理員看的訂單資料
-	@GetMapping("/order/{groupBuyId}")
-	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer groupBuyId){
-		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(groupBuyId);
-		
+	//給管理員看的單筆訂單資料
+	@GetMapping("/order/{orderId}")
+	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer orderId){
+		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(orderId);
 		return ResponseEntity.ok(groupBuy);
 	}
 	
