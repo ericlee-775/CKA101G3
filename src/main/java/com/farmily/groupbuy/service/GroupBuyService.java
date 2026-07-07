@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -177,6 +176,7 @@ public class GroupBuyService {
 	    GroupBuyVO gb = repository.findById(groupBuyId)
 	            .orElseThrow(() -> new RuntimeException("查無此團購"));
 	    return new GroupBuyDetailDTO(
+	    		gb.getProduct().getProductId(),
 	            gb.getGroupBuyId(),
 	            gb.getProduct().getProductName(),
 	            gb.getGroupPrice(),
@@ -188,7 +188,7 @@ public class GroupBuyService {
 	    );
 	}
 	
-	//給一般會員看已加入但還沒成團的團購(無須登入)
+	//給一般會員看已加入但還沒成團的團購
 	@Transactional(readOnly=true)
 	public List<ShowJoinedGroupBuyDTO>showJoinedGroupBuy(Integer userId){
 		List <GroupBuyParticipationVO> list=participationRepository.findByUserId_UserId(userId);
@@ -304,15 +304,27 @@ public class GroupBuyService {
 		}
 	}
 	
+	
+	
+	
+	
 	// 公開前台顯示可團購之商品(前端可用篩選方式分成可加入、可發起)
-	public List<ProductGroupBuyDTO> getConsumerGroupBuyList() {
-		List<GroupBuyVO> groupBuyList = repository.findByRequestStatus(RequestStatus.approved, GroupBuyStatus.open);
-		return groupBuyList.stream()
-				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
-						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
-						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
-						groupBuy.getStatus()))
-				.toList();
+	public List<ProductGroupBuyDTO> getConsumerGroupBuyList(List<GroupBuyStatus> statuses) {
+	    List<GroupBuyVO> groupBuyList =
+	            repository.findByRequestStatusAndStatusIn(RequestStatus.approved, statuses);
+	    return groupBuyList.stream()
+	            .map(groupBuy -> new ProductGroupBuyDTO(
+	                    groupBuy.getGroupBuyId(),
+	                    groupBuy.getProduct().getProductId(),
+	                    groupBuy.getProduct().getProductName(),
+	                    groupBuy.getGroupPrice(),
+	                    groupBuy.getTargetAmount(),
+	                    groupBuy.getOpenDatetime(),
+	                    groupBuy.getDdlDatetime(),
+	                    groupBuy.getPickupAddress(),
+	                    groupBuy.getStatus()
+	            ))
+	            .toList();
 	}
 	
 	

@@ -10,14 +10,23 @@
 // 做法是列表頁點卡片時，把 productId 用路由 query 帶過來（見 GroupBuysView.vue），
 // 這裡讀 route.query.productId 去打 GET /api/products/{productId}/image；
 // 如果是直接輸入網址進到這頁（沒有 query），就直接顯示暫無圖片佔位圖，不會出錯。
+//
+// 依團購狀態顯示對應的操作（兩者都需要以一般會員身分登入，MemberGroupBuyController 用 session 認證）：
+//   status === 'pending'（可發起）→「我要發起團購」，打 POST /api/member/groupBuy/hostCreate/{productId}
+//     productId 一樣是從列表頁帶過來的 query，沒有的話就不給發起（避免打錯 id）。
+//   status === 'open'（開團中）  →「我要參加團購」，打 POST /api/member/groupBuy/joinGroupBuy/{groupBuyId}
+//     這支不需要額外的 productId，body 其他欄位直接沿用已載入的 groupBuy 資料。
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import groupBuyApi from '@/api/groupBuy'
+import memberGroupBuyApi from '@/api/memberGroupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
+import authStore from '@/stores/auth'
 import noImage from '@/assets/no-image.svg'
 
 const route = useRoute()
 const router = useRouter()
+const isMember = computed(() => authStore.isMember)
 
 // 團購詳情（GroupBuyDetailDTO）。還沒抓到前是 null。
 const groupBuy = ref(null)
@@ -62,6 +71,11 @@ async function loadGroupBuy() {
   groupBuy.value = null
   revokeImageUrl()
   imageUrl.value = ''
+  // 重新進頁面時，把之前展開的表單/訊息都收掉，避免顯示上一筆團購的殘留狀態。
+  showHostForm.value = false
+  showJoinForm.value = false
+  hostMsg.value = ''
+  joinMsg.value = ''
 
   try {
     groupBuy.value = await groupBuyApi.getOne(id)
@@ -78,6 +92,79 @@ async function loadGroupBuy() {
 
 function goBack() {
   router.push({ name: 'group-buys' })
+}
+
+// ========== 發起團購（狀態 pending 時顯示）==========
+const showHostForm = ref(false)
+const hostForm = ref({ targetAmount: null, openDatetime: '', ddlDatetime: '', pickupAddress: '' })
+const hostSubmitting = ref(false)
+const hostMsg = ref('')
+
+function toggleHostForm() {
+  showHostForm.value = !showHostForm.value
+  hostMsg.value = ''
+}
+
+async function submitHostCreate() {
+  hostMsg.value = ''
+  const productId = route.query.productId
+  if (!productId) {
+    hostMsg.value = '這個團購沒有帶入商品資訊，請從「可發起」列表頁點進來才能發起。'
+    return
+  }
+  const { targetAmount, openDatetime, ddlDatetime, pickupAddress } = hostForm.value
+  if (!targetAmount || !openDatetime || !ddlDatetime || !pickupAddress) {
+    hostMsg.value = '請完整填寫達標數量、開團/截止時間與取貨地址。'
+    return
+  }
+
+  hostSubmitting.value = true
+  try {
+    await memberGroupBuyApi.hostCreate(productId, { targetAmount, openDatetime, ddlDatetime, pickupAddress })
+    hostMsg.value = '申請已送出，等待小農審核。'
+    showHostForm.value = false
+  } catch (e) {
+    hostMsg.value = e.message || '申請失敗，請稍後再試。'
+  } finally {
+    hostSubmitting.value = false
+  }
+}
+
+// ========== 參加團購（狀態 open 時顯示）==========
+const showJoinForm = ref(false)
+const joinBuyQty = ref(1)
+const joinSubmitting = ref(false)
+const joinMsg = ref('')
+
+function toggleJoinForm() {
+  showJoinForm.value = !showJoinForm.value
+  joinMsg.value = ''
+}
+
+async function submitJoinGroupBuy() {
+  joinMsg.value = ''
+  if (!joinBuyQty.value || joinBuyQty.value <= 0) {
+    joinMsg.value = '請輸入正確的購買數量。'
+    return
+  }
+
+  joinSubmitting.value = true
+  try {
+    await memberGroupBuyApi.joinGroupBuy(groupBuy.value.groupBuyId, {
+      buyQty: joinBuyQty.value,
+      productName: groupBuy.value.productName,
+      target: groupBuy.value.targetAmount,
+      groupPrice: groupBuy.value.groupPrice,
+      ddlDatetime: groupBuy.value.ddlDatetime,
+      pickupAddress: groupBuy.value.pickupAddress,
+    })
+    joinMsg.value = '參加成功！'
+    showJoinForm.value = false
+  } catch (e) {
+    joinMsg.value = e.message || '參加失敗，請稍後再試。'
+  } finally {
+    joinSubmitting.value = false
+  }
 }
 
 onMounted(loadGroupBuy)
@@ -139,6 +226,38 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
             <dd>{{ groupBuy.pickupAddress || '—' }}</dd>
           </div>
         </dl>
+
+        <!-- 未登入會員：提示登入，不顯示發起/參加表單 -->
+        <p v-if="!isMember" class="login-hint">
+          請先<RouterLink to="/login">登入會員</RouterLink>才能發起或參加團購。
+        </p>
+
+        <!-- 可發起：狀態為 pending 才顯示「我要發起團購」 -->
+        <div v-else-if="groupBuy.status === 'pending'" class="action-box">
+          <button type="button" class="btn" @click="toggleHostForm">
+            {{ showHostForm ? '取消' : '我要發起團購' }}
+          </button>
+          <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
+            <label>達標數量 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
+            <label>開團時間 <input type="date" v-model="hostForm.openDatetime" /></label>
+            <label>截止時間 <input type="date" v-model="hostForm.ddlDatetime" /></label>
+            <label>取貨地址 <input type="text" v-model="hostForm.pickupAddress" /></label>
+            <button type="submit" class="btn" :disabled="hostSubmitting">送出申請</button>
+          </form>
+          <p v-if="hostMsg" class="action-msg">{{ hostMsg }}</p>
+        </div>
+
+        <!-- 開團中：狀態為 open 才顯示「我要參加團購」 -->
+        <div v-else-if="groupBuy.status === 'open'" class="action-box">
+          <button type="button" class="btn" @click="toggleJoinForm">
+            {{ showJoinForm ? '取消' : '我要參加團購' }}
+          </button>
+          <form v-if="showJoinForm" class="action-form" @submit.prevent="submitJoinGroupBuy">
+            <label>購買數量 <input type="number" min="1" v-model.number="joinBuyQty" /></label>
+            <button type="submit" class="btn" :disabled="joinSubmitting">確認參加</button>
+          </form>
+          <p v-if="joinMsg" class="action-msg">{{ joinMsg }}</p>
+        </div>
 
         <button type="button" class="back-link" @click="goBack">← 回團購列表</button>
       </section>
@@ -261,5 +380,74 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
 }
 .back-link:hover {
   text-decoration: underline;
+}
+
+/* ---------- 登入提示 / 發起・參加團購 ---------- */
+.login-hint {
+  margin: 20px 0 0;
+  padding: 12px 16px;
+  background: var(--leaf-soft);
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.login-hint a {
+  color: var(--leaf-dark);
+  font-weight: 600;
+}
+.action-box {
+  margin-top: 20px;
+}
+.btn {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--leaf);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--leaf-dark);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.action-form {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--leaf-soft);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 320px;
+}
+.action-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.action-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.action-form input:focus {
+  outline: none;
+  border-color: var(--leaf);
+}
+.action-form .btn {
+  align-self: flex-start;
+}
+.action-msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--leaf-dark);
 }
 </style>

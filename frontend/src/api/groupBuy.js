@@ -4,8 +4,9 @@ import http from './http'
 const BASE = '/api/groupBuy'
 
 export const groupBuyApi = {
-  // 消費者可看的全部團購清單 → ProductGroupBuyDTO[]
-  list: () => http.get(`${BASE}/all`),
+  // 消費者可看的團購清單 → ProductGroupBuyDTO[]
+  // type: 'all'（總覽，預設，pending+open 都給）/ 'available'（可發起，status=pending）/ 'open'（開團中，status=open）
+  list: (type = 'all') => http.get(`${BASE}/consumer/list?type=${type}`),
 
   // 單一團購詳情 → GroupBuyDetailDTO
   getOne: (groupBuyId) => http.get(`${BASE}/${groupBuyId}`),

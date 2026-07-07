@@ -1,11 +1,27 @@
 <script setup>
-// 「團購」頁面：串接 GET /api/groupBuy/all（PublicGroupBuyController，公開不用登入）
-// 畫面呈現方式比照 ProductsView.vue：loading / error / empty 三態 + 卡片格線。
+// 「團購」頁面：串接 GET /api/groupBuy/consumer/list?type=xxx（PublicGroupBuyController，公開不用登入）
+// 畫面呈現方式比照 ProductsView.vue：loading / error / empty 三態 + 卡片格線；
+// 上方多一排頁籤（總覽/可發起/開團中），切換頁籤即用不同 type 重新打 API。
 import { ref, onMounted, onUnmounted } from 'vue'
 import groupBuyApi from '@/api/groupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
+
+// 三個篩選頁籤：總覽（pending+open 都給）/ 可發起（status=pending）/ 開團中（status=open）
+const TABS = [
+  { key: 'all', label: '總覽' },
+  { key: 'available', label: '可發起' },
+  { key: 'open', label: '開團中' },
+]
+const activeTab = ref('all')
+
+// 各頁籤沒有資料時顯示的文字
+const EMPTY_TEXT = {
+  all: '目前沒有進行中的團購。',
+  available: '目前沒有可發起的商品。',
+  open: '目前沒有開團中的團購。',
+}
 
 // 團購清單（ProductGroupBuyDTO[]）。一開始是空陣列，等 API 回來再填進去。
 const groupBuys = ref([])
@@ -14,12 +30,12 @@ const loading = ref(true)
 // 錯誤訊息：抓資料失敗時放錯誤內容，畫面就顯示錯誤區塊。
 const error = ref('')
 
-// 跟後端要團購清單。
+// 跟後端要團購清單，依目前選中的頁籤帶 type 參數。
 async function loadGroupBuys() {
   loading.value = true
   error.value = ''
   try {
-    groupBuys.value = await groupBuyApi.list()
+    groupBuys.value = await groupBuyApi.list(activeTab.value)
     // 清單拿到後，接著把每筆團購對應商品的圖片也抓回來（沿用商品圖片端點）。
     loadImages()
   } catch (e) {
@@ -27,6 +43,13 @@ async function loadGroupBuys() {
   } finally {
     loading.value = false
   }
+}
+
+// 切換頁籤 → 重新打 API 拿該頁籤的清單。
+function selectTab(key) {
+  if (activeTab.value === key) return
+  activeTab.value = key
+  loadGroupBuys()
 }
 
 // 把價格顯示成「NT$ 220」。null/undefined 就顯示 '—'。
@@ -89,9 +112,22 @@ onMounted(loadGroupBuys)
 <template>
   <main class="page">
     <section class="hero">
-      <h1>🛒 全部團購</h1>
-      <p>揪團一起買，達到目標數量就能用團購價入手當季好物。</p>
+     
     </section>
+
+    <!-- 篩選頁籤：總覽 / 可發起 / 開團中 -->
+    <nav class="tabs">
+      <button
+        v-for="tab in TABS"
+        :key="tab.key"
+        type="button"
+        class="tabs__btn"
+        :class="{ 'tabs__btn--active': activeTab === tab.key }"
+        @click="selectTab(tab.key)"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
 
     <!-- 載入中 -->
     <p v-if="loading" class="state">載入中…</p>
@@ -103,7 +139,7 @@ onMounted(loadGroupBuys)
     </div>
 
     <!-- 成功但沒有資料 -->
-    <p v-else-if="groupBuys.length === 0" class="state">目前沒有進行中的團購。</p>
+    <p v-else-if="groupBuys.length === 0" class="state">{{ EMPTY_TEXT[activeTab] }}</p>
 
     <!-- 團購格線 -->
     <section v-else class="groupbuy-grid">
@@ -162,6 +198,32 @@ onMounted(loadGroupBuys)
 .hero p {
   color: var(--muted);
   margin: 0;
+}
+
+/* ---------- 篩選頁籤 ---------- */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.tabs__btn {
+  padding: 8px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.tabs__btn:hover {
+  border-color: var(--leaf);
+}
+.tabs__btn--active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
 }
 
 /* ---------- 載入 / 錯誤 / 空狀態 ---------- */
