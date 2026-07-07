@@ -2,10 +2,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
+import cartStore from '@/stores/cart'
 import authApi from '@/api/auth'
 import { confirm } from '@/composables/useConfirm'
 
 const router = useRouter()
+
+// 購物車總件數（給右上角小紅點用）；超過 99 顯示成 99+
+const cartCount = computed(() => cartStore.totalCount.value)
 
 // 控制手機版選單的開合：點 ☰ 切換 true/false，
 // 在 <nav> 上用 :class 綁定，true 時才把選單展開。
@@ -74,8 +78,15 @@ async function logout() {
       <router-link class="nav-link" to="/farm-map">產地地圖</router-link>
       <router-link class="nav-link" to="/farm-game">小農遊戲</router-link>
 
-      <!-- 右側使用者區：未登入顯示 登入/註冊；已登入顯示 個人中心 + 登出 -->
+      <!-- 右側使用者區：購物車 + (未登入顯示 登入/註冊；已登入顯示 個人中心 + 登出) -->
       <div class="user-zone">
+        <!-- 購物車：任何身分都看得到，點了到購物車頁 -->
+        <router-link class="cart-btn" to="/cart" aria-label="購物車">
+          <span class="cart-icon">🛒</span>
+          <!-- 有東西才顯示小紅點；超過 99 顯示 99+ -->
+          <span v-if="cartCount > 0" class="cart-badge">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+        </router-link>
+
         <template v-if="authStore.isLoggedIn">
           <router-link class="account-btn" :to="accountLink">
             <span class="account-avatar">👤</span>
@@ -185,6 +196,47 @@ async function logout() {
   gap: 10px;
   margin-left: auto;                 /* 推到最右邊 */
 }
+/* 購物車按鈕：圓形圖示鈕，滑過時淡綠底 */
+.cart-btn {
+  position: relative;                /* 讓小紅點可以絕對定位在右上角 */
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.cart-btn:hover {
+  background: var(--leaf-soft);
+  border-color: var(--leaf);
+}
+.cart-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+/* 數量小紅點 */
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* 登入：外框膠囊 / 註冊：實心膠囊。兩者都是 router-link（會渲染成 <a>） */
 .login-btn,
 .register-btn {

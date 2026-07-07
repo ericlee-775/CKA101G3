@@ -20,7 +20,11 @@ import com.farmily.groupbuy.model.GroupBuyShowToUserJoinDTO;
 import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.model.JoinStatus;
+import com.farmily.groupbuy.model.OrderStatus;
+import com.farmily.groupbuy.model.PaidStatus;
 import com.farmily.groupbuy.model.RequestStatus;
+import com.farmily.groupbuy.model.ShippedStatus;
+import com.farmily.groupbuy.model.ShowJoinedGroupBuyDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductServiceImpl;
@@ -86,8 +90,8 @@ public class GroupBuyService {
 		groupBuyVO.setHostUser(hostUser);
 		groupBuyVO.setProduct(product);
 		groupBuyVO.setTargetAmount(form.getTargetAmount());
-		groupBuyVO.setOpenDatetime(form.getOpenDatetime());
-		groupBuyVO.setDdlDatetime(form.getDdlDatetime());
+		groupBuyVO.setOpenDatetime(Timestamp.valueOf(form.getOpenDatetime().atStartOfDay()));
+		groupBuyVO.setDdlDatetime(Timestamp.valueOf(form.getDdlDatetime().atTime(23,59,59)));
 		groupBuyVO.setPickupAddress(form.getPickupAddress());
 		// 系統預設
 		groupBuyVO.setRequestStatus(RequestStatus.pending);
@@ -98,6 +102,39 @@ public class GroupBuyService {
 		repository.save(groupBuyVO);
 	}
 
+	//給會員看已成立之團購訂單
+	public List<GroupBuyOrderDTO>showMySuccessGroupBuyOrders(Integer userId){
+		List<GroupBuyOrderVO> orders =
+		        groupBuyOrderRepository.findMySuccessOrders(
+		                userId,
+		                JoinStatus.active,
+		                GroupBuyStatus.success);
+	    return orders.stream()
+	            .map(vo -> {
+	                GroupBuyOrderDTO dto = new GroupBuyOrderDTO();
+	                dto.setOrderId(vo.getOrderId());
+	                dto.setGroupBuyId(vo.getGroupBuyId().getGroupBuyId());
+	                dto.setTotalQuantity(vo.getTotalQuantity());
+	                dto.setGroupPrice(vo.getGroupPrice());
+	                dto.setTotalAmount(vo.getTotalAmount());
+	                dto.setShippingAddress(vo.getShippingAddress());
+	                dto.setShippedStatus(vo.getShippedStatus());
+	                dto.setShippedAt(vo.getShippedAt());
+	                dto.setTrackingNum(vo.getTrackingNum());
+	                dto.setCreatedAt(vo.getCreatedAt());
+	                dto.setReceivedAt(vo.getReceivedAt());
+	                dto.setOrderStatus(vo.getOrderStatus());
+	                dto.setPaidStatus(vo.getPaidStatus());
+	                dto.setCompletedAt(vo.getCompletedAt());
+	                return dto;
+	            })
+	            .toList();
+	}
+	
+	
+	
+	
+	
 	// 給小農審核團購申請用
 	@Transactional
 	public void reviewGroupBuy(Integer groupBuyId, Integer farmerId, RequestStatus requestStatus, String rejectReason) {
@@ -134,12 +171,12 @@ public class GroupBuyService {
 	}
 	
 	
-	//給一般消費者抓的單筆團購資料
+	//給一般消費者抓的單筆團購資料(公開頁面無須登入)
 	public GroupBuyDetailDTO getOneGroupBuyDetail(Integer groupBuyId) {
 	    GroupBuyVO gb = repository.findById(groupBuyId)
 	            .orElseThrow(() -> new RuntimeException("查無此團購"));
-
 	    return new GroupBuyDetailDTO(
+	    		gb.getProduct().getProductId(),
 	            gb.getGroupBuyId(),
 	            gb.getProduct().getProductName(),
 	            gb.getGroupPrice(),
@@ -151,10 +188,22 @@ public class GroupBuyService {
 	    );
 	}
 	
+	//給一般會員看已加入但還沒成團的團購
+	@Transactional(readOnly=true)
+	public List<ShowJoinedGroupBuyDTO>showJoinedGroupBuy(Integer userId){
+		List <GroupBuyParticipationVO> list=participationRepository.findByUserId_UserId(userId);
+		return list.stream().
+				map(joined->new ShowJoinedGroupBuyDTO
+				   (joined.getGroupBuyId().getStatus(),joined.getGroupBuyId().getDdlDatetime(),
+					joined.getGroupBuyId().getPickupAddress(),joined.getGroupBuyId().getProduct().getProductName(),
+				    joined.getBuyQty(),joined.getPaidAmount()
+				)).toList();
+	}
 
-	// 給小農前台查看團購清單用
-	// 查資料庫的 GroupBuyVO->轉成前端要看的 GroupBuyFarmerDTO->回傳給小農頁面(把資料庫查到的
-	// GroupBuyVO清單，轉成前端要看的 GroupBuyFarmerDTO 清單)
+	
+	
+	
+	// 給小農前台查看進行中團購清單用
 	@Transactional(readOnly = true)
 	public List<GroupBuyFarmerDTO> showGroupBuyList(Integer farmerId) {
 		List<GroupBuyVO> list = repository.findByProduct_FarmerId(farmerId);
@@ -173,19 +222,23 @@ public class GroupBuyService {
 		return repository.findAll();
 	}
 	
+	//給管理員的訂單表
+	@Transactional
+	public List<GroupBuyOrderVO>showAllGroupBuyOrderToAdmin(){
+		return groupBuyOrderRepository.findAll();
+	}
 	
+	//查看單筆團購訂單(給小農與管理員)
 	public GroupBuyOrderDTO showOrder(Integer orderId) {
 	    GroupBuyOrderVO vo = groupBuyOrderRepository.findById(orderId)
 	            .orElseThrow(() -> new RuntimeException("查無此團購訂單"));
-
 	    GroupBuyOrderDTO dto = new GroupBuyOrderDTO();
-
 	    dto.setOrderId(vo.getOrderId());
 	    dto.setGroupBuyId(vo.getGroupBuyId().getGroupBuyId());
 	    dto.setTotalQuantity(vo.getTotalQuantity());
 	    dto.setGroupPrice(vo.getGroupPrice());
 	    dto.setTotalAmount(vo.getTotalAmount());
-	    dto.setShippingAddress(vo.getGroupBuyId().getPickupAddress());
+	    dto.setShippingAddress(vo.getShippingAddress());
 	    dto.setShippedStatus(vo.getShippedStatus());
 	    dto.setShippedAt(vo.getShippedAt());
 	    dto.setTrackingNum(vo.getTrackingNum());
@@ -210,17 +263,69 @@ public class GroupBuyService {
 	public GroupBuyParticipationVO getGroupBuyId(Integer groupBuyId) {
 		return participationRepository.findById(groupBuyId).orElse(null);
 	}
-	// 顯示可團購之商品
-	public List<ProductGroupBuyDTO> getConsumerGroupBuyList() {
-		List<GroupBuyVO> groupBuyList = repository.findByRequestStatus(RequestStatus.approved, GroupBuyStatus.open);
-		return groupBuyList.stream()
-				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
-						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
-						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
-						groupBuy.getStatus()))
-				.toList();
+	
+	
+	
+	
+	
+	//排程判別成團與否，若成團即將此筆團購轉為訂單，預設為當天00:00檢查前一天的團購是否有截止
+	@Transactional
+	public void checkExpiredGroupBuys() {
+		Timestamp now=new Timestamp(System.currentTimeMillis());
+		List<GroupBuyVO>expiredList=repository.findByStatusAndDdlDatetimeBefore(GroupBuyStatus.open, now);
+		for(GroupBuyVO groupBuy:expiredList) {
+			Integer totalQuantity=participationRepository.sumtotalQuantityByGroupBuy(groupBuy, JoinStatus.active);
+			Integer totalAmount=participationRepository.sumPaidAmountByGroupBuy(groupBuy, JoinStatus.active);
+			if(totalAmount==null||totalQuantity==null) {
+				totalAmount=0;
+				totalQuantity=0;
+			}
+			
+			if(totalAmount>=groupBuy.getTargetAmount()) {
+				groupBuy.setStatus(GroupBuyStatus.success);
+				GroupBuyOrderVO order=new GroupBuyOrderVO();
+				order.setGroupBuyId(groupBuy);
+				order.setGroupPrice(groupBuy.getGroupPrice());
+				order.setTotalAmount(totalAmount);
+				order.setTotalQuantity(totalQuantity);
+				order.setShippingAddress(groupBuy.getPickupAddress());
+				order.setShippedStatus(ShippedStatus.pending);
+				order.setShippedAt(null);
+				order.setTrackingNum(null);
+				order.setCreatedAt(now);
+				order.setReceivedAt(null);
+				order.setOrderStatus(OrderStatus.pending);
+				order.setPaidStatus(PaidStatus.unpaid);
+				order.setCompletedAt(null);
+				groupBuyOrderRepository.save(order);
+			}else {
+				groupBuy.setStatus(GroupBuyStatus.failed);
+			}repository.save(groupBuy);
+		}
 	}
 	
+	
+	
+	
+	
+	// 公開前台顯示可團購之商品(前端可用篩選方式分成可加入、可發起)
+	public List<ProductGroupBuyDTO> getConsumerGroupBuyList(List<GroupBuyStatus> statuses) {
+	    List<GroupBuyVO> groupBuyList =
+	            repository.findByRequestStatusAndStatusIn(RequestStatus.approved, statuses);
+	    return groupBuyList.stream()
+	            .map(groupBuy -> new ProductGroupBuyDTO(
+	                    groupBuy.getGroupBuyId(),
+	                    groupBuy.getProduct().getProductId(),
+	                    groupBuy.getProduct().getProductName(),
+	                    groupBuy.getGroupPrice(),
+	                    groupBuy.getTargetAmount(),
+	                    groupBuy.getOpenDatetime(),
+	                    groupBuy.getDdlDatetime(),
+	                    groupBuy.getPickupAddress(),
+	                    groupBuy.getStatus()
+	            ))
+	            .toList();
+	}
 	
 	
 

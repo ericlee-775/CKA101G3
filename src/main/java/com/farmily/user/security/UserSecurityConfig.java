@@ -125,16 +125,9 @@ public class UserSecurityConfig {
         return commonSetup(http)
                 .securityMatcher("/api/farmer/**")
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/farmer/register",
-                                "/api/farmer/login",
-                                "/api/farmer/application/**").permitAll()
-                        
-                        
-                       
+                        .requestMatchers("/api/farmer/register","/api/farmer/login","/api/farmer/application/**").permitAll()
+
                         .anyRequest().hasRole("FARMER")
-                        
-                        
-                        
                 )
                 .build();
     }
@@ -148,7 +141,8 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/member/register", "/api/member/login", "/api/member/oauth/**").permitAll()
                         
-                        
+                        // 通知
+                        .requestMatchers("/api/member/notifications/**").permitAll()
                       
 
                         .anyRequest().hasRole("USER")
@@ -174,6 +168,12 @@ public class UserSecurityConfig {
                         
                         //團購
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
+                        
+                        .requestMatchers(HttpMethod.GET,"/api/products/**").permitAll()
+                        //trip
+                        .requestMatchers(HttpMethod.GET,"/api/farm-trips/**").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/farmer/farm-trips/**").permitAll()
+                        
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()

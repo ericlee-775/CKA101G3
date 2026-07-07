@@ -2,6 +2,7 @@ package com.farmily.groupbuy.model;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -15,10 +16,10 @@ public class GroupBuyHostCreateDTO implements Serializable {
 	private Integer targetAmount;
 
 	@NotNull(message="請輸入開團時間")
-	private Timestamp openDatetime;
+	private LocalDate openDatetime;
 
 	@NotNull(message="請輸入截止時間")
-	private Timestamp ddlDatetime;
+	private LocalDate ddlDatetime;
 
 	@NotBlank(message="請輸入收貨地址")
 	private String pickupAddress;
@@ -31,19 +32,21 @@ public class GroupBuyHostCreateDTO implements Serializable {
 		this.targetAmount = targetAmount;
 	}
 
-	public Timestamp getOpenDatetime() {
+
+
+	public LocalDate getOpenDatetime() {
 		return openDatetime;
 	}
 
-	public void setOpenDatetime(Timestamp openDatetime) {
+	public void setOpenDatetime(LocalDate openDatetime) {
 		this.openDatetime = openDatetime;
 	}
 
-	public Timestamp getDdlDatetime() {
+	public LocalDate getDdlDatetime() {
 		return ddlDatetime;
 	}
 
-	public void setDdlDatetime(Timestamp ddlDatetime) {
+	public void setDdlDatetime(LocalDate ddlDatetime) {
 		this.ddlDatetime = ddlDatetime;
 	}
 
@@ -54,5 +57,7 @@ public class GroupBuyHostCreateDTO implements Serializable {
 	public void setPickupAddress(String pickupAddress) {
 		this.pickupAddress = pickupAddress;
 	}
+
+
 
 }

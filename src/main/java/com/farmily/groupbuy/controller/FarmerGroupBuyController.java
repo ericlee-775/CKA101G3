@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyFarmerDTO;
+import com.farmily.groupbuy.model.GroupBuyOrderDTO;
 import com.farmily.groupbuy.model.GroupBuyReviewDTO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.service.ProductService;
@@ -31,7 +32,6 @@ public class FarmerGroupBuyController {
 	ProductService productSvc;
 	
 	//小農前台的顯示團購清單
-	
 	@GetMapping("/list")
 	public ResponseEntity<List<GroupBuyFarmerDTO>>farmerGroupBuyList
 	( @AuthenticationPrincipal FarmerUserDetails  me){
@@ -39,6 +39,12 @@ public class FarmerGroupBuyController {
 		return ResponseEntity.ok(list);
 	}
 	
+	//小農前台顯示的單筆訂單詳細資料
+	@GetMapping("/order/{groupBuyId}")
+	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer groupBuyId){
+		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(groupBuyId);
+		return ResponseEntity.ok(groupBuy);
+	}
 	
 	//小農前台的團購審核
 	@PostMapping("/farmerResponse/{groupBuyId}")

@@ -136,7 +136,12 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         review.setRejectReason(rejectReason);
         review.setAdmin(findAdmin(adminId));
 
-        return FarmerReviewResponse.from(farmerReviewRepository.save(review));
+        FarmerReviewResponse result = FarmerReviewResponse.from(farmerReviewRepository.save(review));
+
+        // 退件後寄出通知信（附退件理由 + 重新送審頁連結）；@Async 寄信失敗不影響退件本身
+        emailVerificationService.sendFarmerRejected(review.getFarmer().getEmail(), rejectReason);
+
+        return result;
     }
 
 
