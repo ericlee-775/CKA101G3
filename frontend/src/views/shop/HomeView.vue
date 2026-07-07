@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import cartStore from '@/stores/cart'
 
 // 首頁的三個賣點（特色區用 v-for 渲染）
 const features = ref([
@@ -9,26 +8,14 @@ const features = ref([
   { icon: '🤝', title: '支持在地', desc: '每一筆訂單，都是對台灣土地與小農的支持。' },
 ])
 
-// 精選商品（示範資料，之後可改成從 /api/products 抓）
+// 精選商品（示範資料，之後可改成從 /api/products 抓）。
+// 加入購物車統一在商品詳情頁進行（可選數量），首頁卡片點了就導過去。
 const products = ref([
   { id: 1, name: '有機小番茄', price: 120, image: 'https://picsum.photos/seed/tomato/400/300' },
   { id: 2, name: '溫室水蜜桃', price: 380, image: 'https://picsum.photos/seed/peach/400/300' },
   { id: 3, name: '高山高麗菜', price: 90,  image: 'https://picsum.photos/seed/cabbage/400/300' },
   { id: 4, name: '產地鮮乳',   price: 95,  image: 'https://picsum.photos/seed/milk/400/300' },
 ])
-
-// 加入購物車：把首頁的示範商品欄位映射成購物車 store 需要的格式。
-function addToCart(p) {
-  cartStore.addItem(
-    {
-      productId: p.id,
-      productName: p.name,
-      retailPrice: p.price,
-      unitPricingMeasure: '',
-    },
-    1,
-  )
-}
 </script>
 
 <template>
@@ -62,14 +49,19 @@ function addToCart(p) {
       </div>
 
       <div class="product-grid">
-        <article v-for="p in products" :key="p.id" class="product-card">
+        <router-link
+          v-for="p in products"
+          :key="p.id"
+          class="product-card"
+          :to="{ name: 'product-detail', params: { productId: p.id } }"
+        >
           <img :src="p.image" :alt="p.name" />
           <div class="product-body">
             <h3>{{ p.name }}</h3>
             <p class="price">NT$ {{ p.price }}</p>
-            <button class="btn btn-primary btn-sm" type="button" @click="addToCart(p)">加入購物車</button>
+            <span class="product-cta">查看商品 →</span>
           </div>
-        </article>
+        </router-link>
       </div>
     </section>
 
@@ -222,11 +214,23 @@ function addToCart(p) {
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: inherit;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .product-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-hover);
+}
+.product-cta {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--muted);
+  transition: color 0.18s ease;
+}
+.product-card:hover .product-cta {
+  color: var(--leaf);
 }
 .product-card img {
   width: 100%;
