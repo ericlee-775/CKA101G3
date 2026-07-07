@@ -38,6 +38,8 @@ import FarmerOrdersView from '@/views/farmer/FarmerOrdersView.vue'
 import FarmerFarmTripsView from '@/views/farmer/FarmerFarmTripsView.vue'
 import FarmerCouponsView from '@/views/farmer/FarmerCouponsView.vue'
 import FarmerNotificationsView from '@/views/farmer/FarmerNotificationsView.vue'
+// 找不到頁面（404）：對不到上面任何路由時顯示
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const router = createRouter({
   // import.meta.env.BASE_URL 會自動讀 vite.config.js 的 base，
@@ -107,6 +109,10 @@ const router = createRouter({
         { path: 'notifications', name: 'farmer-notifications', component: FarmerNotificationsView },
       ],
     },
+
+    // ===== 404：放最後，:pathMatch(.*)* 會攔截所有對不到上面規則的網址 =====
+    // 例如 /abc、/products/xyz/oops 這種打錯的網址，都會導到 404 頁。
+    { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   ],
 })
 
