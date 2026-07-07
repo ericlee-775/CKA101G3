@@ -181,6 +181,7 @@ public class NotificationService {
 	// 把 Repository 查回來的 VO 轉成給 Controller 的 DTO
 	private NotificationResponseDTO toDTO(NotificationVO vo) {
 		NotificationResponseDTO dto = new NotificationResponseDTO();
+		dto.setNotificationId(vo.getNotificationId());
 		dto.setTargetType(vo.getTargetType());
 		dto.setTargetId(vo.getTargetId());
 		dto.setContent(vo.getContent());
