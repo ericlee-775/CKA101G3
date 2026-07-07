@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyHostCreateDTO;
+import com.farmily.groupbuy.model.GroupBuyOrderDTO;
 import com.farmily.groupbuy.model.GroupBuyShowToUserJoinDTO;
 import com.farmily.groupbuy.model.ShowJoinedGroupBuyDTO;
 import com.farmily.groupbuy.service.GroupBuyService;
@@ -42,8 +43,13 @@ public class MemberGroupBuyController {
 	}
 	
 	
-	//給會員中心看的已參加的團購清單(已成訂單)
-
+	//給會員中心看的已參加的團購訂單(已成訂單)
+	@GetMapping("/mySuccessOrders")
+	public ResponseEntity<List<GroupBuyOrderDTO>> mySuccessOrders(
+	        @AuthenticationPrincipal MemberUserDetails me) {
+	    return ResponseEntity.ok(groupBuySvc.showMySuccessGroupBuyOrders(me.getUserId()));
+	}
+	
 	
 	//消費者加入團購
 	@PostMapping("/joinGroupBuy/{groupBuyId}")
