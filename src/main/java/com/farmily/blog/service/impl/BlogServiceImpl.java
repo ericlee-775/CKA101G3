@@ -210,10 +210,10 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public Page<BlogResponse> getMyBlogs(Integer farmerId, Integer offset, Integer limit) {
+    public Page<BlogResponse> getMyBlogs(BlogAuthor author, Integer offset, Integer limit) {
         BlogQueryParms parms = new BlogQueryParms();
-        parms.setFarmerId(farmerId);           // 只撈這個小農的
-        parms.setBlogTypeId(FARMBLOGTYPEID);   // 只撈產地日記(=1)
+        parms.setFarmerId(author.getFarmerId());  // 兩者其一為 null，addFilter 自動略過
+        parms.setUserId(author.getUserId());
         parms.setOrderBy("blog_time");
         parms.setSort("desc");                 // 新到舊
         parms.setLimit(limit);
@@ -222,31 +222,60 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public BlogResponse createMyBlog(Integer farmerId, BlogRequest blogRequest) {
-        blogRequest.setFarmerId(farmerId);         // 作者 = 登入的小農（session）
-        blogRequest.setUserId(null);               // 確保不是會員作者
-        blogRequest.setBlogTypeId(FARMBLOGTYPEID); // 強制產地日記(=1)
-        return createBlog(blogRequest);            // 沿用現有建立
+    @Transactional   // 建文章 + 存相簿 綁成一個交易，任一失敗全退回
+    public BlogResponse createMyBlog(BlogAuthor author, BlogRequest blogRequest,
+                                     List<MultipartFile> photos) throws IOException {
+        blogRequest.setFarmerId(author.getFarmerId());
+        blogRequest.setUserId(author.getUserId());
+        if (author.isFarmer()) {
+            blogRequest.setBlogTypeId(FARMBLOGTYPEID);
+        }
+        BlogResponse response = createBlog(blogRequest);        // 1. 建文章，拿到新 blogId
+        if (photos != null && !photos.isEmpty()) {
+            addBlogPhotos(response.getBlogId(), photos);        // 2. 相簿配上新 id 一起存
+        }
+        return response;
     }
 
     @Override
-    public BlogResponse getMyBlog(Integer farmerId, Integer blogId) {
-        Blog blog = getOwnedBlog(farmerId, blogId);   // 撈出+驗證擁有者
+    public BlogResponse getMyBlog(BlogAuthor author, Integer blogId) {
+        Blog blog = getOwnedBlog(author, blogId);   // 撈出+驗證擁有者
         return BlogResponse.from(blog);               // 轉 DTO 回去
     }
 
     @Override
-    public BlogResponse updateMyBlog(Integer farmerId, Integer blogId, BlogRequest blogRequest) {
-        getOwnedBlog(farmerId, blogId);            // 驗證：存在且是我的（不是就丟 404/403）
-        blogRequest.setBlogTypeId(FARMBLOGTYPEID); // 鎖死產地日記，避免被改成別的類別
-        return updateBlog(blogId, blogRequest);    // 沿用現有更新（含「沒傳新圖沿用舊圖」）
+    public BlogResponse updateMyBlog(BlogAuthor author, Integer blogId, BlogRequest blogRequest) {
+        getOwnedBlog(author, blogId);            // 驗證：存在且是我的（不是就丟 404/403）
+        if (author.isFarmer()) {
+            blogRequest.setBlogTypeId(FARMBLOGTYPEID);
+        }
+        return updateBlog(blogId, blogRequest);
     }
 
     @Override
-    public void deleteMyBlog(Integer farmerId, Integer blogId) {
-        getOwnedBlog(farmerId, blogId);   // 驗證擁有者
+    public void deleteMyBlog(BlogAuthor author, Integer blogId) {
+        getOwnedBlog(author, blogId);   // 驗證擁有者
         deleteBlog(blogId);               // 沿用現有刪除（會連帶刪留言/照片/讚等）
 
+    }
+
+    @Override
+    public List<BlogPhotoResponse> addMyBlogPhotos(BlogAuthor author, Integer blogId, List<MultipartFile> files) throws IOException {
+        getOwnedBlog(author, blogId);          // 驗證：這篇是我的（不是就 403/404）
+        return addBlogPhotos(blogId, files);   // 沿用你現有的：驗證圖片、轉 bytes、批次 insert
+    }
+
+    @Override
+    public void deleteMyPhoto(BlogAuthor author, Integer photoId) {
+        // 1. 用 photoId 反查它屬於哪篇 blog
+        Integer blogId = blogDao.findBlogIdByPhotoId(photoId);
+        if (blogId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "照片不存在: " + photoId);
+        }
+        // 2. 驗證那篇 blog 是我的
+        getOwnedBlog(author, blogId);
+        // 3. 才刪
+        blogDao.deletePhoto(photoId);
     }
 
     /* ===== 互動 ===== */
@@ -334,13 +363,18 @@ public class BlogServiceImpl implements BlogService {
         return blogDao.getCommentReportById(reportCommentId);
     }
 
+
+
     /* ===== 方法 ===== */
-    private Blog getOwnedBlog(Integer farmerId, Integer blogId) {
+    private Blog getOwnedBlog(BlogAuthor author, Integer blogId) {
         Blog blog = blogDao.getBlogById(blogId);
         if (blog == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
         }
-        if (!farmerId.equals(blog.getFarmerId())) {
+        boolean mine =
+                (author.getFarmerId() != null && author.getFarmerId().equals(blog.getFarmerId())) ||
+                        (author.getUserId()   != null && author.getUserId().equals(blog.getUserId()));
+        if (!mine) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "沒有權限操作這篇文章");
         }
         return blog;

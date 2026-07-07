@@ -47,15 +47,19 @@ public interface BlogService {
 
     void deletePhoto(Integer photoId);
 
-    Page<BlogResponse> getMyBlogs(Integer farmerId, Integer offset, Integer limit);
+    Page<BlogResponse> getMyBlogs(BlogAuthor author, Integer offset, Integer limit);
 
-    BlogResponse createMyBlog(Integer farmerId, BlogRequest blogRequest);
+    BlogResponse createMyBlog(BlogAuthor author, BlogRequest blogRequest, List<MultipartFile> photos) throws IOException;
 
-    BlogResponse getMyBlog(Integer farmerId, Integer blogId);
+    BlogResponse getMyBlog(BlogAuthor author, Integer blogId);
 
-    BlogResponse updateMyBlog(Integer farmerId, Integer blogId, BlogRequest blogRequest);
+    BlogResponse updateMyBlog(BlogAuthor author, Integer blogId, BlogRequest blogRequest);
 
-    void deleteMyBlog(Integer farmerId, Integer blogId);
+    void deleteMyBlog(BlogAuthor author, Integer blogId);
+
+    List<BlogPhotoResponse> addMyBlogPhotos(BlogAuthor author, Integer blogId, List<MultipartFile> files) throws IOException;
+
+    void deleteMyPhoto(BlogAuthor author, Integer photoId);
 
     /* ===== 互動 ===== */
     // toggle：回傳 true=這次變成已按讚，false=這次取消讚

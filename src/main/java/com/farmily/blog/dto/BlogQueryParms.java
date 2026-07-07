@@ -4,6 +4,7 @@ public class BlogQueryParms {
 
     private Integer blogTypeId ;
     private Integer farmerId;
+    private Integer userId;
     private String search;
     private String sort ;
     private String orderBy;
@@ -19,13 +20,13 @@ public class BlogQueryParms {
         this.blogTypeId = blogTypeId;
     }
 
-    public Integer getFarmerId() {
-        return farmerId;
-    }
+    public Integer getFarmerId() { return farmerId; }
 
-    public void setFarmerId(Integer farmerId) {
-        this.farmerId = farmerId;
-    }
+    public void setFarmerId(Integer farmerId) { this.farmerId = farmerId; }
+
+    public Integer getUserId() {return userId; }
+
+    public void setUserId(Integer userId) { this.userId = userId; }
 
     public String getSearch() {
         return search;

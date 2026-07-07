@@ -236,6 +236,16 @@ public class BlogDaoImpl implements BlogDao {
 
     }
 
+    @Override
+    public Integer findBlogIdByPhotoId(Integer photoId) {
+        String sql = "SELECT blog_id FROM blog_photo WHERE blog_photo_id = :photoId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("photoId", photoId);
+        List<Integer> list = namedParameterJdbcTemplate.query(
+                sql, map, (rs, rowNum) -> rs.getInt("blog_id"));
+        return list.isEmpty() ? null : list.get(0);   // 找不到這張照片就回 null
+    }
+
     /* ===== 互動 ===== */
 
     @Override
@@ -454,6 +464,10 @@ public class BlogDaoImpl implements BlogDao {
         if (blogQueryParms.getFarmerId() != null) {
             sql = sql + " AND farmer_id = :farmerId";
             map.put("farmerId", blogQueryParms.getFarmerId());
+        }
+        if (blogQueryParms.getUserId() != null) {
+            sql = sql + " AND user_id = :userId";
+            map.put("userId", blogQueryParms.getUserId());
         }
         if (blogQueryParms.getSearch() != null && !blogQueryParms.getSearch().isBlank()) {
             sql = sql + " AND (blog_title LIKE :search OR blog_content LIKE :search)";

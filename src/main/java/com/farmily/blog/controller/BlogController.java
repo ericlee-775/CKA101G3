@@ -102,27 +102,7 @@ public class BlogController {
 
     /* ===== 寫作(會員) ===== */
 
-    @PostMapping(value = "/blogs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BlogResponse> createBlog(@ModelAttribute @Valid BlogRequest blogRequest) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.createBlog(blogRequest));
-    }
-
-    @PutMapping(value ="/blogs/{blogId}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public BlogResponse updateBlog(@PathVariable Integer blogId, @ModelAttribute @Valid BlogRequest blogRequest) {
-
-        return blogService.updateBlog(blogId, blogRequest);
-
-    }
-
-    @DeleteMapping("blogs/{blogId}")
-    public ResponseEntity<?> deleteBlog(@PathVariable Integer blogId) {
-        blogService.deleteBlog(blogId);
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); //告訴前端刪除的東西已經不存在
-
-
-    }
     //讀取圖片
     @GetMapping("/blogs/{blogId}/image")
     public void getHandleImg(HttpServletResponse res, @PathVariable Integer blogId) throws IOException {
