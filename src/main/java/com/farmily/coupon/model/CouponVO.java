@@ -13,14 +13,19 @@ public class CouponVO {
 	@Id
 	@Column(name="coupon_id")
 	private String couponId;
+
 	@Column(name="coupon_info")
 	private String couponInfo;
+
 	@Column(name="issue_start_date")
 	private Timestamp issueStartDate;
+
 	@Column(name="issue_end_date")
 	private Timestamp issueEndDate;
+
 	@Column(name="amount")
 	private Integer amount;
+
 	@Column(name="min_spending")
 	private Integer minSpending;
 	

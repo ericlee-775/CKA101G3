@@ -8,28 +8,32 @@ import org.springframework.data.repository.query.Param;
 
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
+import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 
-public interface ProductRepository extends JpaRepository<ProductVO, Integer>{
-	@Query("SELECT new com.farmily.product.dto.ProductSummeryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p")
+public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
+	@Query("SELECT new com.farmily.product.dto.ProductSummeryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE")
 	List<ProductSummeryDTO> findAllProjectedToDto();
+
+	@Query("SELECT new com.farmily.product.dto.ProductManageDTO(p.productId, p.productName, p.retailPrice, "
+			+ "p.groupPrice, p.unitPricingMeasure, p.status)" + " From ProductVO p" + " WHERE p.farmerId = :farmerId")
+	List<ProductManageDTO> findMyProducts(@Param("farmerId") Integer farmerId);
 
 	// 商品詳情：建構式投影一次撈齊，LEFT JOIN 帶分類名稱、不載入圖片 BLOB
 	@Query("SELECT new com.farmily.product.dto.ProductDetailDTO("
 			+ "p.productId, p.productName, p.retailPrice, p.groupPrice, "
-			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, "
-			+ "s.subCatClassId, s.subCatClassName) "
+			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, " + "s.subCatClassId, s.subCatClassName) "
 			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s "
-			+ "WHERE p.productId = :id")
+			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.Status.ACTIVE")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
 	// [暫時停用] ProductGroupBuyDTO 缺少對應此查詢 7 個參數的建構子，會導致 App 啟動失敗。
 	// 待 product 組補上 (Integer,String,Integer,String,String,Integer,String) 建構子後再啟用。
 	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice,p.unitPricingMeasure, p.description,s.subCatClassId, s.subCatClassName)"
-		     + " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
-		     + "AND p.isGroupBuy = true")
+			+ " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND p.isGroupBuy = true")
 	List<ProductGroupBuyDTO> findGroupBuyProducts();
-	
+
 	// 只撈圖片這一個欄位（不載入整個 entity 的其他欄位）→ 讀圖時用
 	@Query("SELECT p.productImage FROM ProductVO p WHERE p.productId = :id")
 	byte[] findImageById(@Param("id") Integer id);
