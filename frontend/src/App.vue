@@ -104,10 +104,7 @@ html, body {
   padding: 0;
   width: 100%;
 }
-/* 全站頁面底色統一成大地色紙感 */
-body {
-  background: var(--paper);
-}
+/* 頁面底色預設不上色(白);首頁的紙感背景改由 HomeView 元件自己鋪 */
 
 /* ===== 全站自訂游標 =====
    預設隱藏;只有 JS 判斷是桌機且未開減少動態時,才在 <html> 加上 .custom-cursor 啟用。
