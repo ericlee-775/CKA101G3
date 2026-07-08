@@ -15,6 +15,9 @@ const loadState = ref('loading') // loading | ready | error
 const errorMsg = ref('')
 const coverVer = ref(Date.now())
 const coverUrl = computed(() => `/api/blogs/${blogId.value}/image?v=${coverVer.value}`)
+const lightboxSrc = ref('')       // 點相簿放大用；空=關閉
+function openLightbox(photoId) { lightboxSrc.value = blogApi.photoImgUrl(photoId) }
+function closeLightbox() { lightboxSrc.value = '' }
 
 async function load() {
   loadState.value = 'loading'
@@ -85,9 +88,15 @@ onMounted(load)
       <div v-if="photos.length" class="gallery">
         <img v-for="p in photos" :key="p.blogPhotoId"
              :src="blogApi.photoImgUrl(p.blogPhotoId)"
+             @click="openLightbox(p.blogPhotoId)"
              @error="$event.target.style.display = 'none'" alt="" />
       </div>
     </article>
+
+    <div v-if="lightboxSrc" class="lightbox" @click="closeLightbox">
+      <img :src="lightboxSrc" alt="" />
+      <button class="lightbox-x" @click.stop="closeLightbox">✕</button>
+    </div>
   </main>
 </template>
 
@@ -137,8 +146,21 @@ onMounted(load)
 }
 .gallery img {
   width: 100%; height: 130px; object-fit: cover; border-radius: 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line); cursor: zoom-in; transition: transform .15s ease;
 }
+.gallery img:hover { transform: scale(1.02); }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  background: #000d; display: grid; place-items: center; padding: 24px; cursor: zoom-out;
+}
+.lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px; }
+.lightbox-x {
+  position: fixed; top: 18px; right: 22px;
+  width: 40px; height: 40px; border: none; border-radius: 50%;
+  background: #fff2; color: #fff; font-size: 20px; cursor: pointer;
+}
+.lightbox-x:hover { background: #fff4; }
 
 .btn-ghost {
   padding: 8px 16px; border: 1px solid var(--line); border-radius: 9px;
