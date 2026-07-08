@@ -208,10 +208,8 @@ async function logout() {
   gap: 24px;
   min-height: 64px;
   padding: 10px clamp(18px, 4vw, 56px);
-  background: var(--cream);
-  backdrop-filter: blur(14px);       /* 毛玻璃效果 */
-  border-bottom: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  /* 和頁面同一張紙、無邊框無陰影 → header 融入背景,不再有分隔線 */
+  background: var(--paper);
 }
 
 /* ========== 品牌區 ========== */

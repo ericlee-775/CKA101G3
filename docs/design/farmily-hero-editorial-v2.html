@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmily｜新鮮，從產地開始</title>
+
+<!-- 思源字體:內文用思源黑體(Noto Sans TC),標題用思源宋體(Noto Serif TC)
+     若組上決議主標題要更「圓潤」,可在下方 family 加上 Huninn(粉圓體),
+     並把 .hero__title 的 font-family 換成 "Huninn" -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     概念:節氣編輯風 v2
+     - 明體大標 + 直書節氣標籤,像一本產地刊物
+     - v2 新增:
+       1. 《憫農》詩句 —— 前兩句做成直書詩籤貼在主視覺旁,
+          後兩句放進頁尾理念區,首尾呼應
+       2. 色彩計畫補齊:淺棕(--wheat)、暖綠(--leaf)、暗橘(--clay),
+          全部壓低飽和度,維持質樸
+       3. 正式載入思源黑體/宋體,不再只靠系統字型
+     - 動態原則不變:無閃爍、無彈跳、無倒數,只有慢速淡入與微傾斜
+     ============================================================ */
+  :root {
+    /* 整體色調微微加深一版:底色維持米白不動(避免破壞明亮質樸感),
+       主要把文字類的顏色壓深一點點,讓整頁看起來更沉穩 */
+    --paper:  #F1ECDF;   /* 米白:紙張底色(略降一階) */
+    --ink:    #1C2819;   /* 墨綠近黑:標題(更深) */
+    --body:   #403E34;   /* 內文灰(更深) */
+    --moss:   #294334;   /* 墨綠:輔助(更深) */
+    --leaf:   #4B6236;   /* 暖綠:時令標籤(更深) */
+    --gold:   #AC8329;   /* 稻穗金:互動點綴(略深) */
+    --clay:   #9C4E2A;   /* 暗橘:印章與 hover 強調,低飽和的赤土色(略深) */
+    --wheat:  #937D5B;   /* 淺棕:圖說、產地等次要文字(更深) */
+    --line:   #D0C9B7;   /* 分隔線(略深) */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--body);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    font-weight: 400;
+    overflow-x: hidden;
+    cursor: none;                 /* 換成自訂游標 */
+  }
+  /* 觸控裝置沒有 hover,還原一般游標 */
+  @media (hover: none) { body { cursor: auto; } }
+
+  /* --- 紙張顆粒質感:整頁鋪一層極淡的雜訊 --- */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ============================================================
+     自訂游標:一個小點 + 一個慢半拍的圓圈
+     ============================================================ */
+  .cursor-dot, .cursor-ring {
+    position: fixed;
+    top: 0; left: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100;
+    translate: -50% -50%;
+  }
+  .cursor-dot {
+    width: 6px; height: 6px;
+    background: var(--ink);
+  }
+  .cursor-ring {
+    width: 34px; height: 34px;
+    border: 1px solid rgba(34, 48, 31, 0.45);
+    transition: width 0.3s, height 0.3s, background 0.3s, border-color 0.3s;
+  }
+  /* hover 到可互動元素時,圈放大並填入淡色 */
+  .cursor-ring.is-active {
+    width: 56px; height: 56px;
+    background: rgba(185, 143, 51, 0.12);
+    border-color: var(--gold);
+  }
+  @media (hover: none) { .cursor-dot, .cursor-ring { display: none; } }
+
+  /* ============================================================
+     導覽列
+     ============================================================ */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px clamp(24px, 5vw, 72px);
+    animation: fade 1s ease both;
+  }
+  .nav__logo {
+    font-family: "Noto Serif TC", "PMingLiU", serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+  .nav__links { display: flex; gap: 34px; list-style: none; }
+  .nav__links a {
+    color: var(--body);
+    text-decoration: none;
+    font-size: 0.92rem;
+    letter-spacing: 0.14em;
+    position: relative;
+    padding-bottom: 4px;
+  }
+  /* 底線從左滑出的 hover */
+  .nav__links a::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%; height: 1px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .nav__links a:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  @media (max-width: 860px) { .nav__links { display: none; } }
+
+  /* ============================================================
+     HERO:左文右圖的編輯排版
+     ============================================================ */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(32px, 5vw, 80px);
+    align-items: center;
+    padding: clamp(24px, 4vh, 48px) clamp(24px, 5vw, 72px) clamp(32px, 5vh, 56px);
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* --- 直書節氣標籤:貼在最左側 --- */
+  .hero__term {
+    position: absolute;
+    left: clamp(24px, 5vw, 72px);
+    top: 50%;
+    translate: 0 -50%;
+    writing-mode: vertical-rl;       /* 直書 */
+    letter-spacing: 0.5em;
+    font-size: 0.82rem;
+    color: var(--moss);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: fade 1.2s ease 0.9s both;
+  }
+  /* 節氣標籤旁的細線,載入時往下畫出來 */
+  .hero__term::before {
+    content: "";
+    width: 1px;
+    height: 72px;
+    background: var(--gold);
+    transform-origin: top;
+    animation: drawLine 1s cubic-bezier(0.65, 0, 0.35, 1) 1.1s both;
+  }
+  @keyframes drawLine { from { scale: 1 0; } to { scale: 1 1; } }
+
+  /* 拿掉時令清單後,文字量變少,整塊置中讓左欄視覺平衡 */
+  .hero__text {
+    padding-left: clamp(40px, 5vw, 80px);
+    text-align: center;
+  }
+
+  .hero__eyebrow {
+    font-size: 0.85rem;
+    letter-spacing: 0.32em;
+    color: var(--gold);
+    margin-bottom: 26px;
+    animation: fade 1s ease 0.2s both;
+  }
+
+  /* --- 主標:明體,兩行,逐行從遮罩裡浮出 --- */
+  .hero__title {
+    font-family: "Noto Serif TC", "PMingLiU", serif;
+    font-size: clamp(2.5rem, 5.2vw, 4.3rem);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.32;
+    letter-spacing: 0.05em;
+  }
+  .hero__title .line {
+    display: block;
+    overflow: hidden;               /* 遮罩:文字從底下滑上來 */
+  }
+  .hero__title .line span {
+    display: inline-block;
+    transform: translateY(110%);
+    animation: lineUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero__title .line:nth-child(2) span { animation-delay: 0.15s; }
+  @keyframes lineUp { to { transform: translateY(0); } }
+
+  .hero__desc {
+    margin: 28px auto 0;            /* 左右 auto:跟著整塊置中 */
+    max-width: 42ch;
+    line-height: 2;
+    font-size: 0.98rem;
+    animation: fade 1s ease 0.7s both;
+  }
+
+  /* --- CTA --- */
+  .hero__actions {
+    margin-top: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 34px;
+    animation: fade 1s ease 1.1s both;
+  }
+  .btn-solid {
+    padding: 16px 44px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-size: 0.95rem;
+    letter-spacing: 0.22em;
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+    font-family: inherit;
+  }
+  /* hover 時苔綠色從下往上填滿 */
+  .btn-solid::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: var(--moss);
+    transform: translateY(101%);
+    transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .btn-solid:hover::before { transform: translateY(0); }
+  .btn-solid span { position: relative; }
+  .btn-solid:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  .link-arrow {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.95rem;
+    letter-spacing: 0.18em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .link-arrow i {
+    font-style: normal;
+    transition: translate 0.3s;
+  }
+  .link-arrow:hover i { translate: 6px 0; }
+
+  /* --- 右側主視覺:照片 + 滑鼠微傾斜 --- */
+  .hero__visual {
+    position: relative;
+    perspective: 1200px;            /* 給 3D 傾斜用 */
+  }
+  /* frame 收縮到跟照片一樣寬,並在右欄置中;印章、圖說都相對它定位 */
+  .hero__frame {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+  .hero__photo {
+    position: relative;
+    z-index: 1;                    /* 壓在圓章上面,圓章只從右上角露出一角 */
+    aspect-ratio: 3 / 4;            /* 貼近主視覺海報的直幅比例,左側詩句不會被裁切 */
+    /* 用視窗高度收斂,寬度自動跟著算 → 一進頁面就能看到整張完整海報,不必往下捲 */
+    height: min(74vh, 660px);
+    width: auto;
+    max-width: 100%;
+    overflow: hidden;
+    /* 載入時由下往上揭開,揭開後接一個很輕的上下起伏(呼吸感)
+       起伏走 translate 屬性,和滑鼠傾斜的 transform 各自獨立、可疊加,不會互相蓋掉 */
+    clip-path: inset(100% 0 0 0);
+    animation:
+      unveil 1.3s cubic-bezier(0.65, 0, 0.35, 1) 0.4s forwards,
+      floaty 7s ease-in-out 1.9s infinite;
+    transform-style: preserve-3d;
+    will-change: transform, translate;
+  }
+  @keyframes unveil { to { clip-path: inset(0 0 0 0); } }
+  /* 微微起伏:上下各 8px,慢速來回,像照片浮在紙上輕輕呼吸 */
+  @keyframes floaty {
+    0%, 100% { translate: 0 0; }
+    50%      { translate: 0 -8px; }
+  }
+  .hero__photo img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    scale: 1.12;
+    animation: settle 2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+  }
+  @keyframes settle { to { scale: 1.02; } }
+
+  /* 照片右下角的圖說,像雜誌圖註 */
+  .hero__caption {
+    position: absolute;
+    right: 0;
+    bottom: -34px;
+    font-size: 0.76rem;
+    letter-spacing: 0.16em;
+    color: var(--wheat);
+    animation: fade 1s ease 1.4s both;
+  }
+
+  /* 空心圓章:貼照片左上角,壓在照片後面(z-index 較低)→ 只從角落露出一角,只會轉動 */
+  .hero__seal {
+    position: absolute;
+    top: -34px; left: -34px;
+    width: 100px; height: 100px;
+    z-index: 0;                    /* 在照片後面 */
+    animation: spin 40s linear infinite, fade 1s ease 1.2s both;
+  }
+  .hero__seal text {
+    font-size: 11.5px;
+    letter-spacing: 3.5px;
+    fill: var(--moss);
+  }
+  @keyframes spin { to { rotate: 360deg; } }
+
+  @keyframes fade {
+    from { opacity: 0; translate: 0 14px; }
+    to   { opacity: 1; translate: 0 0; }
+  }
+
+  /* ============================================================
+     下方:理念(滾動進場)
+     《憫農》後兩句接在這裡,詩與品牌主張首尾呼應
+     ============================================================ */
+  .manifesto {
+    max-width: 820px;
+    margin: 60px auto 120px;
+    padding: 0 24px;
+    text-align: center;
+  }
+  .manifesto p {
+    font-family: "Noto Serif TC", serif;
+    font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+    line-height: 2;
+    color: var(--moss);
+    letter-spacing: 0.06em;
+  }
+  /* 逐句浮現 */
+  .manifesto .reveal {
+    opacity: 0;
+    translate: 0 24px;
+    transition: opacity 0.9s ease, translate 0.9s ease;
+  }
+  .manifesto .reveal.is-in { opacity: 1; translate: 0 0; }
+
+  /* ============================================================
+     響應式
+     ============================================================ */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero__term { display: none; }
+    .hero__text { padding-left: 0; }
+    .hero__visual { order: -1; }
+    .hero__seal { display: none; }   /* 手機版收起裝飾圓章,避免擠壓 */
+  }
+
+  /* 無障礙:減少動態 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .hero__title .line span { transform: none; }
+    .hero__photo { clip-path: none; }
+    .cursor-dot, .cursor-ring { display: none; }
+    body { cursor: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 自訂游標 -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav class="nav">
+  <div class="nav__logo">Farmily</div>
+  <ul class="nav__links">
+    <li><a href="#" data-hover>時令選品</a></li>
+    <li><a href="#" data-hover>合作農場</a></li>
+    <li><a href="#" data-hover>產地故事</a></li>
+    <li><a href="#" data-hover>購物袋（0）</a></li>
+  </ul>
+</nav>
+
+<main class="hero">
+  <!-- 直書節氣:載入時金線先畫出來,字再浮現 -->
+  <aside class="hero__term">二十四節氣・小暑</aside>
+
+  <div class="hero__text">
+    <p class="hero__eyebrow">TAIWAN FARM TO TABLE</p>
+
+    <h1 class="hero__title">
+      <span class="line"><span>新鮮，</span></span>
+      <span class="line"><span>從產地開始。</span></span>
+    </h1>
+
+    <p class="hero__desc">
+      Farmily 與台灣各地小農直接合作。跟著節氣的腳步，
+      我們只在風味最好的時刻採收，隔日直送你的餐桌。
+    </p>
+
+    <div class="hero__actions">
+      <button class="btn-solid" data-hover><span>進入市集</span></button>
+      <a href="#" class="link-arrow" data-hover>認識我們的農場 <i>→</i></a>
+    </div>
+  </div>
+
+  <!-- 右側主視覺:滑鼠移動時輕微 3D 傾斜
+       這張主視覺本身已含直書詩句「把酒話桑麻／相逢在田家」與「小農商城」印章,
+       因此不再另疊 HTML 詩籤與轉印章,避免文字互相打架。
+       ※ 正式上線可換成自家農場實拍(農場全景、作物細節、或農夫工作的身影)的同款排版海報 -->
+  <div class="hero__visual">
+    <!-- frame 只有照片那麼寬,讓印章、圖說貼齊照片邊緣(照片已縮小置中) -->
+    <div class="hero__frame">
+      <!-- 會慢慢轉的圓形印章:放照片右上角的天空區,避開左上角海報大標 -->
+      <svg class="hero__seal" viewBox="0 0 104 104" aria-hidden="true">
+        <defs>
+          <path id="circlePath" d="M 52,52 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0"/>
+        </defs>
+        <text><textPath href="#circlePath">產地直送・當季採收・FARMILY・</textPath></text>
+      </svg>
+
+      <figure class="hero__photo" id="heroPhoto">
+        <img src="assets/hero-farmhouse.png" alt="夕陽下的麥田，兩位友人在田間相逢握手，遠處有農舍。畫面題有詩句「把酒話桑麻・相逢在田家」與「小農商城」印章">
+      </figure>
+      <figcaption class="hero__caption">攝於夏日黃昏，麥浪與歸人 — 07 / 2026</figcaption>
+    </div>
+  </div>
+</main>
+
+<section class="manifesto">
+  <p>
+    <span class="reveal">我們相信，食材最好的樣子，</span><br>
+    <span class="reveal" style="transition-delay:.2s">不在貨架上，而在它離開土地的那一刻。</span>
+  </p>
+</section>
+
+<script>
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isTouch = matchMedia('(hover: none)').matches;
+
+  /* ============================================================
+     統一動畫迴圈
+     滑鼠座標只記錄一次,游標與照片傾斜
+     全部在同一個 requestAnimationFrame 裡用「插值」更新,
+     每個元素追的速度不同 → 產生層次感
+     ============================================================ */
+  let mx = innerWidth / 2, my = innerHeight / 2;   // 滑鼠真實位置
+  addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; });
+
+  const dot   = document.getElementById('cursorDot');
+  const ring  = document.getElementById('cursorRing');
+  const photo = document.getElementById('heroPhoto');
+
+  // 各元素目前位置(用來做慣性插值)
+  let ringX = mx, ringY = my;
+  let tiltX = 0, tiltY = 0;
+
+  function tick() {
+    // 小點:直接貼著滑鼠
+    dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+
+    // 圓圈:每幀追 18%,慢半拍
+    ringX += (mx - ringX) * 0.18;
+    ringY += (my - ringY) * 0.18;
+    ring.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`;
+
+    // 主視覺照片:依滑鼠在視窗的位置,極輕微 3D 傾斜(±2.5 度)
+    if (photo) {
+      const tx = (mx / innerWidth  - 0.5) * 5;
+      const ty = (my / innerHeight - 0.5) * -5;
+      tiltX += (tx - tiltX) * 0.06;
+      tiltY += (ty - tiltY) * 0.06;
+      photo.style.transform = `rotateY(${tiltX}deg) rotateX(${tiltY}deg)`;
+    }
+
+    requestAnimationFrame(tick);
+  }
+  if (!reduceMotion && !isTouch) requestAnimationFrame(tick);
+
+  /* ============================================================
+     游標圈:碰到可互動元素([data-hover])時放大
+     ============================================================ */
+  document.querySelectorAll('[data-hover]').forEach(el => {
+    el.addEventListener('mouseenter', () => ring.classList.add('is-active'));
+    el.addEventListener('mouseleave', () => ring.classList.remove('is-active'));
+  });
+
+  /* ============================================================
+     理念文字:滾到才逐句浮現
+     ============================================================ */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.4 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
