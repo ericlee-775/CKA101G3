@@ -46,4 +46,7 @@ public interface FarmTripService {
 	List<FarmTrip> getTripsByFarmer(Integer farmerId);
 
 	List<OrderResponse> getFarmerOrders(Integer farmerId);
+
+	byte[] getTripImage(Integer farmTripId);
+
 }

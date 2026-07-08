@@ -13,6 +13,6 @@ public class TripReviewRequest {
 	    public String getComment() { return comment; }
 	    public void setComment(String comment) { this.comment = comment; }
 
-	    public Integer getAdminId() { return adminId; }         // 【新增】
-	    public void setAdminId(Integer adminId) { this.adminId = adminId; }   // 【新增】
+	    public Integer getAdminId() { return adminId; }         
+	    public void setAdminId(Integer adminId) { this.adminId = adminId; }   
 	}

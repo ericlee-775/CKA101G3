@@ -36,7 +36,8 @@ import com.farmily.trip.service.FarmTripService;
 import com.farmily.trip.dto.OrderUpdateRequest;
 import com.farmily.trip.model.FarmTripAudits;
 import com.farmily.trip.model.AuditsStatus;
-
+import java.io.IOException;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FarmTripServiceImpl implements FarmTripService {
@@ -49,10 +50,8 @@ public class FarmTripServiceImpl implements FarmTripService {
 
 	@Autowired
 	public FarmTripServiceImpl(FarmTripRepository farmTripRepository,
-			FarmTripSessionRepository farmTripSessionRepository,
-			FarmTripAuditsRepository farmTripAuditsRepository,
-			FarmTripOrderRepository farmTripOrderRepository,
-			FarmTripCommentRepository farmTripCommentRepository) {
+			FarmTripSessionRepository farmTripSessionRepository, FarmTripAuditsRepository farmTripAuditsRepository,
+			FarmTripOrderRepository farmTripOrderRepository, FarmTripCommentRepository farmTripCommentRepository) {
 		this.farmTripRepository = farmTripRepository;
 		this.farmTripSessionRepository = farmTripSessionRepository;
 		this.farmTripAuditsRepository = farmTripAuditsRepository;
@@ -65,13 +64,10 @@ public class FarmTripServiceImpl implements FarmTripService {
 		return farmTripRepository.findByTripStatus(TripStatus.ACTIVE);
 	}
 
-	// 新方法：回傳 DTO 版本的活動列表
+	// 回傳 DTO 版本的活動列表
 	@Override
 	public List<TripListResponse> getActiveTripList() {
-		return farmTripRepository.findByTripStatus(TripStatus.ACTIVE)
-				.stream()
-				.map(this::toListResponse)
-				.toList();
+		return farmTripRepository.findByTripStatus(TripStatus.ACTIVE).stream().map(this::toListResponse).toList();
 	}
 
 	@Override
@@ -115,10 +111,19 @@ public class FarmTripServiceImpl implements FarmTripService {
 		trip.setFarmTripIntro(request.getFarmTripIntro());
 		trip.setLocation(request.getLocation());
 		trip.setReferPrice(request.getReferPrice());
-
-		trip.setTripStatus(TripStatus.PENDING);  // 核心規則：一律從「待審核」開始
+		trip.setTripStatus(TripStatus.PENDING); // 核心規則：一律從「待審核」開始
 		trip.setCommentNumbers(0);
 		trip.setStarNumbers(0);
+
+		// 【新增】有上傳圖片就存進 farmTripPic（byte[]）
+		MultipartFile pic = request.getPic();
+		if (pic != null && !pic.isEmpty()) {
+			try {
+				trip.setFarmTripPic(pic.getBytes());
+			} catch (IOException e) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "圖片讀取失敗");
+			}
+		}
 
 		FarmTrip saved = farmTripRepository.save(trip);
 
@@ -135,22 +140,34 @@ public class FarmTripServiceImpl implements FarmTripService {
 	}
 
 	@Override
+	@Transactional // 改活動狀態 + 寫審核紀錄，要同生共死
 	public TripDetailResponse reviewTrip(Integer farmTripId, TripReviewRequest request) {
 		FarmTrip trip = farmTripRepository.findById(farmTripId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此活動"));
 
+		// 只有 PENDING 能被審核
 		if (trip.getTripStatus() != TripStatus.PENDING) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT,
-					"此活動目前狀態為 " + trip.getTripStatus() + "，不可審核");
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "此活動目前狀態為 " + trip.getTripStatus() + "，不可審核");
 		}
 
-		if (Boolean.TRUE.equals(request.getApproved())) {
+		boolean approved = Boolean.TRUE.equals(request.getApproved());
+		if (approved) {
 			trip.setTripStatus(TripStatus.ACTIVE);
 		} else {
 			trip.setTripStatus(TripStatus.REJECTED);
 		}
-
 		FarmTrip saved = farmTripRepository.save(trip);
+
+		// 寫一筆審核稽核紀錄：誰審的、結果、意見、時間
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		FarmTripAudits audit = new FarmTripAudits();
+		audit.setFarmTripId(farmTripId);
+		audit.setAdminId(request.getAdminId());
+		audit.setAuditsStatus(approved ? AuditsStatus.APPROVED : AuditsStatus.REJECTED);
+		audit.setReason(request.getComment());
+		audit.setCreatedAt(now);
+		audit.setUpdatedAt(now);
+		farmTripAuditsRepository.save(audit);
 
 		TripDetailResponse dto = new TripDetailResponse();
 		dto.setFarmTripId(saved.getFarmTripId());
@@ -222,9 +239,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 
 	@Override
 	public List<OrderResponse> getMyOrders(Integer userId) {
-		return farmTripOrderRepository.findByUserIdOrderByBookedAtDesc(userId)
-				.stream()
-				.map(this::toOrderResponse)
+		return farmTripOrderRepository.findByUserIdOrderByBookedAtDesc(userId).stream().map(this::toOrderResponse)
 				.toList();
 	}
 
@@ -234,10 +249,8 @@ public class FarmTripServiceImpl implements FarmTripService {
 		FarmTripOrder order = farmTripOrderRepository.findById(farmTripOrderId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此訂單"));
 
-		if (order.getOrderStatus() == OrderStatus.CANCELLED
-				|| order.getOrderStatus() == OrderStatus.COMPLETED) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT,
-					"此訂單目前狀態為 " + order.getOrderStatus() + "，不可取消");
+		if (order.getOrderStatus() == OrderStatus.CANCELLED || order.getOrderStatus() == OrderStatus.COMPLETED) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "此訂單目前狀態為 " + order.getOrderStatus() + "，不可取消");
 		}
 
 		order.setOrderStatus(OrderStatus.CANCELLED);
@@ -258,10 +271,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 
 	@Override
 	public List<SessionResponse> getSessionsByTrip(Integer farmTripId) {
-		return farmTripSessionRepository.findByFarmTripId(farmTripId)
-				.stream()
-				.map(this::toSessionResponse)
-				.toList();
+		return farmTripSessionRepository.findByFarmTripId(farmTripId).stream().map(this::toSessionResponse).toList();
 	}
 
 	@Override
@@ -270,7 +280,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此活動"));
 
 		FarmTripSession session = new FarmTripSession();
-		session.setFarmerTripId(farmTripId);   // 注意：這個 entity 的 setter 就叫 setFarmerTripId
+		session.setFarmerTripId(farmTripId); // 注意：這個 entity 的 setter 就叫 setFarmerTripId
 		session.setFarmTripStart(request.getFarmTripStart());
 		session.setFarmTripEnd(request.getFarmTripEnd());
 		session.setTripBookStart(request.getTripBookStart());
@@ -285,7 +295,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 	private SessionResponse toSessionResponse(FarmTripSession session) {
 		SessionResponse dto = new SessionResponse();
 		dto.setFarmSessionId(session.getFarmSessionId());
-		dto.setFarmTripId(session.getFarmerTripId());   // 注意：getter 就叫 getFarmerTripId
+		dto.setFarmTripId(session.getFarmerTripId()); // 注意：getter 就叫 getFarmerTripId
 		dto.setFarmTripStart(session.getFarmTripStart());
 		dto.setFarmTripEnd(session.getFarmTripEnd());
 		dto.setTripBookStart(session.getTripBookStart());
@@ -299,10 +309,8 @@ public class FarmTripServiceImpl implements FarmTripService {
 
 	@Override
 	public List<CommentResponse> getComments(Integer farmTripId) {
-		return farmTripCommentRepository.findByFarmTripIdOrderByCreatedAtDesc(farmTripId)
-				.stream()
-				.map(this::toCommentResponse)
-				.toList();
+		return farmTripCommentRepository.findByFarmTripIdOrderByCreatedAtDesc(farmTripId).stream()
+				.map(this::toCommentResponse).toList();
 	}
 
 	@Override
@@ -315,14 +323,25 @@ public class FarmTripServiceImpl implements FarmTripService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "評分需為 1~5 星");
 		}
 
+		// 只有「參加過此活動」的會員才能評論：
+		// 參加過 = 在此活動的任一場次，有一筆「未取消」的報名訂單
+		List<Integer> sessionIds = farmTripSessionRepository.findByFarmTripId(farmTripId).stream()
+				.map(FarmTripSession::getFarmSessionId).toList();
+		boolean joined = farmTripOrderRepository.findByUserIdOrderByBookedAtDesc(request.getUserId()).stream().anyMatch(
+				o -> sessionIds.contains(o.getFarmSessionId()) && o.getOrderStatus() != OrderStatus.CANCELLED);
+		if (!joined) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有參加過此活動的會員才能評論");
+		}
+
 		FarmTripComment comment = new FarmTripComment();
 		comment.setFarmTripId(farmTripId);
 		comment.setUserId(request.getUserId());
 		comment.setStar(request.getStar());
-		comment.setReason(request.getContent());   // 留言內容存在 entity 的 reason 欄位
+		comment.setReason(request.getContent()); // 留言內容存在 entity 的 reason 欄位
 		comment.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 		FarmTripComment saved = farmTripCommentRepository.save(comment);
 
+		// 重新統計評論數與平均星數，寫回 FarmTrip
 		List<FarmTripComment> all = farmTripCommentRepository.findByFarmTripIdOrderByCreatedAtDesc(farmTripId);
 		int count = all.size();
 		int sum = 0;
@@ -347,60 +366,67 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setCreatedAt(comment.getCreatedAt());
 		return dto;
 	}
-	
+
 	// ================= 會員修改預約 =================
-		@Override
-		@Transactional
-		public OrderResponse updateOrder(Integer farmTripOrderId, OrderUpdateRequest request) {
-			FarmTripOrder order = farmTripOrderRepository.findById(farmTripOrderId)
-					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此訂單"));
+	@Override
+	@Transactional
+	public OrderResponse updateOrder(Integer farmTripOrderId, OrderUpdateRequest request) {
+		FarmTripOrder order = farmTripOrderRepository.findById(farmTripOrderId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此訂單"));
 
-			// 只有「預約成功(CONFIRMED)」的訂單可以修改
-			if (order.getOrderStatus() != OrderStatus.CONFIRMED) {
-				throw new ResponseStatusException(HttpStatus.CONFLICT,
-						"此訂單目前狀態為 " + order.getOrderStatus() + "，不可修改");
+		// 只有「預約成功(CONFIRMED)」的訂單可以修改
+		if (order.getOrderStatus() != OrderStatus.CONFIRMED) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "此訂單目前狀態為 " + order.getOrderStatus() + "，不可修改");
+		}
+
+		// 若有改人數：先算差額，同步更新場次的已報名人數
+		if (request.getNumPeople() != null) {
+			if (request.getNumPeople() < 1) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "報名人數至少 1 人");
 			}
-
-			// 若有改人數：先算差額，同步更新場次的已報名人數
-			if (request.getNumPeople() != null) {
-				if (request.getNumPeople() < 1) {
-					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "報名人數至少 1 人");
-				}
-				int oldPeople = order.getNumPeople() == null ? 0 : order.getNumPeople();
-				int delta = request.getNumPeople() - oldPeople;
-				if (delta != 0) {
-					FarmTripSession session = farmTripSessionRepository.findById(order.getFarmSessionId())
-							.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此場次"));
-					int attendance = session.getAttendance() == null ? 0 : session.getAttendance();
-					session.setAttendance(Math.max(0, attendance + delta));
-					farmTripSessionRepository.save(session);
-				}
-				order.setNumPeople(request.getNumPeople());
+			int oldPeople = order.getNumPeople() == null ? 0 : order.getNumPeople();
+			int delta = request.getNumPeople() - oldPeople;
+			if (delta != 0) {
+				FarmTripSession session = farmTripSessionRepository.findById(order.getFarmSessionId())
+						.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此場次"));
+				int attendance = session.getAttendance() == null ? 0 : session.getAttendance();
+				session.setAttendance(Math.max(0, attendance + delta));
+				farmTripSessionRepository.save(session);
 			}
-
-			// 聯絡資訊：有送才更新（null 就維持原值）
-			if (request.getUserName() != null) order.setUserName(request.getUserName());
-			if (request.getUserPhoneNum() != null) order.setUserPhoneNum(request.getUserPhoneNum());
-			if (request.getNote() != null) order.setNote(request.getNote());
-
-			FarmTripOrder saved = farmTripOrderRepository.save(order);
-			return toOrderResponse(saved);
+			order.setNumPeople(request.getNumPeople());
 		}
 
-		// ================= 小農前台 =================
+		// 聯絡資訊：有送才更新（null 就維持原值）
+		if (request.getUserName() != null)
+			order.setUserName(request.getUserName());
+		if (request.getUserPhoneNum() != null)
+			order.setUserPhoneNum(request.getUserPhoneNum());
+		if (request.getNote() != null)
+			order.setNote(request.getNote());
 
-		// 小農查自己發起的所有活動（含 PENDING / ACTIVE / REJECTED 各狀態）
-		@Override
-		public List<FarmTrip> getTripsByFarmer(Integer farmerId) {
-			return farmTripRepository.findByFarmerId(farmerId);
-		}
+		FarmTripOrder saved = farmTripOrderRepository.save(order);
+		return toOrderResponse(saved);
+	}
 
-		// 小農查自己活動底下的所有報名訂單（repository 已寫好 JPQL：訂單→場次→活動→farmerId）
-		@Override
-		public List<OrderResponse> getFarmerOrders(Integer farmerId) {
-			return farmTripOrderRepository.findOrdersByFarmerId(farmerId)
-					.stream()
-					.map(this::toOrderResponse)
-					.toList();
-		}
+	// ================= 小農前台 =================
+
+	// 小農查自己發起的所有活動（含 PENDING / ACTIVE / REJECTED 各狀態）
+	@Override
+	public List<FarmTrip> getTripsByFarmer(Integer farmerId) {
+		return farmTripRepository.findByFarmerId(farmerId);
+	}
+
+	// 小農查自己活動底下的所有報名訂單（repository 已寫好 JPQL：訂單→場次→活動→farmerId）
+	@Override
+	public List<OrderResponse> getFarmerOrders(Integer farmerId) {
+		return farmTripOrderRepository.findOrdersByFarmerId(farmerId).stream().map(this::toOrderResponse).toList();
+	}
+
+	// 取活動圖片的位元組（給圖片端點用）
+	@Override
+	public byte[] getTripImage(Integer farmTripId) {
+		FarmTrip trip = farmTripRepository.findById(farmTripId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此活動"));
+		return trip.getFarmTripPic();
+	}
 }
