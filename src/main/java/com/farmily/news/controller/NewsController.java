@@ -35,7 +35,7 @@ public class NewsController {
 
     @GetMapping("/news")
     public Page<NewsResponse> getNewsAll(
-            @RequestParam(defaultValue = "0") @Min(1) Integer offset,
+            @RequestParam(defaultValue = "0") @Min(0) Integer offset,
             @RequestParam(defaultValue = "5") @Max(1000) @Min(1) Integer limit) {
 
         return newsService.getPublishedNews(offset, limit);   // 只回已發布(ACTIVE)
