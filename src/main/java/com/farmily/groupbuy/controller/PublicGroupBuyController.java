@@ -38,16 +38,13 @@ public class PublicGroupBuyController {
 	@GetMapping("/consumer/list")
 	public ResponseEntity<List<ProductGroupBuyDTO>> getConsumerGroupBuyList(
 	        @RequestParam(defaultValue = "all") String type) {
-
 	    if ("available".equals(type)) {
 	        return ResponseEntity.ok(productSvc.getAllGroupBuyProducts());
 	    }
-
 	    List<GroupBuyStatus> statuses = switch (type) {
 	        case "open" -> List.of(GroupBuyStatus.open);
 	        default -> List.of(GroupBuyStatus.pending, GroupBuyStatus.open);
 	    };
-
 	    return ResponseEntity.ok(groupBuySvc.getConsumerGroupBuyList(statuses));
 	}
 	
