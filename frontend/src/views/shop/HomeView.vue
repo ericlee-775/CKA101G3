@@ -67,6 +67,11 @@ const products = ref([
 </template>
 
 <style scoped>
+/* 首頁專屬的大地色紙感背景（其他頁面維持白底,不上色） */
+.home {
+  background: var(--paper);
+}
+
 /* ========== 共用按鈕 ========== */
 .btn {
   display: inline-flex;
