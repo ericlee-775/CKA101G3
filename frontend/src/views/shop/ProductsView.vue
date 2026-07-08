@@ -78,51 +78,6 @@ function revokeImageUrls() {
 }
 onUnmounted(revokeImageUrls)
 
-// 記錄每個商品按鈕的狀態，用 productId 當 key。
-// 值是 'adding'（加入中）/ 'done'（成功）/ 'error'（失敗）。
-const cartStatus = ref({})
-
-// 加入購物車。
-// 後端還沒寫，這裡先用合理的預設：POST /api/cart，body 送 { productId, quantity }。
-// 之後後端網址或欄位若不同，改這個函式即可，其他都不用動。
-async function addToCart(product) {
-  const id = product.productId
-  // 加入中就不再重複送。
-  if (cartStatus.value[id] === 'adding') return
-
-  cartStatus.value[id] = 'adding'
-  try {
-    const res = await fetch('/api/cart', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // 靠 session(cookie) 辨識使用者，所以要帶上 cookie。
-      credentials: 'include',
-      body: JSON.stringify({ productId: id, quantity: 1 }),
-    })
-    if (!res.ok) {
-      throw new Error(`伺服器回應 ${res.status}`)
-    }
-    cartStatus.value[id] = 'done'
-  } catch (e) {
-    cartStatus.value[id] = 'error'
-  } finally {
-    // 2 秒後把狀態清掉，按鈕文字回到「加入購物車」。
-    setTimeout(() => {
-      delete cartStatus.value[id]
-    }, 2000)
-  }
-}
-
-// 依狀態決定按鈕文字。
-function cartBtnText(id) {
-  switch (cartStatus.value[id]) {
-    case 'adding': return '加入中…'
-    case 'done': return '已加入 ✓'
-    case 'error': return '失敗，再試一次'
-    default: return '加入購物車'
-  }
-}
-
 // 元件掛載到畫面後就去抓資料。
 onMounted(loadProducts)
 </script>
@@ -146,44 +101,31 @@ onMounted(loadProducts)
     <!-- 成功但沒有資料 -->
     <p v-else-if="products.length === 0" class="state">目前沒有商品。</p>
 
-    <!-- 商品格線 -->
+    <!-- 商品格線：整張卡片都是連結，點進商品詳情頁後才選數量、加入購物車 -->
     <section v-else class="product-grid">
-      <article
+      <RouterLink
         v-for="product in products"
         :key="product.productId"
         class="product-card"
+        :to="{ name: 'product-detail', params: { productId: product.productId } }"
       >
-        <!-- 點圖片或名稱 → 進商品詳情頁（/products/:productId） -->
-        <RouterLink
-          class="product-card__link"
-          :to="{ name: 'product-detail', params: { productId: product.productId } }"
-        >
+        <div class="product-card__imgwrap">
           <img
             class="product-card__img"
             :src="productImage(product)"
             :alt="product.productName"
             loading="lazy"
           />
-        </RouterLink>
-        <div class="product-card__body">
-          <RouterLink
-            class="product-card__name-link"
-            :to="{ name: 'product-detail', params: { productId: product.productId } }"
-          >
-            <h2 class="product-card__name">{{ product.productName }}</h2>
-          </RouterLink>
-          <p class="product-card__unit">{{ product.unitPricingMeasure }}</p>
-          <p class="product-card__price">{{ formatPrice(product.retailPrice) }}</p>
-          <button
-            class="product-card__btn"
-            type="button"
-            :disabled="cartStatus[product.productId] === 'adding'"
-            @click="addToCart(product)"
-          >
-            {{ cartBtnText(product.productId) }}
-          </button>
         </div>
-      </article>
+        <div class="product-card__body">
+          <h2 class="product-card__name">{{ product.productName }}</h2>
+          <p class="product-card__unit">{{ product.unitPricingMeasure }}</p>
+          <div class="product-card__footer">
+            <p class="product-card__price">{{ formatPrice(product.retailPrice) }}</p>
+            <span class="product-card__cta">查看商品 →</span>
+          </div>
+        </div>
+      </RouterLink>
     </section>
   </main>
 </template>
@@ -229,81 +171,87 @@ onMounted(loadProducts)
 /* ---------- 商品格線 ---------- */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 22px;
 }
 
-/* ---------- 單張商品卡 ---------- */
+/* ---------- 單張商品卡（整張是連結） ---------- */
 .product-card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .product-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
   box-shadow: var(--shadow-hover);
+  border-color: var(--leaf-soft);
 }
-.product-card__link {
-  display: block;
+.product-card__imgwrap {
+  overflow: hidden;
+  background: var(--line);
 }
 .product-card__img {
   width: 100%;
-  height: 160px;
+  height: 170px;
   object-fit: cover;
   display: block;
-  background: var(--line);
+  transition: transform 0.35s ease;
 }
-.product-card__name-link {
-  text-decoration: none;
-  color: inherit;
-}
-.product-card__name-link:hover .product-card__name {
-  color: var(--leaf-dark);
+.product-card:hover .product-card__img {
+  transform: scale(1.06);
 }
 .product-card__body {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 .product-card__name {
   font-size: 17px;
   color: var(--ink);
   margin: 0;
+  transition: color 0.18s ease;
+}
+.product-card:hover .product-card__name {
+  color: var(--leaf-dark);
 }
 .product-card__unit {
   font-size: 13px;
   color: var(--muted);
   margin: 0;
+  flex: 1;
+}
+.product-card__footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
 }
 .product-card__price {
   font-size: 18px;
   font-weight: 700;
   color: var(--leaf-dark);
   margin: 0;
-  flex: 1;
 }
-.product-card__btn {
-  margin-top: 4px;
-  padding: 9px 0;
-  border: none;
-  border-radius: 999px;
-  background: var(--leaf);
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.18s ease;
+.product-card__cta {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
-.product-card__btn:hover {
-  background: var(--leaf-dark);
-}
-.product-card__btn:disabled {
-  opacity: 0.6;
-  cursor: default;
+.product-card:hover .product-card__cta {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--leaf);
 }
 </style>

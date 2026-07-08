@@ -20,6 +20,7 @@ const menu = [
   { label: '團購管理', icon: '🛒', to: '/farmer/group-buys', ready: true },
   { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '體驗活動管理', icon: '🎪', to: '/farmer/farm-trips', ready: true },
+  { label: '產地日記(部落格)', icon: '🌱', to: '/farmer/blog', ready: true },
   { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true },
 ]
 const readyMenu = computed(() => menu.filter((m) => m.ready))

@@ -436,16 +436,17 @@ CREATE TABLE USER (
                       FOREIGN KEY (district_id) REFERENCES CITY_DISTRICT(district_id)
 );
 -- 參數
+-- user 前三組密碼:  user1234
 INSERT INTO USER
 (email, district_id, user_address, email_verified, password, user_created_at,
  user_name, user_nickname, birthday, user_phone_num, user_status,
  monthly_spending, auth_provider, provider_id)
 VALUES
-    ('user1@gmail.com',  2, '桃園區提八路1號',      TRUE, '$2a$12$jUA/0ty7AeeXWaKjysIHheumlQfBRupsGrmcrFYRzzzii759aGsze', '2026-07-03 18:50:11', 'chris',     '06chris', '1997-03-16', '0928826097', 'ACTIVE',  8000,  'LOCAL',  NULL),
-     ('user2@gmail.com',  2, '桃園區中正路50號',          TRUE, '$2b$12$Husx6NWgvI7KFkVszwGPD.p2FiEv1hdScVX.NDZKu9WyUS2l1/oXG', '2024-02-03 14:05:47', '林淑惠',     '惠惠', '1988-07-22', '0922333444', 'WARNED',  2150, 'LOCAL',  NULL),
-     ('user3@gmail.com',   3, '信義區松高路11號',          TRUE, '$2b$12$9v39B9kiotoUje71Cn2luO5cNyU0BixHrOTkJxl8j03pzHKns1XCq', '2024-06-01 13:22:09', 'Alex Tsai', '小蔡', '1993-04-08', '0977888999', 'ACTIVE',  4200, 'LOCAL',  NULL),
-     ('user4@gmail.com',   4, '臺中市西屯區臺灣大道300號',  TRUE, NULL, '2024-06-14 10:11:44', 'Jessica Wu', 'Jess', '1996-12-14', '0911222333', 'ACTIVE',  760,  'GOOGLE', '113985620174639205841'),
-     ('user5@gmail.com',   5, '高雄市鳳山區青年路200號',    TRUE, NULL, '2024-07-08 16:38:27', 'Kevin Lin',  NULL,   '1990-08-19', '0922888777', 'ACTIVE',  0,    'GOOGLE', '102758493016283749561');
+    ('user1@gmail.com',  2, '桃園區提八路1號',      TRUE, '$2a$12$R28D55f8Bz2L8YLmtbB1hOB1VkNxn0EO2FXUY7fjJChv63nOGTmrK', '2026-07-03 18:50:11', 'TestUser',     'user', '1990-01-01', '0911111111', 'ACTIVE',  8000,  'LOCAL',  NULL),
+    ('user2@gmail.com',  2, '桃園區中正路50號',          TRUE, '$2a$12$MAlxMsR3oBmdSghnfkXe..Iwez/iTE/mXoaSbseEfk7eiUlkwoC0a', '2024-02-03 14:05:47', '林淑惠',     '惠惠', '1988-07-22', '0922333444', 'WARNED',  2150, 'LOCAL',  NULL),
+    ('user3@gmail.com',   3, '信義區松高路11號',          TRUE, '$2a$12$sXSgD5eKH9/J91J5of/5q.58Ae5FRVVYhK682FR1qvdqFUqFOeVKi', '2024-06-01 13:22:09', 'Alex Tsai', '小蔡', '1993-04-08', '0977888999', 'ACTIVE',  4200, 'LOCAL',  NULL),
+    ('user4@gmail.com',   4, '臺中市西屯區臺灣大道300號',  TRUE, NULL, '2024-06-14 10:11:44', 'Jessica Wu', 'Jess', '1996-12-14', '0911222333', 'ACTIVE',  760,  'GOOGLE', '113985620174639205841'),
+    ('user5@gmail.com',   5, '高雄市鳳山區青年路200號',    TRUE, NULL, '2024-07-08 16:38:27', 'Kevin Lin',  NULL,   '1990-08-19', '0922888777', 'ACTIVE',  0,    'GOOGLE', '102758493016283749561');
 
 
 -- 1. 會員系統 - 消費級距
@@ -497,56 +498,60 @@ CREATE TABLE ADMIN (
                        updated_at     DATETIME
 );
 -- 參數
-INSERT INTO ADMIN (admin_email, admin_password, admin_name, admin_status, created_at, updated_at) VALUES
-                                                                                                      ('admin01@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '王管理', 'ACTIVE',    '2024-01-01 09:00:00', '2024-06-15 10:30:00'),
-                                                                                                      ('admin02@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '林管理', 'ACTIVE',    '2024-01-02 09:00:00', '2024-07-20 14:00:00'),
-                                                                                                      ('admin03@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '陳管理', 'ACTIVE',    '2024-02-10 09:00:00', NULL),
-                                                                                                      ('admin04@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '張管理', 'SUSPENDED', '2024-03-05 09:00:00', '2024-09-01 08:00:00'),
-                                                                                                      ('admin05@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '黃管理', 'DELETED',   '2024-04-20 09:00:00', '2025-01-10 17:00:00');
+-- admin 密碼都是: admin1234
+INSERT INTO ADMIN (admin_email, admin_password, admin_name, admin_status, created_at, updated_at)
+VALUES
+('admin01@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '王管理', 'ACTIVE',    '2024-01-01 09:00:00', '2024-06-15 10:30:00'),
+('admin02@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '林管理', 'ACTIVE',    '2024-01-02 09:00:00', '2024-07-20 14:00:00'),
+('admin03@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '陳管理', 'ACTIVE',    '2024-02-10 09:00:00', NULL),
+('admin04@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '張管理', 'SUSPENDED', '2024-03-05 09:00:00', '2024-09-01 08:00:00'),
+('admin05@farm.com', '$2a$10$dSXb.5E1CktD650efBJsR.PGeVZ7C2Un5YNrx8kQEzn.maBi7nNmm', '黃管理', 'DELETED',   '2024-04-20 09:00:00', '2025-01-10 17:00:00');
 
 -- 3-1. 農場商品 - 商品大類表
 CREATE TABLE MAINCATEGORY (
-    product_main_cat_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_main_cat_name VARCHAR(50) NOT NULL
+                              product_main_cat_id INT AUTO_INCREMENT PRIMARY KEY,
+                              product_main_cat_name VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO MAINCATEGORY (product_main_cat_id, product_main_cat_name) VALUES
-(1, '水果');
+    (1, '水果');
 
 
 -- 3-6. 農場商品 - 優惠卷
 CREATE TABLE COUPON (
-    coupon_id VARCHAR(50) PRIMARY KEY,
-    coupon_info VARCHAR(255) NOT NULL,
-    issue_start_date DATETIME,
-    issue_end_date DATETIME,
-    amount INT,
-    min_spending INT NOT NULL
+                        coupon_id VARCHAR(50) PRIMARY KEY,
+                        coupon_info VARCHAR(255) NOT NULL,
+                        issue_start_date DATETIME,
+                        issue_end_date DATETIME,
+                        amount INT,
+                        min_spending INT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO COUPON (coupon_id, coupon_info, issue_start_date, issue_end_date, amount, min_spending) VALUES
+INSERT INTO COUPON (coupon_id, coupon_info, issue_start_date, issue_end_date, amount, min_spending)
+VALUES
 ('WELCOME100', '新會員首購滿500折100元', '2026-01-01 00:00:00', '2026-12-31 23:59:59', 100, 500);
 
 
 -- 7. 通知 - 通知類型定義表
 CREATE TABLE NOTIFICATION_TYPE (
-    type_code VARCHAR(40) PRIMARY KEY,
-    template_zh VARCHAR(255)
+                                   type_code VARCHAR(40) PRIMARY KEY,
+                                   template_zh VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO NOTIFICATION_TYPE (type_code, template_zh) VALUES
-('payment_held', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。');
+    ('payment_held', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。');
 
 
 -- 6. 專欄部落格 - 部落格類別
 CREATE TABLE BLOG_TYPE (
-    blog_type_id INT AUTO_INCREMENT PRIMARY KEY,
-    blog_type_name VARCHAR(15),
-    blog_type_img LONGBLOB,
-    blog_type_text VARCHAR(100) NOT NULL
+                           blog_type_id INT AUTO_INCREMENT PRIMARY KEY,
+                           blog_type_name VARCHAR(15),
+                           blog_type_img LONGBLOB,
+                           blog_type_text VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO BLOG_TYPE (blog_type_id, blog_type_name, blog_type_img, blog_type_text) VALUES
+INSERT INTO BLOG_TYPE (blog_type_id, blog_type_name, blog_type_img, blog_type_text)
+VALUES
 (1, '產地日記', NULL, '分享農友日常、作物成長與產地故事'),
 (2, '蔬果知識分享', NULL, '蔬果挑選、保存、營養小百科'),
 (3, '農作體驗回顧', NULL, '參加體驗活動或產地參訪的心得'),
@@ -585,7 +590,7 @@ CREATE TABLE FARMER (
 --  farmer04 管理員停權     -> SUSPENDED
 --  farmer05 審核 PENDING   -> PENDING
 
--- 密碼: farmer
+-- 密碼都是: farmer
 INSERT INTO FARMER (email, email_verified, district_id, uploaded_at, password, farm_address, farm_name, loc_lat, loc_long, farm_desc, farmer_created_at, farmer_phone_num, farmer_status)
 VALUES
     ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
@@ -675,104 +680,105 @@ VALUES
 
 -- 2. 管理員 - 最新消息
 CREATE TABLE NEWS (
-    news_id      INT          AUTO_INCREMENT PRIMARY KEY,
-    admin_id     INT          NOT NULL,
-    title        VARCHAR(50),
-    content      VARCHAR(500),
-    cover_image  LONGBLOB,
-    publish_time DATETIME,
-    news_status  ENUM('VISIBLE', 'HIDDEN', 'DRAFT'),
-    created_at   DATETIME,
-    FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id)
+                      news_id      INT          AUTO_INCREMENT PRIMARY KEY,
+                      admin_id     INT          NOT NULL,
+                      title        VARCHAR(50),
+                      content      VARCHAR(500),
+                      cover_image  LONGBLOB,
+                      publish_time DATETIME,
+                      news_status  ENUM('VISIBLE', 'HIDDEN', 'DRAFT'),
+                      created_at   DATETIME,
+                      FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id)
 );
 -- 參數
 INSERT INTO NEWS (admin_id, title, content, cover_image, publish_time, news_status, created_at)
 VALUES
-(1, '平台正式上線公告',     '你儂我農平台正式上線，歡迎小農與消費者加入我們的大家庭！',                       NULL, '2024-01-15 09:00:00', 'VISIBLE', '2024-01-14 18:00:00'),
-(2, '春季蔬果產季開始',     '春季蔬果陸續上架，歡迎選購當季新鮮農產品。',                                   NULL, '2024-03-01 09:00:00', 'VISIBLE', '2024-02-28 17:00:00'),
-(1, '系統維護通知',         '平台將於 2024/04/10 凌晨 2:00 – 4:00 進行系統維護，期間暫停服務。',           NULL, '2024-04-08 12:00:00', 'VISIBLE', '2024-04-08 10:00:00'),
-(3, '小農申請流程更新說明', '即日起小農申請流程新增第二階段審核，請備妥相關證明文件再行送件。',               NULL, '2024-05-20 10:00:00', 'HIDDEN',  '2024-05-19 16:00:00'),
-(2, '端午節限定農產品上架', '多款端午節限定農產品即將上架，敬請期待！',                                       NULL, '2024-06-05 09:00:00', 'VISIBLE', '2024-06-04 15:00:00');
+    (1, '平台正式上線公告',     '你儂我農平台正式上線，歡迎小農與消費者加入我們的大家庭！',                       NULL, '2024-01-15 09:00:00', 'VISIBLE', '2024-01-14 18:00:00'),
+    (2, '春季蔬果產季開始',     '春季蔬果陸續上架，歡迎選購當季新鮮農產品。',                                   NULL, '2024-03-01 09:00:00', 'VISIBLE', '2024-02-28 17:00:00'),
+    (1, '系統維護通知',         '平台將於 2024/04/10 凌晨 2:00 – 4:00 進行系統維護，期間暫停服務。',           NULL, '2024-04-08 12:00:00', 'VISIBLE', '2024-04-08 10:00:00'),
+    (3, '小農申請流程更新說明', '即日起小農申請流程新增第二階段審核，請備妥相關證明文件再行送件。',               NULL, '2024-05-20 10:00:00', 'HIDDEN',  '2024-05-19 16:00:00'),
+    (2, '端午節限定農產品上架', '多款端午節限定農產品即將上架，敬請期待！',                                       NULL, '2024-06-05 09:00:00', 'VISIBLE', '2024-06-04 15:00:00');
 
 -- 7. 通知 - 通知
 CREATE TABLE NOTIFICATION (
-    notification_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    farmer_id INT,
-    created_at DATETIME,
-    content VARCHAR(500),
-    status ENUM('UNREAD', 'READ'),
+                              notification_id INT AUTO_INCREMENT PRIMARY KEY,
+                              user_id INT,
+                              farmer_id INT,
+                              created_at DATETIME,
+                              content VARCHAR(500),
+                              status ENUM('UNREAD', 'READ'),
 
-    FOREIGN KEY (user_id) REFERENCES USER(user_id),
-    FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
+                              FOREIGN KEY (user_id) REFERENCES USER(user_id),
+                              FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO NOTIFICATION (notification_id, user_id, farmer_id, created_at, content, status) VALUES
-(1, 1, 1, '2026-02-15 09:00:00', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。', 'UNREAD');
+    (1, 1, 1, '2026-02-15 09:00:00', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。', 'UNREAD');
 
 
 -- 3-7. 農場商品 - 優惠卷明細
 CREATE TABLE COUPON_DETAILS (
-    user_id INT,
-    coupon_id VARCHAR(50),
-    status ENUM('UNUSED', 'USED', 'EXPIRED'),
+                                user_id INT,
+                                coupon_id VARCHAR(50),
+                                status ENUM('UNUSED', 'USED', 'EXPIRED'),
 
-    PRIMARY KEY (user_id, coupon_id),
-    FOREIGN KEY (user_id) REFERENCES USER(user_id),
-    FOREIGN KEY (coupon_id) REFERENCES COUPON(coupon_id)
+                                PRIMARY KEY (user_id, coupon_id),
+                                FOREIGN KEY (user_id) REFERENCES USER(user_id),
+                                FOREIGN KEY (coupon_id) REFERENCES COUPON(coupon_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO COUPON_DETAILS (user_id, coupon_id, status) VALUES
-(1, 'WELCOME100', 'UNUSED');
+    (1, 'WELCOME100', 'UNUSED');
 
 
 -- 3-2. 農場商品 - 商品子類表
 CREATE TABLE SUBCATEGORY (
-    sub_cat_class_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_main_cat_id INT NOT NULL,
-    sub_cat_class_name VARCHAR(50) NOT NULL,
-    FOREIGN KEY (product_main_cat_id) REFERENCES MAINCATEGORY(product_main_cat_id)
+                             sub_cat_class_id INT AUTO_INCREMENT PRIMARY KEY,
+                             product_main_cat_id INT NOT NULL,
+                             sub_cat_class_name VARCHAR(50) NOT NULL,
+                             FOREIGN KEY (product_main_cat_id) REFERENCES MAINCATEGORY(product_main_cat_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO SUBCATEGORY (sub_cat_class_id, product_main_cat_id, sub_cat_class_name) VALUES
-(1, 1, '香蕉');
+    (1, 1, '香蕉');
 
 
 -- 3-3. 農場商品 - 商城農場產品
 CREATE TABLE PRODUCT_DETAIL (
-    product_id INT AUTO_INCREMENT PRIMARY KEY,
-    sub_cat_class_id INT NOT NULL,
-    farmer_id INT NOT NULL,
-    retail_price INT NOT NULL,
-    group_price INT,
-    unit_pricing_measure VARCHAR(20) NOT NULL,
-    product_image LONGBLOB,
-    is_group_buy BOOLEAN,
-    description VARCHAR(500),
-    status ENUM('ACTIVE', 'INACTIVE'),
-    product_name varchar(20),
-    FOREIGN KEY (sub_cat_class_id) REFERENCES SUBCATEGORY(sub_cat_class_id),
-    FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
+                                product_id INT AUTO_INCREMENT PRIMARY KEY,
+                                sub_cat_class_id INT NOT NULL,
+                                farmer_id INT NOT NULL,
+                                retail_price INT NOT NULL,
+                                group_price INT,
+                                unit_pricing_measure VARCHAR(20) NOT NULL,
+                                product_image LONGBLOB,
+                                is_group_buy BOOLEAN,
+                                description VARCHAR(500),
+                                status ENUM('ACTIVE', 'INACTIVE'),
+                                product_name varchar(20),
+                                FOREIGN KEY (sub_cat_class_id) REFERENCES SUBCATEGORY(sub_cat_class_id),
+                                FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO PRODUCT_DETAIL (product_id, sub_cat_class_id, farmer_id, retail_price, group_price, unit_pricing_measure, product_image, is_group_buy, description, status,product_name) VALUES
-(1, 1, 1, 120, 100, '包/300g', NULL, 1, '無毒香蕉', 'ACTIVE','屏東霸王農場香蕉'),
-(2, 1, 2, 180, 150, '盒/600g', NULL, 1, '無毒香蕉。', 'ACTIVE','桃園香蕉'),
-(3, 1, 3, 250, 220, '箱/3kg', NULL, 1, '屏東產地直送香蕉，香氣濃郁。', 'ACTIVE','屏東香蕉'),
-(4, 1, 4, 160, 140, '包/500g', NULL, 1, '花蓮有機香蕉，鬆甜綿密，適合蒸烤。', 'ACTIVE','花蓮香蕉'),
-(5, 1, 5, 199, 169, '箱/6入', NULL, 1, '城市小田香蕉箱。', 'ACTIVE','哈哈農場香蕉水果箱');
+INSERT INTO PRODUCT_DETAIL (product_id, sub_cat_class_id, farmer_id, retail_price, group_price, unit_pricing_measure, product_image, is_group_buy, description, status,product_name)
+VALUES
+ (1, 1, 1, 120, 100, '包/300g', NULL, 1, '無毒香蕉', 'ACTIVE','屏東霸王農場香蕉'),
+ (2, 1, 2, 180, 150, '盒/600g', NULL, 1, '無毒香蕉。', 'ACTIVE','桃園香蕉'),
+ (3, 1, 3, 250, 220, '箱/3kg', NULL, 1, '屏東產地直送香蕉，香氣濃郁。', 'ACTIVE','屏東香蕉'),
+ (4, 1, 4, 160, 140, '包/500g', NULL, 1, '花蓮有機香蕉，鬆甜綿密，適合蒸烤。', 'ACTIVE','花蓮香蕉'),
+ (5, 1, 5, 199, 169, '箱/6入', NULL, 1, '城市小田香蕉箱。', 'ACTIVE','哈哈農場香蕉水果箱');
 
 
 -- 3-4. 農場商品 - 產品圖片
 CREATE TABLE PRODUCT_IMAGE (
-    product_image_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    product_image LONGBLOB,
-    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
+                               product_image_id INT AUTO_INCREMENT PRIMARY KEY,
+                               product_id INT NOT NULL,
+                               product_image LONGBLOB,
+                               FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO PRODUCT_IMAGE (product_image_id, product_id, product_image) VALUES
-(1, 1, NULL);
+    (1, 1, NULL);
 
 
 -- 3-5. 農場商品 - 一般會員商品收藏列表
@@ -1088,7 +1094,6 @@ CREATE TABLE BLOG (
     user_id INT,
     farmer_id INT,
     blog_type_id INT,
-    product_id INT NOT NULL,
     blog_content TEXT NOT NULL,
     blog_img LONGBLOB,
     blog_like_count INT NOT NULL,
@@ -1096,27 +1101,26 @@ CREATE TABLE BLOG (
     blog_status ENUM('VISIBLE','HIDDEN'),
     FOREIGN KEY (user_id) REFERENCES USER(user_id),
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id),
-    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id),
-    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
+    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
+INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id,  blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
 -- 一根香蕉
-(9001, '一根香蕉的產地旅程',NULL, 1, 1, 1,'從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
+(9001, '一根香蕉的產地旅程',NULL, 1, 1, '從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
 -- 產地日記
-(9002, '有機農場的一天',NULL, 1, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
+(9002, '有機農場的一天',NULL, 1, 1, '農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', NULL, 2, 2, '挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9004, '山間農場參訪記', 1, NULL, 3, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
+(9004, '山間農場參訪記', 1, NULL, 3, '第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9005, '海風農場體驗日', 2, NULL, 3, 4, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
+(9005, '海風農場體驗日', 2, NULL, 3,  '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
 
 -- 食譜分享
-(9006, '香蕉燕麥鬆餅', 5, NULL, 4, 5, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
+(9006, '香蕉燕麥鬆餅', 5, NULL, 4,  '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
 
 -- 6. 專欄部落格 - 按讚檢查
 CREATE TABLE BLOG_LIKE (
