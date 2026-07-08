@@ -28,6 +28,9 @@
         <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
             <a th:href="@{/admin/news}">最新消息管理</a>
         </li>
+        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
+            <a th:href="@{/admin/blog-reports}">部落格檢舉審核</a>
+        </li>
         <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
             <a th:href="@{/admin/farmers}">小農管理</a>
             ｜
