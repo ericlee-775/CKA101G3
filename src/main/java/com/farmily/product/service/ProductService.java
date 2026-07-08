@@ -5,6 +5,7 @@ import java.util.List;
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductInsertDTO;
+import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductVO;
@@ -14,9 +15,11 @@ public interface ProductService {
 
 	Integer addProduct(ProductInsertDTO dto, Integer farmerId);
 	
-	boolean updateProductPrice(Integer productId, ProductUpdatedDTO dto);
+	boolean updateProduct(Integer productId, ProductUpdatedDTO dto, Integer farmerId);
 
 	List<ProductSummeryDTO> getAllProducts();
+	
+	List<ProductManageDTO> getMyProducts(Integer farmerId);
 	
 	ProductDetailDTO getProductDetail(Integer productId);
 
