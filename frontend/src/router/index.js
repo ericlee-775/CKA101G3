@@ -78,8 +78,12 @@ const router = createRouter({
         { path: 'products/:productId', name: 'product-detail', component: ProductView },
         { path: 'cart',        name: 'cart',       component: CartView },
         { path: 'group-buys',  name: 'group-buys', component: GroupBuysView },
-        // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}）
+        // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}，這筆團購已經存在）
         { path: 'group-buys/:groupBuyId', name: 'group-buy-detail', component: GroupBuyDetailView },
+        // 「可發起」商品的詳情頁：/group-buys/product/:productId
+        // 這種商品還沒有任何團購紀錄（沒有 groupBuyId），資料改走 /api/products/{productId}，
+        // 跟上面那個網址共用同一個 GroupBuyDetailView 元件，內部依 route 參數判斷該打哪支 API。
+        { path: 'group-buys/product/:productId', name: 'group-buy-host', component: GroupBuyDetailView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
         { path: 'farm-map',    name: 'farm-map',   component: FarmMapView },
