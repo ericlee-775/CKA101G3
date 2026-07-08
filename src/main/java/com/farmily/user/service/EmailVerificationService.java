@@ -43,7 +43,7 @@ public class EmailVerificationService {
         String token = tokenService.createToken(
                 email, accountType, AccountToken.TokenType.EMAIL_VERIFY, verifyTtlMinutes);
 
-        // 指向前端 SPA 的驗證頁(history 模式，非 hash)，頁面再帶 token 呼叫後端驗證 API、顯示結果
+        // 指向前端 SPA 的驗證頁，頁面再帶 token 呼叫後端驗證 API、顯示結果
         String verifyLink = frontendBaseUrl + "/verify-email?token=" + token;
 
         emailService.sendVerifyEmail(email, verifyLink);
