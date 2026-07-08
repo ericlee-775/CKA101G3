@@ -2,6 +2,7 @@ package com.farmily.blog.service.impl;
 
 import com.farmily.blog.constant.BlogReportStatus;
 import com.farmily.blog.constant.BlogStatus;
+import com.farmily.blog.dto.BlogAdminReport;
 import com.farmily.blog.model.Blog;
 import com.farmily.blog.model.BlogComment;
 import com.farmily.blog.model.BlogCommentReport;
@@ -43,11 +44,14 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BlogReport> getBlogReports(BlogReportStatus status, Pageable pageable) {
+    public Page<BlogAdminReport> getBlogReports(BlogReportStatus status, Pageable pageable) {
+        Page<BlogReport> page;
         if(status == null) {
-            return blogReportRepository.findAll(pageable); //
-        }
-        return blogReportRepository.findByReportStatus(status, pageable);
+            page =  blogReportRepository.findAll(pageable); //
+        } else {
+            page = blogReportRepository.findByReportStatus(status, pageable);
+            }
+        return page.map(this::toView);
     }
 
 
@@ -72,12 +76,15 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
     }
 
     @Override
-    public Page<BlogCommentReport> getCommentReports(BlogReportStatus status, Pageable pageable) {
+    public Page<BlogAdminReport> getCommentReports(BlogReportStatus status, Pageable pageable) {
+        Page<BlogCommentReport> page;
         if (status == null) {
-            return blogCommentReportRepository.findAll(pageable);
+            page = blogCommentReportRepository.findAll(pageable);
+        } else {
+            page = blogCommentReportRepository.findByReportStatus(status, pageable);
         }
-        return blogCommentReportRepository.findByReportStatus(status, pageable);
-    }
+        return page.map(this::toView);
+        }
 
 
     @Override
@@ -109,4 +116,34 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         summary.put("rejectedHidden" , blogReportRepository.countByReportStatus(BlogReportStatus.REJECTED_HIDDEN));
         return summary;
     }
+
+    /* ===== 方法 ===== */
+
+    // BlogReport → DTO
+    private BlogAdminReport toView(BlogReport r) {
+        BlogAdminReport v = new BlogAdminReport();
+        v.setReportId(r.getBlogReportId());      // 文章檢舉主鍵
+        v.setTargetType("BLOG");
+        v.setBlogId(r.getBlogId());
+        v.setReportReason(r.getReportReason());
+        v.setReportStatus(r.getReportStatus());
+        v.setReportTime(r.getReportTime());
+        return v;
+    }
+
+    // BlogCommentReport → DTO
+    private BlogAdminReport toView(BlogCommentReport r) {
+        BlogAdminReport v = new BlogAdminReport();
+        v.setReportId(r.getReportCommentId());   // 留言檢舉主鍵（名字不同）
+        v.setTargetType("COMMENT");
+        v.setBlogId(r.getBlogId());
+        v.setCommentId(r.getCommentId());
+        v.setReportReason(r.getReportReason());
+        v.setReportStatus(r.getReportStatus());
+        v.setReportTime(r.getReportTime());
+        return v;
+    }
+
+
 }
+

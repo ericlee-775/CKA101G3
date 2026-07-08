@@ -10,6 +10,7 @@ import MemberLayout from '@/components/layout/MemberLayout.vue'  // 會員中心
 // 商城前台頁面
 import HomeView from '@/views/shop/HomeView.vue'
 import NewsView from '@/views/shop/NewsView.vue'
+import NewsDetailView from '@/views/shop/NewsDetailView.vue'
 import FarmilyView from '@/views/shop/Farmily.vue'
 import ProductsView from '@/views/shop/ProductsView.vue'
 import ProductView from '@/views/shop/ProductView.vue'
@@ -36,12 +37,18 @@ import MemberProfileView from '@/views/member/MemberProfileView.vue'
 import MemberOrdersView from '@/views/member/MemberOrdersView.vue'
 import MemberCouponsView from '@/views/member/MemberCouponsView.vue'
 import MemberNotificationsView from '@/views/member/MemberNotificationsView.vue'
+import MemberBlogView from '@/views/member/MemberBlogView.vue'
+import MemberBlogEditView from '@/views/member/MemberBlogEditView.vue'
+import MemberBlogDetailView from '@/views/member/MemberBlogDetailView.vue'
 // 小農管理後台：商家資料 / 商品 / 團購 / 訂單 / 體驗活動 / 通知（優惠券發放歸管理員後台）
 import FarmerProfileView from '@/views/farmer/FarmerProfileView.vue'
 import FarmerProductsView from '@/views/farmer/FarmerProductsView.vue'
 import FarmerGroupBuysView from '@/views/farmer/FarmerGroupBuysView.vue'
 import FarmerOrdersView from '@/views/farmer/FarmerOrdersView.vue'
 import FarmerFarmTripsView from '@/views/farmer/FarmerFarmTripsView.vue'
+import FarmerBlogView from '@/views/farmer/FarmerBlogView.vue'
+import FarmerBlogEditView from '@/views/farmer/FarmerBlogEditView.vue'
+import FarmerBlogDetailView from '@/views/farmer/FarmerBlogDetailView.vue'
 import FarmerNotificationsView from '@/views/farmer/FarmerNotificationsView.vue'
 // 找不到頁面（404）：對不到上面任何路由時顯示
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -64,6 +71,7 @@ const router = createRouter({
       children: [
         { path: '',            name: 'home',       component: HomeView },
         { path: 'news',        name: 'news',       component: NewsView },
+        { path: 'news/:newsId', name: 'news-detail', component: NewsDetailView },
         { path: 'farmily',     name: 'farmily',    component: FarmilyView },
         { path: 'products',    name: 'products',   component: ProductsView },
         // 商品詳情頁：/products/:productId（圖片 + 描述等，資料走 /api/products/{id} 與 /photo）
@@ -103,6 +111,11 @@ const router = createRouter({
           redirect: { name: 'member-me' },
           children: [
             { path: 'me', name: 'member-me', component: MemberProfileView },
+            // 我的文章（會員發文）
+            { path: 'blogs',          name: 'member-blogs',        component: MemberBlogView },
+            { path: 'blogs/new',      name: 'member-blogs-new',    component: MemberBlogEditView },
+            { path: 'blogs/:id/edit', name: 'member-blogs-edit',   component: MemberBlogEditView },
+            { path: 'blogs/:id',      name: 'member-blogs-detail', component: MemberBlogDetailView },
             // 以下三頁各自獨立成元件，功能開發中先放佔位內容
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
             { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },
@@ -126,6 +139,10 @@ const router = createRouter({
         { path: 'group-buys',    name: 'farmer-group-buys',    component: FarmerGroupBuysView },
         { path: 'orders',        name: 'farmer-orders',        component: FarmerOrdersView },
         { path: 'farm-trips',    name: 'farmer-farm-trips',    component: FarmerFarmTripsView },
+        { path: 'blog',          name: 'farmer-blog',          component: FarmerBlogView },
+        { path: 'blog/new',      name: 'farmer-blog-new',      component: FarmerBlogEditView },
+        { path: 'blog/:id/edit', name: 'farmer-blog-edit',     component: FarmerBlogEditView },
+        { path: 'blog/:id',      name: 'farmer-blog-detail',   component: FarmerBlogDetailView },
         { path: 'notifications', name: 'farmer-notifications', component: FarmerNotificationsView },
       ],
     },

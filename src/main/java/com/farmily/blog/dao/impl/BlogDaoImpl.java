@@ -22,8 +22,12 @@ import java.util.Map;
 @Repository
 public class BlogDaoImpl implements BlogDao {
 
-    @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    //建構子注入
+    public BlogDaoImpl(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+    }
 
     /* ===== 公開 ===== */
 
@@ -46,7 +50,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<Blog> getAll() {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content," +
                 "blog_img, blog_like_count, blog_time, blog_status FROM Blog WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
@@ -59,7 +63,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Blog getBlogById(Integer blogId) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, " +
                 "blog_content, blog_img, blog_like_count, " +
                 "blog_time, blog_status FROM Blog WHERE blog_id = :blogId" ;
 
@@ -81,7 +85,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<Blog> getBlogs(BlogQueryParms blogQueryParms) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content," +
                 "blog_img, blog_like_count, blog_time, blog_status FROM Blog WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
@@ -155,9 +159,9 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Integer createBlog(BlogRequest blogRequest) {
-        String sql = "INSERT INTO blog (blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img," +
+        String sql = "INSERT INTO blog (blog_title, user_id, farmer_id, blog_type_id, blog_content,blog_img," +
                 " blog_like_count, blog_time, blog_status) " +
-                "VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, :productId, " +
+                "VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, " +
                 ":blogContent, :blogImg, 0, NOW(), 'VISIBLE')";
 
         Map<String, Object> map = new HashMap<>();
@@ -165,7 +169,6 @@ public class BlogDaoImpl implements BlogDao {
         map.put("userId", blogRequest.getUserId());
         map.put("farmerId", blogRequest.getFarmerId());
         map.put("blogTypeId", blogRequest.getBlogTypeId());
-        map.put("productId", blogRequest.getProductId());
         map.put("blogContent", blogRequest.getBlogContent());
         map.put("blogImg", blogRequest.getBlogImg());
 
@@ -179,18 +182,15 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public void updateBlog(Integer blogId, BlogRequest blogRequest) {
-        String sql = "UPDATE blog SET blog_title = :blogTitle, user_id = :userId, farmer_id = :farmerId," +
-                " blog_type_id = :blogTypeId, product_id = :productId, blog_content = :blogContent, blog_img = :blogImg " +
+        String sql = "UPDATE blog SET blog_title = :blogTitle," +
+                " blog_type_id = :blogTypeId, blog_content = :blogContent, blog_img = :blogImg " +
                 "WHERE blog_id = :blogId";
 
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
         map.put("blogTitle", blogRequest.getBlogTitle());
-        map.put("userId", blogRequest.getUserId());
-        map.put("farmerId", blogRequest.getFarmerId());
         map.put("blogTypeId", blogRequest.getBlogTypeId());
-        map.put("productId", blogRequest.getProductId());
         map.put("blogContent", blogRequest.getBlogContent());
         map.put("blogImg", blogRequest.getBlogImg());
 
@@ -230,6 +230,16 @@ public class BlogDaoImpl implements BlogDao {
         map.put("photoId", photoId);
         namedParameterJdbcTemplate.update(sql, map);
 
+    }
+
+    @Override
+    public Integer findBlogIdByPhotoId(Integer photoId) {
+        String sql = "SELECT blog_id FROM blog_photo WHERE blog_photo_id = :photoId";
+        Map<String, Object> map = new HashMap<>();
+        map.put("photoId", photoId);
+        List<Integer> list = namedParameterJdbcTemplate.query(
+                sql, map, (rs, rowNum) -> rs.getInt("blog_id"));
+        return list.isEmpty() ? null : list.get(0);   // 找不到這張照片就回 null
     }
 
     /* ===== 互動 ===== */
@@ -446,6 +456,14 @@ public class BlogDaoImpl implements BlogDao {
         if (blogQueryParms.getBlogTypeId() != null) {
             sql = sql + " AND blog_type_id = :blogTypeId";
             map.put("blogTypeId", blogQueryParms.getBlogTypeId());
+        }
+        if (blogQueryParms.getFarmerId() != null) {
+            sql = sql + " AND farmer_id = :farmerId";
+            map.put("farmerId", blogQueryParms.getFarmerId());
+        }
+        if (blogQueryParms.getUserId() != null) {
+            sql = sql + " AND user_id = :userId";
+            map.put("userId", blogQueryParms.getUserId());
         }
         if (blogQueryParms.getSearch() != null && !blogQueryParms.getSearch().isBlank()) {
             sql = sql + " AND (blog_title LIKE :search OR blog_content LIKE :search)";

@@ -20,7 +20,6 @@ public class BlogRowMapper implements RowMapper<Blog> {
         blog.setUserId(rs.getInt("user_id"));
         blog.setFarmerId(rs.getInt("farmer_id"));
         blog.setBlogTypeId(rs.getInt("blog_type_id"));
-        blog.setProductId(rs.getInt("product_id"));
         blog.setBlogContent(rs.getString("blog_content"));
         blog.setBlogImg(rs.getBytes("blog_img"));
         blog.setBlogLikeCount(rs.getInt("blog_like_count"));
