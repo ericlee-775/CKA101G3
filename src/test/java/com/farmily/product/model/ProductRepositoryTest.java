@@ -41,6 +41,7 @@ class ProductRepositoryTest {
 
 	}
 
+
 	@Test
 	public void getProductGroup() {
 		List<ProductGroupBuyDTO> productGroupBuyDTO = productRepository.findGroupBuyProducts();
@@ -119,6 +120,7 @@ class ProductRepositoryTest {
 				saveProduct.getSubCategoryVO().getSubCatClassId());
 		assertArrayEquals("測試圖片內容".getBytes(), saveProduct.getProductImage());
 	}
+
 
 	@Test
 	public void testUpdateProduct_ProductNotFound() {

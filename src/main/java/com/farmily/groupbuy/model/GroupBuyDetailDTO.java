@@ -3,6 +3,7 @@ package com.farmily.groupbuy.model;
 import java.sql.Timestamp;
 
 public class GroupBuyDetailDTO {
+	private Integer productId;
 	  private Integer groupBuyId;
 	    private String productName;
 	    private Integer groupPrice;
@@ -12,14 +13,23 @@ public class GroupBuyDetailDTO {
 	    private String pickupAddress;
 	    private GroupBuyStatus status;
 
-	    public GroupBuyDetailDTO() {
+	    public Integer getProductId() {
+			return productId;
+		}
+
+		public void setProductId(Integer productId) {
+			this.productId = productId;
+		}
+
+		public GroupBuyDetailDTO() {
 	    }
 
-	    public GroupBuyDetailDTO(Integer groupBuyId,  String productName,
+	    public GroupBuyDetailDTO(Integer productId,Integer groupBuyId,  String productName,
 	                             Integer groupPrice, Integer targetAmount,
 	                             Timestamp openDatetime, Timestamp ddlDatetime,
 	                             String pickupAddress, GroupBuyStatus status) {
-	        this.groupBuyId = groupBuyId;
+	       this.productId=productId;
+	    	this.groupBuyId = groupBuyId;
 	        this.productName = productName;
 	        this.groupPrice = groupPrice;
 	        this.targetAmount = targetAmount;

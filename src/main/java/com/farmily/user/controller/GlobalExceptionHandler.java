@@ -8,6 +8,9 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.validation.BindException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,10 +33,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 
-    // 驗證失敗
+    // 驗證失敗（JSON @RequestBody）
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<String> handleValidation(MethodArgumentNotValidException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("驗證失敗");
+    }
+
+    // 驗證失敗（multipart @ModelAttribute，例如小農申請含證明文件圖片時）
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<String> handleBind(BindException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("驗證失敗");
+    }
+
+    // 上傳檔案過大（吃 application.properties 的 multipart 上限）
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleMaxUpload(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body("上傳檔案過大，單張圖片請小於 5MB");
     }
 
     // 用錯 HTTP 方法
@@ -46,6 +62,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<String> handleAccessDenied(AccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    // 找不到靜態資源 / 頁面：回正確的 404
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<String> handleNoResource(NoResourceFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("找不到頁面");
     }
 
     // 其他未預期錯誤

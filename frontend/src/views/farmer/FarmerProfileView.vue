@@ -7,6 +7,7 @@ import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
 import { confirm } from '@/composables/useConfirm'
+import { validateCertFile } from '@/utils/certFile'
 
 const router = useRouter()
 
@@ -32,6 +33,31 @@ const apply = ref({ farmName: '', farmAddress: '', districtId: '' })
 const applyMsg = ref('')
 const applyErr = ref('')
 const savingApply = ref(false)
+
+// 重新送審的證明文件（選填：沒選就沿用上一輪的圖片）
+const certLand = ref(null)
+const certProduct = ref(null)
+const certIdentity = ref(null)
+const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
+
+// 使用者選檔：驗證通過才存入對應 ref
+function onCertChange(key, event) {
+  applyErr.value = ''
+  const target = certRefs[key]
+  const file = event.target.files && event.target.files[0]
+  if (!file) {
+    target.value = null
+    return
+  }
+  const msg = validateCertFile(file)
+  if (msg) {
+    applyErr.value = msg
+    target.value = null
+    event.target.value = ''   // 驗證失敗清空，允許重選同一檔
+    return
+  }
+  target.value = file
+}
 
 // 改密碼
 const pw = ref({ oldPassword: '', newPassword: '', confirm: '' })
@@ -105,12 +131,21 @@ async function resubmit() {
   if (!ok) return
   savingApply.value = true
   try {
-    const updated = await farmerApi.resubmit({
-      farmName: apply.value.farmName,
-      farmAddress: apply.value.farmAddress,
-      districtId: apply.value.districtId ? Number(apply.value.districtId) : null,
-    })
+    // 走 multipart/form-data：欄位名稱需對齊後端 FarmerResubmitRequest
+    // 證明文件選填，沒選就不 append，後端會沿用上一輪的圖片
+    const fd = new FormData()
+    fd.append('farmName', apply.value.farmName)
+    fd.append('farmAddress', apply.value.farmAddress)
+    if (apply.value.districtId) fd.append('districtId', Number(apply.value.districtId))
+    if (certLand.value) fd.append('certFileLand', certLand.value)
+    if (certProduct.value) fd.append('certFileProduct', certProduct.value)
+    if (certIdentity.value) fd.append('certFileIdentity', certIdentity.value)
+    const updated = await farmerApi.resubmit(fd)
     profile.value = updated
+    // 送出後清掉已選檔案，避免誤以為還會再送
+    certLand.value = null
+    certProduct.value = null
+    certIdentity.value = null
     applyMsg.value = '已重新送審，請等待管理員審核'
   } catch (e) {
     applyErr.value = e.message || '送審失敗'
@@ -217,7 +252,28 @@ async function logout() {
               </label>
             </div>
             <label><span>農場地址</span><input v-model="apply.farmAddress" type="text" /></label>
-            <p class="danger-note">送出後將重新送審，期間審核狀態會變為待審核。（證明文件如需更換請洽管理流程）</p>
+
+            <!-- 證明文件（選填：不選則沿用上一輪的圖片，JPG / PNG，單張 ≤ 5MB）-->
+            <div class="cert-group">
+              <p class="cert-title">更換證明文件（選填，不選則沿用上一輪；JPG / PNG，單張 ≤ 5MB）</p>
+              <label class="cert-item">
+                <span>農地證明</span>
+                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+                <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+              </label>
+              <label class="cert-item">
+                <span>產品證明</span>
+                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+                <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+              </label>
+              <label class="cert-item">
+                <span>身分證明</span>
+                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+                <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+              </label>
+            </div>
+
+            <p class="danger-note">送出後將重新送審，期間審核狀態會變為待審核。</p>
             <p v-if="applyErr" class="msg-err">{{ applyErr }}</p>
             <p v-if="applyMsg" class="msg-ok">{{ applyMsg }}</p>
             <button class="btn" type="submit" :disabled="savingApply">
@@ -373,6 +429,38 @@ async function logout() {
 .btn-ghost:hover {
   border-color: var(--leaf);
   color: var(--leaf);
+}
+.cert-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.cert-title {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.cert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.cert-item input[type='file'] {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.cert-name {
+  color: var(--leaf-dark);
+  font-size: 12px;
 }
 .danger-note {
   margin: 0;

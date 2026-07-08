@@ -28,8 +28,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class BlogController {
 
+    private final BlogService blogService;
+
     @Autowired
-    private BlogService blogService;
+    public BlogController(BlogService blogService) {
+        this.blogService = blogService;
+    }
 
     /* ===== 公開 ===== */
 
@@ -37,7 +41,7 @@ public class BlogController {
     public List<BlogTypeResponse> types() {return blogService.listTypes();}
 
     @GetMapping("/blogs")
-    public ResponseEntity<Page<Blog>> getBlogAll(
+    public Page<BlogResponse> getBlogAll(
             //查詢條件
             @RequestParam(required = false) Integer blogTypeId,
             @RequestParam(required = false) String search,
@@ -48,52 +52,33 @@ public class BlogController {
             @RequestParam(defaultValue = "5") @Max(1000) @Min(0) Integer limit,
             @RequestParam(defaultValue = "0") @Min(0) Integer offset
     ) {
-        BlogQueryParms blogQueryParms = new BlogQueryParms();
-        blogQueryParms.setBlogTypeId(blogTypeId);
-        blogQueryParms.setSearch(search);
-        blogQueryParms.setOrderBy(orderBy);
-        blogQueryParms.setSort(sort);
-        blogQueryParms.setLimit(limit);
-        blogQueryParms.setOffset(offset);
+        BlogQueryParms parms = new BlogQueryParms();   // 把 request 參數組成查詢物件（輸入對應，留 controller OK）
+        parms.setBlogTypeId(blogTypeId);
+        parms.setSearch(search);
+        parms.setOrderBy(orderBy);
+        parms.setSort(sort);
+        parms.setLimit(limit);
+        parms.setOffset(offset);
 
-        List<Blog> blogList = blogService.getBlogs(blogQueryParms);
-
-        Integer total = blogService.countBlogs(blogQueryParms);
-
-        Page<Blog> page = new Page<>();
-        page.setLimit(limit);
-        page.setOffset(offset);
-        page.setTotal(total);
-        page.setResults(blogList);
-
-        return ResponseEntity.status(HttpStatus.OK).body(page);
+        return blogService.getBlogPage(parms);         // 查詢/算總數/組Page/轉DTO 全在 service
     }
 
     @GetMapping("/blogs/{blogId}")
-    public ResponseEntity<Blog> getBlogOne(@PathVariable Integer blogId) {
+    public BlogResponse getBlogOne(@PathVariable Integer blogId) {
         //從service 去抓blogId
-        Blog blog = blogService.getBlogById(blogId);
-
-        if (blog != null) {
-            return ResponseEntity.status(HttpStatus.OK).body(blog);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
+       return blogService.getBlogDetail(blogId);
     }
 
     @GetMapping("/blogs/{blogId}/comments")
-    public ResponseEntity<List<BlogComment>> getBlogComments( @PathVariable Integer blogId)  {
+    public List<BlogCommentResponse> getBlogComments( @PathVariable Integer blogId)  {
 
-        List<BlogComment> comments = blogService.getBlogComments(blogId);
-
-        return ResponseEntity.ok(comments);
+        return blogService.getBlogComments(blogId);
     }
 
     @GetMapping("/blogs/{blogId}/photos")
-    public ResponseEntity<List<BlogPhoto>> getBlogPhotos(@PathVariable Integer blogId) {
+    public ResponseEntity<List<BlogPhotoResponse>> getBlogPhotos(@PathVariable Integer blogId) {
 
-        List<BlogPhoto> blogPhotos = blogService.getBlogPhotos(blogId);
+        List<BlogPhotoResponse> blogPhotos = blogService.getBlogPhotos(blogId);
 
         return ResponseEntity.ok(blogPhotos);
     }
@@ -117,46 +102,7 @@ public class BlogController {
 
     /* ===== 寫作(會員) ===== */
 
-    @PostMapping(value = "/blogs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Blog> createBlog(@ModelAttribute @Valid BlogRequest blogRequest) {
 
-       Integer BlogId = blogService.createBlog(blogRequest);
-
-        Blog newBlog = blogService.getBlogById(BlogId);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(newBlog);
-
-
-    }
-
-    @PutMapping(value ="/blogs/{blogId}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Blog> updateBlog(@PathVariable Integer blogId, @ModelAttribute @Valid BlogRequest blogRequest) {
-       Blog blog = blogService.getBlogById(blogId);
-
-       if(blog == null) {
-           return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-       }
-        // 前端沒選新檔 → blogImg 會是 null → 沿用 DB 裡的舊圖
-        if(blogRequest.getBlogImg() == null) {
-            blogRequest.setBlogImg(blog.getBlogImg());
-        }
-
-       blogService.updateBlog(blogId, blogRequest);
-
-        Blog updateBlog = blogService.getBlogById(blogId);
-
-        return ResponseEntity.status(HttpStatus.OK).body(updateBlog);
-
-    }
-
-    @DeleteMapping("blogs/{blogId}")
-    public ResponseEntity<?> deleteBlog(@PathVariable Integer blogId) {
-        blogService.deleteBlog(blogId);
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); //告訴前端刪除的東西已經不存在
-
-
-    }
     //讀取圖片
     @GetMapping("/blogs/{blogId}/image")
     public void getHandleImg(HttpServletResponse res, @PathVariable Integer blogId) throws IOException {
@@ -178,34 +124,11 @@ public class BlogController {
 
     // 上傳照片集 (批次上傳多張)
     @PostMapping("/blogs/{blogId}/photos")
-    public ResponseEntity<List<BlogPhoto>> uploadPhotos(
+    public ResponseEntity<List<BlogPhotoResponse>> uploadPhotos(
             @PathVariable Integer blogId,
             @RequestParam("files") List<MultipartFile> files) throws IOException {
-
-        Blog blog = blogService.getBlogById(blogId);
-
-        if(blog == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-
-        List<byte[]> photoList = new ArrayList<>();
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;   // 跳過空檔
-            }
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();   // 非圖片擋掉
-            }
-            photoList.add(file.getBytes());   // MultipartFile → byte[]
-        }
-        if (photoList.isEmpty()) {
-            return ResponseEntity.badRequest().build();   // 沒有任何有效檔案
-        }
-        blogService.addBlogPhotos(blogId, photoList);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.getBlogPhotos(blogId));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(blogService.addBlogPhotos(blogId, files));
     }
 
 
@@ -222,30 +145,17 @@ public class BlogController {
 
     /* ===== 互動 ===== */
     @PostMapping("/blogs/{blogId}/like")
-    public ResponseEntity<Blog> likeBlog(@PathVariable Integer blogId,
+    public BlogResponse likeBlog(@PathVariable Integer blogId,
                                          @RequestParam Integer userId) {
         // TODO: 之後登入做好，userId 改成從 token 解析，不再由前端傳
-        Blog blog = blogService.getBlogById(blogId);
-
-        if (blog == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-
-        blogService.likeBlog(blogId, userId);
-
-        return ResponseEntity.ok(blogService.getBlogById(blogId));
+        return blogService.likeBlog(blogId, userId);
     }
 
 
     @PostMapping("/blogs/{blogId}/comments")
-    public ResponseEntity<BlogComment> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
+    public ResponseEntity<BlogCommentResponse> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
         request.setBlogId(blogId);
-
-        Integer commentId = blogService.addBlogComment(request);
-
-        BlogComment newComment = blogService.getBlogCommentsById(commentId);
-        //201
-        return ResponseEntity.status(HttpStatus.CREATED).body(newComment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogService.addBlogComment(request));
     }
 
     @DeleteMapping("/blogs/comments/{commentId}")
@@ -257,24 +167,17 @@ public class BlogController {
 
     //發送檢舉
     @PostMapping("/blogs/{blogId}/reports")
-    public ResponseEntity<BlogReport> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
-
-        Integer blogReportId = blogService.reportBlog(blogId , blogReportRequest);
-
-         BlogReport blogReport = blogService.getBlogReportById(blogReportId);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(blogReport);
+    public ResponseEntity<Void> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
+        blogService.reportBlog(blogId, blogReportRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
 
 
 
     @PostMapping("/comments/{commentId}/reports")
-    public ResponseEntity<BlogCommentReport> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
-        Integer reportCommentId = blogService.reportComment(commentId ,request);
-
-        BlogCommentReport reportComment = blogService.getCommentReportById(reportCommentId);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(reportComment);
+    public ResponseEntity<Void> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
+        blogService.reportComment(commentId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
 
 

@@ -39,7 +39,7 @@ public class ProductServiceImpl implements ProductService {
 	public List<ProductSummeryDTO> getAllProducts() {
 		return productRepository.findAllProjectedToDto();
 	}
-	@Override
+	@Override 
 	@Transactional(readOnly = true)
 	public List<ProductManageDTO> getMyProducts(Integer farmerId){
 		return productRepository.findMyProducts(farmerId);
@@ -122,6 +122,7 @@ public class ProductServiceImpl implements ProductService {
 		return productRepository.findDetailById(productId);
 	}
 
+
 	// 給團購用的全部查詢
 	@Override
 	@Transactional(readOnly = true)
@@ -130,6 +131,7 @@ public class ProductServiceImpl implements ProductService {
 	}
 
 	// 給團購用的單筆查詢
+
 	@Override
 	@Transactional(readOnly = true)
 	public ProductVO getGroupBuyProductById(Integer productId) {

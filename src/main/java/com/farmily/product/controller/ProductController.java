@@ -54,32 +54,6 @@ public class ProductController {
 		ProductDetailDTO detail = productService.getProductDetail(productId);
 		return (detail != null) ? ResponseEntity.ok(detail) : ResponseEntity.notFound().build();
 	}
-	
-	@GetMapping("/my")
-	public ResponseEntity<List<ProductManageDTO>> getMyProducts(@AuthenticationPrincipal FarmerUserDetails me){
-		
-		List<ProductManageDTO> products= productService.getMyProducts(me.getFarmerId());
-		return ResponseEntity.ok(products);
-	}
-
-	// 新增商品
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Integer> addProduct(@Valid @ModelAttribute ProductInsertDTO dto,
-			@AuthenticationPrincipal FarmerUserDetails me) {
-
-		Integer productId = productService.addProduct(dto, me.getFarmerId());
-
-		return ResponseEntity.created(URI.create("/api/products/" + productId)).body(productId);
-	}
-
-	// 修改商品價格（只開放零售價 / 團購價/ 狀態，其他欄位一律改不到）
-	// PATCH = 局部更新；收 JSON body，不再走 multipart（改價不需要圖片）
-	@PatchMapping("/{productId}")
-	public ResponseEntity<Void> updateProduct(@PathVariable Integer productId,
-			@AuthenticationPrincipal FarmerUserDetails me, @Valid @RequestBody ProductUpdatedDTO dto) {
-		boolean updated = productService.updateProduct(productId, dto, me.getFarmerId());
-		return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
-	}
 
 	// 讀取圖片（Spring ResponseEntity 版：header / body / 狀態碼都宣告式交給 Spring 寫）
 	@GetMapping("/{productId}/image")
@@ -120,14 +94,11 @@ public class ProductController {
 	// res.setStatus(HttpStatus.NOT_FOUND.value()); // ④ 沒圖自己設 404
 	// }
 	// }
-	
-	
-	
 
 	@PostMapping("/{productId}/wishlist")
 	public ResponseEntity<Void> addWishList(@PathVariable Integer productId,
 			@AuthenticationPrincipal MemberUserDetails me) {
-		
+
 		boolean added = productService.addWishList(productId, me.getUserId());
 		return added ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
 
@@ -149,10 +120,4 @@ public class ProductController {
 		return ResponseEntity.ok(wishlists);
 	}
 
-	
-	@ExceptionHandler(DataIntegrityViolationException.class)
-	public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("資料關聯有誤，請確認輸入的分類或商品是否存在");
-	}
-	
 }

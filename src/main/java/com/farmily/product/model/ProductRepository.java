@@ -26,6 +26,8 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s " + "WHERE p.productId = :id")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
+	// [暫時停用] ProductGroupBuyDTO 缺少對應此查詢 7 個參數的建構子，會導致 App 啟動失敗。
+	// 待 product 組補上 (Integer,String,Integer,String,String,Integer,String) 建構子後再啟用。
 	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice,p.unitPricingMeasure, p.description,s.subCatClassId, s.subCatClassName)"
 			+ " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
 			+ "AND p.isGroupBuy = true")

@@ -15,7 +15,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 
 // 讓狀態尚未啟用小農 (狀態 PENDING) 可以查進度
@@ -63,8 +65,8 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
         return res;
     }
 
-    // 重寄「啟用信」：僅限已核准 (ACTIVE) 但尚未完成 Email 驗證的小農。
-    // 以 email + 密碼驗身（同查詢進度頁的驗證模型），故可給精準回饋。
+    // 重寄「啟用信」：僅限已核准 (ACTIVE) 但尚未完成 Email 驗證的小農
+    // 以 email + 密碼驗身（同查詢進度頁的驗證模型），故可給精準回饋
     @Override
     public void resendActivation(LoginRequest log) {
         Farmer farmer = authByCredentials(log.getEmail(), log.getPassword());
@@ -113,9 +115,9 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
         review.setSubmittedDistrict(findDistrict(req.getDistrictId()));
         review.setSubmittedLocLat(req.getLocLat());
         review.setSubmittedLocLong(req.getLocLong());
-        review.setCertFileLand(req.getCertFileLand());
-        review.setCertFileProduct(req.getCertFileProduct());
-        review.setCertFileIdentity(req.getCertFileIdentity());
+        review.setCertFileLand(toBytes(req.getCertFileLand()));
+        review.setCertFileProduct(toBytes(req.getCertFileProduct()));
+        review.setCertFileIdentity(toBytes(req.getCertFileIdentity()));
 
         return FarmerReviewResponse.from(farmerReviewRepository.save(review));
     }
@@ -131,6 +133,18 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
             throw new BadCredentialsException("帳號或密碼錯誤");
         }
         return farmer;
+    }
+
+    // 自定義方法: 上傳檔案 → byte[]（沒選檔回 null；讀取失敗轉 RuntimeException，同 ProductVO 做法）
+    private byte[] toBytes(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("證明文件讀取失敗", e);
+        }
     }
 
     // 自定義方法: 依 id 撈區域

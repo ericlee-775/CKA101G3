@@ -40,6 +40,8 @@ public interface BlogDao {
 
     void deletePhoto(Integer photoId);
 
+    Integer findBlogIdByPhotoId(Integer photoId);
+
     /* ===== 互動 ===== */
 
     // 這個會員是否已經按過這篇

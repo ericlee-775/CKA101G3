@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import authStore from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 // 表單欄位
 const email = ref('')
@@ -38,8 +39,8 @@ async function handleLogin() {
     })
     authStore.setUser(farmer, 'FARMER')
     done.value = true
-    // 登入成功導向小農個人中心
-    setTimeout(() => router.push('/farmer/me'), 800)
+    // 被守衛擋下來會帶 ?redirect；沒有就導向小農個人中心
+    setTimeout(() => router.push(route.query.redirect || '/farmer/me'), 800)
   } catch (e) {
     error.value = e.message || '登入失敗，請稍後再試'
   } finally {

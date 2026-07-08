@@ -172,15 +172,6 @@ public class UserSecurityConfig {
                         // 前端靜態檔（Vue 打包輸出在 /farmily-web/ 子路徑）
                         .requestMatchers("/farmily-web/**").permitAll()
                         
-                        .requestMatchers(HttpMethod.GET, "/api/products/my").hasRole("FARMER")
-                        .requestMatchers(HttpMethod.POST, "/api/products").hasRole("FARMER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/products/*").hasRole("FARMER")
-                        
-                        .requestMatchers("/api/products/*/wishlist").hasRole("USER")
-                        .requestMatchers("/api/products/wishlist").hasRole("USER")
-                        
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                
                         //團購
                         .requestMatchers(HttpMethod.GET,"/api/groupBuy/**").permitAll()
 
