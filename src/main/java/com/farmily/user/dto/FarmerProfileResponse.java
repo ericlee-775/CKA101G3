@@ -64,13 +64,15 @@ public class FarmerProfileResponse {
     public String getReviewStatus() {
         return reviewStatus;
     }
-    // 管理員端覆蓋用：不套用小農端 REVIEWING→PENDING 遮蔽，顯示真實審核狀態
+
+    // 管理員端覆蓋用：不套用小農端 REVIEWING to PENDING 遮蔽，顯示真實審核狀態
     public void setReviewStatus(String reviewStatus) {
         this.reviewStatus = reviewStatus;
     }
     public Integer getReviewRound() {
         return reviewRound;
     }
+
     // 管理員端批次組裝用：直接帶入最新一輪輪次
     public void setReviewRound(Integer reviewRound) {
         this.reviewRound = reviewRound;
