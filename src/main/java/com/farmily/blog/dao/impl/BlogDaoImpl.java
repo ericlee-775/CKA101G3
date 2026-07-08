@@ -50,7 +50,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<Blog> getAll() {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content," +
                 "blog_img, blog_like_count, blog_time, blog_status FROM Blog WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
@@ -63,7 +63,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Blog getBlogById(Integer blogId) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, " +
                 "blog_content, blog_img, blog_like_count, " +
                 "blog_time, blog_status FROM Blog WHERE blog_id = :blogId" ;
 
@@ -85,7 +85,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<Blog> getBlogs(BlogQueryParms blogQueryParms) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, " +
+        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content," +
                 "blog_img, blog_like_count, blog_time, blog_status FROM Blog WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
@@ -159,9 +159,9 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Integer createBlog(BlogRequest blogRequest) {
-        String sql = "INSERT INTO blog (blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img," +
+        String sql = "INSERT INTO blog (blog_title, user_id, farmer_id, blog_type_id, blog_content,blog_img," +
                 " blog_like_count, blog_time, blog_status) " +
-                "VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, :productId, " +
+                "VALUES (:blogTitle, :userId, :farmerId, :blogTypeId, " +
                 ":blogContent, :blogImg, 0, NOW(), 'VISIBLE')";
 
         Map<String, Object> map = new HashMap<>();
@@ -169,7 +169,6 @@ public class BlogDaoImpl implements BlogDao {
         map.put("userId", blogRequest.getUserId());
         map.put("farmerId", blogRequest.getFarmerId());
         map.put("blogTypeId", blogRequest.getBlogTypeId());
-        map.put("productId", blogRequest.getProductId());
         map.put("blogContent", blogRequest.getBlogContent());
         map.put("blogImg", blogRequest.getBlogImg());
 
@@ -183,18 +182,15 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public void updateBlog(Integer blogId, BlogRequest blogRequest) {
-        String sql = "UPDATE blog SET blog_title = :blogTitle, user_id = :userId, farmer_id = :farmerId," +
-                " blog_type_id = :blogTypeId, product_id = :productId, blog_content = :blogContent, blog_img = :blogImg " +
+        String sql = "UPDATE blog SET blog_title = :blogTitle," +
+                " blog_type_id = :blogTypeId, blog_content = :blogContent, blog_img = :blogImg " +
                 "WHERE blog_id = :blogId";
 
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
         map.put("blogTitle", blogRequest.getBlogTitle());
-        map.put("userId", blogRequest.getUserId());
-        map.put("farmerId", blogRequest.getFarmerId());
         map.put("blogTypeId", blogRequest.getBlogTypeId());
-        map.put("productId", blogRequest.getProductId());
         map.put("blogContent", blogRequest.getBlogContent());
         map.put("blogImg", blogRequest.getBlogImg());
 

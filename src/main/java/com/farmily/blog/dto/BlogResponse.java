@@ -11,7 +11,6 @@ public class BlogResponse {
     private Integer userId;
     private Integer farmerId;
     private Integer blogTypeId;
-    private Integer productId;
     private String blogContent;
     private Integer blogLikeCount;
     private Timestamp blogTime;
@@ -26,7 +25,6 @@ public class BlogResponse {
         r.setUserId(b.getUserId());
         r.setFarmerId(b.getFarmerId());
         r.setBlogTypeId(b.getBlogTypeId());
-        r.setProductId(b.getProductId());
         r.setBlogContent(b.getBlogContent());
         r.setBlogLikeCount(b.getBlogLikeCount());
         r.setBlogTime(b.getBlogTime());
@@ -73,14 +71,6 @@ public class BlogResponse {
 
     public void setBlogTypeId(Integer blogTypeId) {
         this.blogTypeId = blogTypeId;
-    }
-
-    public Integer getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Integer productId) {
-        this.productId = productId;
     }
 
     public String getBlogContent() {

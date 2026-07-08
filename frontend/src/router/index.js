@@ -37,6 +37,9 @@ import MemberProfileView from '@/views/member/MemberProfileView.vue'
 import MemberOrdersView from '@/views/member/MemberOrdersView.vue'
 import MemberCouponsView from '@/views/member/MemberCouponsView.vue'
 import MemberNotificationsView from '@/views/member/MemberNotificationsView.vue'
+import MemberBlogView from '@/views/member/MemberBlogView.vue'
+import MemberBlogEditView from '@/views/member/MemberBlogEditView.vue'
+import MemberBlogDetailView from '@/views/member/MemberBlogDetailView.vue'
 // 小農管理後台：商家資料 / 商品 / 團購 / 訂單 / 體驗活動 / 通知（優惠券發放歸管理員後台）
 import FarmerProfileView from '@/views/farmer/FarmerProfileView.vue'
 import FarmerProductsView from '@/views/farmer/FarmerProductsView.vue'
@@ -108,6 +111,11 @@ const router = createRouter({
           redirect: { name: 'member-me' },
           children: [
             { path: 'me', name: 'member-me', component: MemberProfileView },
+            // 我的文章（會員發文）
+            { path: 'blogs',          name: 'member-blogs',        component: MemberBlogView },
+            { path: 'blogs/new',      name: 'member-blogs-new',    component: MemberBlogEditView },
+            { path: 'blogs/:id/edit', name: 'member-blogs-edit',   component: MemberBlogEditView },
+            { path: 'blogs/:id',      name: 'member-blogs-detail', component: MemberBlogDetailView },
             // 以下三頁各自獨立成元件，功能開發中先放佔位內容
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
             { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },

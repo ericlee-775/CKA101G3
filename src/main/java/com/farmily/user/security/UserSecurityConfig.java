@@ -173,7 +173,12 @@ public class UserSecurityConfig {
                         //trip
                         .requestMatchers(HttpMethod.GET,"/api/farm-trips/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/farmer/farm-trips/**").permitAll()
-                        
+
+                        //Blog （列表/詳情/封面/留言/照片）
+                        .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
+
+                        //最新消息 （列表/詳情/封面圖）
+                        .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
 
                         // 前端靜態檔
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**",  "/webjars/**","/favicon.ico").permitAll()

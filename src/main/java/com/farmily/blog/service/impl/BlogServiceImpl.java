@@ -130,10 +130,6 @@ public class BlogServiceImpl implements BlogService {
             }
 
         }else {
-            //會員：不能關聯商品
-            if(blogRequest.getProductId() != null) {
-                throw new IllegalArgumentException("只有小農可以關聯商品");
-            }
             //會員：類別不能選 產地日記
             if(FARMBLOGTYPEID.equals(blogTypeId)) {
                 throw new IllegalArgumentException("會員不可發表產地日記");
