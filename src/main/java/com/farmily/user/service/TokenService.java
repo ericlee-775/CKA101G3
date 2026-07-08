@@ -23,7 +23,7 @@ public class TokenService {
     }
 
     // 組出 key，例如：farmily:token:PASSWORD_RESET:xxxx-uuid
-    // 把 tokenType 設為 key 可有效防用途不合，例如拿驗證信 token 去重設密碼會找不到
+    // 把 tokenType 設為 key 可防用途不合，例如拿驗證信 token 去重設密碼會找不到
     private String buildKey(AccountToken.TokenType tokenType, String tokenValue) {
         return KEY_PREFIX + tokenType.name() + ":" + tokenValue;
     }
