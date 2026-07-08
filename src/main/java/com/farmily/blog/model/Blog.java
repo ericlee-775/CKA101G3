@@ -29,9 +29,6 @@ public class Blog implements java.io.Serializable {
 	@Column(name = "blog_type_id")
 	private Integer blogTypeId;
 
-	@Column(name = "product_id")
-	private Integer productId;
-
 	@Column(name = "blog_content")
 	private String blogContent;
 
@@ -91,14 +88,6 @@ public class Blog implements java.io.Serializable {
 
 	public void setBlogTypeId(Integer blogTypeId) {
 		this.blogTypeId = blogTypeId;
-	}
-
-	public Integer getProductId() {
-		return productId;
-	}
-
-	public void setProductId(Integer productId) {
-		this.productId = productId;
 	}
 
 	public String getBlogContent() {

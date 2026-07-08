@@ -30,6 +30,7 @@ const year = new Date().getFullYear()
       <!-- 關於欄 -->
       <nav class="footer-col">
         <h4>關於</h4>
+        <router-link to="/about">關於我們</router-link>
         <router-link to="/news">最新消息</router-link>
         <router-link to="/blogs">部落格</router-link>
         <router-link to="/farm-trips">體驗活動</router-link>

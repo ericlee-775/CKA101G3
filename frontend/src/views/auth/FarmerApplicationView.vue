@@ -4,6 +4,7 @@ import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
 import PasswordInput from '@/components/PasswordInput.vue'
 import { confirm } from '@/composables/useConfirm'
+import { validateCertFile } from '@/utils/certFile'
 
 // 身分驗證（免登入用 email + password）
 const email = ref('')
@@ -28,6 +29,31 @@ const applyMsg = ref('')
 const applyErr = ref('')
 const savingApply = ref(false)
 
+// 重新送審的證明文件（三張皆必填）：農地、產品、身分
+const certLand = ref(null)
+const certProduct = ref(null)
+const certIdentity = ref(null)
+const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
+
+// 使用者選檔：驗證通過才存入對應 ref
+function onCertChange(key, event) {
+  applyErr.value = ''
+  const target = certRefs[key]
+  const file = event.target.files && event.target.files[0]
+  if (!file) {
+    target.value = null
+    return
+  }
+  const msg = validateCertFile(file)
+  if (msg) {
+    applyErr.value = msg
+    target.value = null
+    event.target.value = ''   // 驗證失敗清空，允許重選同一檔
+    return
+  }
+  target.value = file
+}
+
 onMounted(async () => {
   try {
     districtList.value = await cityDistrictApi.listAll()
@@ -35,6 +61,15 @@ onMounted(async () => {
     districtList.value = []
   }
 })
+
+// 將後端回傳的 ISO 時間（例：2024-06-01T13:00:00）格式化為易讀格式
+function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value  // 解析失敗就原樣顯示，不壞頁
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 function requireCreds() {
   if (!email.value || !password.value) {
@@ -90,6 +125,11 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
+  // 三張證明文件皆必填
+  if (!certLand.value || !certProduct.value || !certIdentity.value) {
+    applyErr.value = '請上傳農地、產品與身分三項證明文件'
+    return
+  }
   const ok = await confirm({
     title: '重新送審',
     message: '確定要以目前填寫的資料重新送審嗎？送出後將等待管理員審核。',
@@ -98,13 +138,17 @@ async function resubmit() {
   if (!ok) return
   savingApply.value = true
   try {
-    const res = await farmerApi.application.resubmit({
-      email: email.value,
-      password: password.value,
-      farmName: apply.value.farmName,
-      farmAddress: apply.value.farmAddress,
-      districtId: apply.value.districtId ? Number(apply.value.districtId) : null,
-    })
+    // 走 multipart/form-data：欄位名稱需對齊後端 PublicFarmerResubmitRequest
+    const fd = new FormData()
+    fd.append('email', email.value)
+    fd.append('password', password.value)
+    fd.append('farmName', apply.value.farmName)
+    fd.append('farmAddress', apply.value.farmAddress)
+    if (apply.value.districtId) fd.append('districtId', Number(apply.value.districtId))
+    fd.append('certFileLand', certLand.value)
+    fd.append('certFileProduct', certProduct.value)
+    fd.append('certFileIdentity', certIdentity.value)
+    const res = await farmerApi.application.resubmit(fd)
     status.value = res
     applyMsg.value = '已重新送審，請等待管理員審核'
   } catch (e) {
@@ -143,7 +187,7 @@ async function resubmit() {
           <div><span class="label">農場名稱</span><span>{{ status.submittedFarmName || status.farmName || '—' }}</span></div>
           <div><span class="label">審核狀態</span><span class="badge">{{ status.reviewStatus }}</span></div>
           <div><span class="label">審核輪次</span><span>{{ status.reviewRound ?? '—' }}</span></div>
-          <div><span class="label">送審時間</span><span>{{ status.submittedAt || '—' }}</span></div>
+          <div><span class="label">送審時間</span><span>{{ formatDateTime(status.submittedAt) }}</span></div>
         </div>
         <div v-if="status.rejectReason" class="reject-box">
           <strong>退件理由：</strong>{{ status.rejectReason }}
@@ -174,6 +218,27 @@ async function resubmit() {
             </label>
           </div>
           <label><span>農場地址</span><input v-model="apply.farmAddress" type="text" /></label>
+
+          <!-- 證明文件（三張皆必填，JPG / PNG，單張 ≤ 2MB）-->
+          <div class="cert-group">
+            <p class="cert-title">證明文件（皆須重新上傳，JPG / PNG，單張 ≤ 5MB）</p>
+            <label class="cert-item">
+              <span>農地證明</span>
+              <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+              <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+            </label>
+            <label class="cert-item">
+              <span>產品證明</span>
+              <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+              <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+            </label>
+            <label class="cert-item">
+              <span>身分證明</span>
+              <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+              <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+            </label>
+          </div>
+
           <p v-if="applyErr" class="msg-err">{{ applyErr }}</p>
           <p v-if="applyMsg" class="msg-ok">{{ applyMsg }}</p>
           <button class="btn" type="submit" :disabled="savingApply">
@@ -317,6 +382,40 @@ async function resubmit() {
   color: #c0392b;
   font-size: 14px;
 }
+/* 證明文件上傳區 */
+.cert-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.cert-title {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.cert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.cert-item input[type='file'] {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.cert-name {
+  color: var(--leaf-dark);
+  font-size: 12px;
+}
+
 .msg-err {
   margin: 0;
   color: #c0392b;

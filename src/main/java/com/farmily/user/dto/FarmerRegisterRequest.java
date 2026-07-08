@@ -3,6 +3,7 @@ package com.farmily.user.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 
@@ -33,9 +34,11 @@ public class FarmerRegisterRequest {
 
     private BigDecimal locLat;      // 前端自動抓取後送入
     private BigDecimal locLong;
-    private byte[] certFileLand;
-    private byte[] certFileProduct;
-    private byte[] certFileIdentity;
+    // 證明文件走 multipart/form-data（同商品做法），故用 MultipartFile 接收；
+    // service 端以 getBytes() 轉成 byte[] 存進 FarmerReview。大小上限吃 application.properties 的 multipart 設定。
+    private MultipartFile certFileLand;
+    private MultipartFile certFileProduct;
+    private MultipartFile certFileIdentity;
 
 
     public String getEmail() {
@@ -110,27 +113,27 @@ public class FarmerRegisterRequest {
         this.locLong = locLong;
     }
 
-    public byte[] getCertFileLand() {
+    public MultipartFile getCertFileLand() {
         return certFileLand;
     }
 
-    public void setCertFileLand(byte[] certFileLand) {
+    public void setCertFileLand(MultipartFile certFileLand) {
         this.certFileLand = certFileLand;
     }
 
-    public byte[] getCertFileProduct() {
+    public MultipartFile getCertFileProduct() {
         return certFileProduct;
     }
 
-    public void setCertFileProduct(byte[] certFileProduct) {
+    public void setCertFileProduct(MultipartFile certFileProduct) {
         this.certFileProduct = certFileProduct;
     }
 
-    public byte[] getCertFileIdentity() {
+    public MultipartFile getCertFileIdentity() {
         return certFileIdentity;
     }
 
-    public void setCertFileIdentity(byte[] certFileIdentity) {
+    public void setCertFileIdentity(MultipartFile certFileIdentity) {
         this.certFileIdentity = certFileIdentity;
     }
 }

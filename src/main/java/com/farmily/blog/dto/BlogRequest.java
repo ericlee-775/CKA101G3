@@ -13,7 +13,6 @@ public class BlogRequest {
     private Integer farmerId;
     @NotNull
     private Integer blogTypeId;
-    private Integer productId;
     @NotBlank
     private String blogContent;
 
@@ -49,14 +48,6 @@ public class BlogRequest {
 
     public void setBlogTypeId(Integer blogTypeId) {
         this.blogTypeId = blogTypeId;
-    }
-
-    public Integer getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Integer productId) {
-        this.productId = productId;
     }
 
     public String getBlogContent() {

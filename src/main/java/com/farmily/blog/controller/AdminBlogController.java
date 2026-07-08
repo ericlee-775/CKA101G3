@@ -1,6 +1,7 @@
 package com.farmily.blog.controller;
 
 import com.farmily.blog.constant.BlogReportStatus;
+import com.farmily.blog.dto.BlogAdminReport;
 import com.farmily.blog.model.BlogCommentReport;
 import com.farmily.blog.model.BlogReport;
 import com.farmily.blog.service.AdminBlogReportService;
@@ -26,7 +27,7 @@ public class AdminBlogController {
 
     //文章檢舉列表(分頁)
     @GetMapping("/blog-reports")
-    public Page<BlogReport> listBlogReports(
+    public Page<BlogAdminReport> listBlogReports(
             @RequestParam(required = false) BlogReportStatus status,
             @PageableDefault(size = 10, sort = "reportTime", direction = Sort.Direction.DESC) Pageable pageable) {
         return adminBlogReportService.getBlogReports(status, pageable);
@@ -46,7 +47,7 @@ public class AdminBlogController {
 
     // 留言檢舉列表（分頁）
     @GetMapping("/comment-reports")
-    public Page<BlogCommentReport> listCommentReports(
+    public Page<BlogAdminReport> listCommentReports(
             @RequestParam(required = false) BlogReportStatus status,
             @PageableDefault(size = 10, sort = "reportTime", direction = Sort.Direction.DESC) Pageable pageable) {
         return adminBlogReportService.getCommentReports(status, pageable);

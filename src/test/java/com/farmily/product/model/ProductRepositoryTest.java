@@ -35,6 +35,7 @@ class ProductRepositoryTest {
 
 	}
 
+
 	@Test
 	public void getProductGroup() {
 		List<ProductGroupBuyDTO> productGroupBuyDTO = productRepository.findGroupBuyProducts();
@@ -117,4 +118,5 @@ class ProductRepositoryTest {
 	
 	
 	
+
 }

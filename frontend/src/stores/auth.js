@@ -57,6 +57,14 @@ async function hydrate() {
   }
 }
 
+// 全站只跟後端確認一次登入狀態：App 啟動與 router 守衛共用同一個 Promise，
+// 避免 F5 直接開受保護頁時各自打一次 /me，也確保守衛能等 hydrate 完成再判斷。
+let hydratePromise = null
+function ensureHydrated() {
+  if (!hydratePromise) hydratePromise = hydrate()
+  return hydratePromise
+}
+
 export const authStore = {
   // 唯讀狀態，避免外部直接改
   state: readonly(state),
@@ -64,6 +72,7 @@ export const authStore = {
   setUser,   // role: 'MEMBER' | 'FARMER'
   clear,
   hydrate,
+  ensureHydrated,
 
   get isLoggedIn() {
     return !!state.user

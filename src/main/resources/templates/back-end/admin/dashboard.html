@@ -25,6 +25,9 @@
         <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')">
             <a th:href="@{/admin/members}">會員管理</a>
         </li>
+        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
+            <a th:href="@{/admin/news}">最新消息管理</a>
+        </li>
         <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
             <a th:href="@{/admin/farmers}">小農管理</a>
             ｜
@@ -33,6 +36,7 @@
         <li sec:authorize="hasAuthority('PERM_ADMIN')">
             <a th:href="@{/admin/admins}">管理員管理</a>
         </li>
+
     </ul>
 </div>
 </body>

@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyDetailDTO;
+import com.farmily.groupbuy.model.GroupBuyStatus;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.service.ProductService;
@@ -32,11 +34,15 @@ public class PublicGroupBuyController {
 	}
 	
 	// 一般消費者看的全部的可以團購清單
-	
-	@GetMapping("/all")
-	public ResponseEntity<List<ProductGroupBuyDTO>> getAllGroupBuy() {
-		List<ProductGroupBuyDTO> list = groupBuySvc.getConsumerGroupBuyList();
-		return ResponseEntity.ok(list);
+	//這邊要濾掉被停權小農的相關商品
+	@GetMapping("/consumer/list")
+	public ResponseEntity<List<ProductGroupBuyDTO>> getConsumerGroupBuyList(
+	        @RequestParam(defaultValue = "all") String type) {
+	    List<GroupBuyStatus> statuses = switch (type) {
+	        case "available" -> List.of(GroupBuyStatus.pending);
+	        case "open" -> List.of(GroupBuyStatus.open);
+	        default -> List.of(GroupBuyStatus.pending, GroupBuyStatus.open);};
+	    return ResponseEntity.ok(groupBuySvc.getConsumerGroupBuyList(statuses));
 	}
 	
 }

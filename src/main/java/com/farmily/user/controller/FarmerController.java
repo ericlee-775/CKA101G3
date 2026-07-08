@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,10 +43,10 @@ public class FarmerController {
         this.sessionCookieSupport = sessionCookieSupport;
     }
 
-    // 小農註冊申請
-    @PostMapping("/register")
+    // 小農註冊申請（含證明文件圖片，走 multipart/form-data）
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FarmerProfileResponse> register(
-            @RequestBody @Valid FarmerRegisterRequest reg) {
+            @ModelAttribute @Valid FarmerRegisterRequest reg) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(farmerService.register(reg));
@@ -97,11 +98,12 @@ public class FarmerController {
         return ResponseEntity.ok(response);
     }
 
-    // 修改審核相關欄位 - 重新送審
-    @PutMapping("/me/application")
+    // 修改審核相關欄位 - 重新送審（含證明文件圖片，走 multipart/form-data；沒上傳則沿用上一輪）
+    // 用 POST 而非 PUT：Tomcat 只自動解析 POST 的 multipart，PUT+multipart 會在進 controller 前失敗（表現為 403）
+    @PostMapping(value = "/me/application", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FarmerProfileResponse> updateReviewRequiredInfo(
             @AuthenticationPrincipal FarmerUserDetails me,
-            @RequestBody @Valid FarmerResubmitRequest req) {
+            @ModelAttribute @Valid FarmerResubmitRequest req) {
         FarmerProfileResponse response = farmerService.updateReviewRequiredInfo(me.getFarmerId(), req);
         return ResponseEntity.ok(response);
     }
