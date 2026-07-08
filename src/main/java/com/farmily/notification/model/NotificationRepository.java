@@ -16,11 +16,11 @@ public interface NotificationRepository extends JpaRepository<NotificationVO, In
 
 	
 	// 取得該用戶所有通知，需要分類，並分頁顯示
-	@Query(value = "SELECT * FROM notification WHERE recipient_type = ?1 AND recipient_id = ?2 AND target_type = ?3", nativeQuery = true)
-	public Page<NotificationVO> findByRecipientAndTarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, Pageable pageable);
-
+	public Page<NotificationVO> findByRecipientTypeAndRecipientIdAndTargetType(NotificationRecipientType recipientType, Integer recipientId, String targetType, Pageable pageable);
+	
+//	@Query("FROM NotificationVO WHERE recipientType = ?1 AND recipientId = ?2 AND targetType = ?3")
+//	public Page<NotificationVO> findByRecipientAndTarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, Pageable pageable);
 //	public List<NotificationVO> findByRecipientAndTarget(NotificationRecipientType recipientType, Integer recipientId, String targetType);
-//	public List<NotificationVO> findByRecipientTypeAndRecipientIdAndTargetType(NotificationRecipientType recipientType, Integer recipientId, String targetType);
 
 
 	// 取得小鈴鐺預覽通知，只需要前{五}筆，
