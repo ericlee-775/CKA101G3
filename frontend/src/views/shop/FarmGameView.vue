@@ -1,680 +1,601 @@
 <script setup>
-import { ref, computed } from 'vue'
+/*
+  農產切切樂（Fruit Ninja 風格）
+  ------------------------------------------------
+  跟原本的種田遊戲不一樣：種田遊戲畫面是「HTML 元素 + Vue 綁定」，
+  這種每秒要重畫 60 次的動作遊戲，改用 <canvas> 自己畫圖，
+  Vue 只負責「分數、生命、開始/結束畫面」這些 UI 狀態。
 
-// 遊戲用的圖片素材（SVG），import 進來 Vite 會自動處理路徑
-import fieldBg from '@/assets/game/field-bg.svg'
-import farmerImg from '@/assets/game/farmer.svg'
-import iconSunny from '@/assets/game/weather-sunny.svg'
-import iconCloudy from '@/assets/game/weather-cloudy.svg'
-import iconRainy from '@/assets/game/weather-rainy.svg'
-import iconStorm from '@/assets/game/weather-storm.svg'
+  核心概念：
+  1. 遊戲迴圈：requestAnimationFrame 每一幀呼叫一次 → 更新物理 → 重畫全部
+  2. 物理：農產品被往上拋（初速度向上），每一幀被重力往下拉
+  3. 切割判定：滑鼠這一幀到上一幀的「線段」，有沒有掃過農產品的圓形範圍
+*/
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 /* ==============================
-   遊戲設定（純資料，不會變動）
+   遊戲設定（純資料）
    ============================== */
 
-// 三種作物：成本、需要的成長點數、收成賣價
-// grow 越大越難養，但賣價也越高 → 玩家要自己權衡
-const CROPS = {
-  carrot: { name: '蘿蔔', emoji: '🥕', cost: 10, grow: 6,  sell: 30 },
-  tomato: { name: '番茄', emoji: '🍅', cost: 25, grow: 12, sell: 80 },
-  corn:   { name: '玉米', emoji: '🌽', cost: 50, grow: 20, sell: 180 },
-}
-
-// 四種天氣：每天結束時隨機抽一種，影響隔天的成長速度
-// weight 是抽中的機率權重（總和 100），boost 是每天增加的成長點數
-const WEATHERS = [
-  { key: 'sunny',  name: '晴天',   icon: iconSunny,  weight: 40, boost: 2, desc: '陽光普照，作物 +2 成長' },
-  { key: 'cloudy', name: '多雲',   icon: iconCloudy, weight: 25, boost: 1, desc: '雲層遮日，作物 +1 成長' },
-  { key: 'rainy',  name: '雨天',   icon: iconRainy,  weight: 25, boost: 3, desc: '雨水滋潤，作物 +3 成長' },
-  { key: 'storm',  name: '暴風雨', icon: iconStorm,  weight: 10, boost: 0, desc: '狂風暴雨！每株作物有 30% 被摧毀' },
+// 可以切的農產品：emoji、半徑（碰撞範圍）、果汁顏色、得分
+const PRODUCES = [
+  { emoji: '🍉', name: '西瓜', radius: 42, juice: '#e0505a', score: 5 },
+  { emoji: '🍅', name: '番茄', radius: 32, juice: '#e8543f', score: 10 },
+  { emoji: '🌽', name: '玉米', radius: 34, juice: '#f2c14e', score: 10 },
+  { emoji: '🥕', name: '蘿蔔', radius: 30, juice: '#ef8a3c', score: 15 },
+  { emoji: '🍆', name: '茄子', radius: 32, juice: '#8e5aa8', score: 15 },
+  { emoji: '🎃', name: '南瓜', radius: 44, juice: '#e78a2e', score: 20 },
 ]
 
-// 三種難度：dailyCost 每天固定扣的維護費、stormWeight 暴風雨機率權重、
-// stormDestroy 暴風雨摧毀單株的機率、pestChance 每天發生蟲害的機率、
-// rotDays 成熟後幾天沒收成就腐爛（99 = 幾乎不會爛）
-const DIFFICULTIES = {
-  easy:   { name: '輕鬆', desc: '無維護費、無蟲害，慢慢玩沒壓力', dailyCost: 0,  stormWeight: 10, stormDestroy: 0.3,  pestChance: 0,    rotDays: 99 },
-  normal: { name: '普通', desc: '每天維護費 $5、偶有蟲害，成熟 3 天內要收成', dailyCost: 5,  stormWeight: 15, stormDestroy: 0.35, pestChance: 0.2,  rotDays: 3 },
-  hard:   { name: '困難', desc: '維護費 $12、蟲害頻繁、暴風雨更兇，成熟 2 天內要收成', dailyCost: 12, stormWeight: 22, stormDestroy: 0.45, pestChance: 0.35, rotDays: 2 },
+// 炸彈：切到直接結束遊戲（radius 給小一點，比較不容易誤切）
+const BOMB = { emoji: '💣', radius: 30 }
+
+const GRAVITY = 1600        // 重力加速度（px/秒²），越大掉越快
+const START_LIVES = 3       // 沒切到、掉出畫面就扣一條命
+const BOMB_CHANCE = 0.12    // 每顆生成物是炸彈的機率
+const COMBO_WINDOW = 0.4    // 幾秒內連切 2 顆以上算連擊
+const BEST_KEY = 'farmily-slice-best'  // localStorage 的最高分 key
+
+/* ==============================
+   Vue 狀態（畫面上的 UI 用）
+   ============================== */
+
+const score = ref(0)
+const lives = ref(START_LIVES)
+const best = ref(Number(localStorage.getItem(BEST_KEY)) || 0)
+// 遊戲階段：ready = 開始畫面、playing = 遊戲中、over = 結束畫面
+const phase = ref('ready')
+const overReason = ref('')  // 結束原因（切到炸彈 / 命用完）
+
+/* ==============================
+   Canvas 遊戲內部狀態
+   ------------------------------
+   這些「不用」ref！因為每秒變動 60 次，
+   用普通變數就好，ref 的更新追蹤反而是多餘的負擔。
+   ============================== */
+
+const canvasRef = ref(null)  // 綁 <canvas> 這個 DOM 元素本身，才需要 ref
+let ctx = null               // canvas 的 2D 畫筆
+let W = 0, H = 0             // 畫布邏輯寬高（CSS px）
+let rafId = 0                // requestAnimationFrame 的編號，離開頁面時要取消
+let lastTime = 0             // 上一幀的時間，用來算 dt（兩幀間隔幾秒）
+
+let fruits = []     // 場上飛的完整農產品 { x, y, vx, vy, rot, vr, type, isBomb }
+let pieces = []     // 被切成的兩半 { ...同上, side: 'left'|'right', life }
+let particles = []  // 果汁噴濺的小圓點
+let floats = []     // 漂浮的加分文字（+10、3 連擊！）
+let trail = []      // 刀光軌跡的點 { x, y, t }
+
+let elapsed = 0        // 這局玩了幾秒（用來越玩越快）
+let spawnTimer = 0     // 距離下一波生成還剩幾秒
+let comboCount = 0     // 連擊窗口內切到幾顆
+let comboTimer = 0     // 連擊窗口倒數
+let pointerDown = false
+let lastPointer = null // 上一次滑鼠位置，跟這一次連成「切割線段」
+
+/* ==============================
+   遊戲流程控制
+   ============================== */
+
+function startGame() {
+  score.value = 0
+  lives.value = START_LIVES
+  phase.value = 'playing'
+  fruits = []; pieces = []; particles = []; floats = []; trail = []
+  elapsed = 0
+  spawnTimer = 0.8   // 開場 0.8 秒後丟第一波
+  comboCount = 0
+  lastTime = performance.now()
 }
 
-const GRID_SIZE = 16     // 4x4 農地
-const START_MONEY = 100  // 初始資金
-
-/* ==============================
-   遊戲狀態（ref = 會變動、畫面要跟著更新的資料）
-   ============================== */
-
-const money = ref(START_MONEY)
-const day = ref(1)
-const weather = ref(WEATHERS[0])          // 今天的天氣，開局固定晴天
-const selectedCrop = ref('carrot')        // 目前選中的種子
-const difficulty = ref('normal')          // 目前難度，預設普通
-const log = ref(['🌞 第 1 天：歡迎來到 Farmily 小農場！點農地格子開始種植吧。'])
-
-// 農地：每格是一個物件
-// { crop: 作物 key 或 null, progress: 累積成長點數, ripeDays: 成熟後過了幾天（算腐爛用） }
-const plots = ref(
-  Array.from({ length: GRID_SIZE }, () => ({ crop: null, progress: 0, ripeDays: 0 }))
-)
-
-/* ==============================
-   computed：由現有狀態「算出來」的值
-   ============================== */
-
-// 目前難度的設定值（difficulty 變了這裡會自動跟著變）
-const diff = computed(() => DIFFICULTIES[difficulty.value])
-
-// 有幾格已成熟可收成（顯示在資訊列，提醒玩家）
-const readyCount = computed(
-  () => plots.value.filter(p => p.crop && p.progress >= CROPS[p.crop].grow).length
-)
-
-// 破產判定：沒錢買最便宜的種子、田裡也沒任何作物 → 遊戲卡死，提示重來
-const isBankrupt = computed(
-  () => money.value < CROPS.carrot.cost && plots.value.every(p => !p.crop)
-)
-
-/* ==============================
-   遊戲邏輯
-   ============================== */
-
-// 寫一行紀錄到遊戲日誌（新訊息放最上面，最多留 8 筆）
-function addLog(msg) {
-  log.value.unshift(`第 ${day.value} 天：${msg}`)
-  if (log.value.length > 8) log.value.pop()
-}
-
-// 依權重隨機抽天氣：先抽 0~100 的亂數，再逐項扣掉權重，扣到負的那項就是結果
-// 難度越高暴風雨權重越大，多出來的權重從晴天扣，總和維持 100
-function rollWeather() {
-  const extra = diff.value.stormWeight - 10   // 比基礎(10)多出來的暴風雨權重
-  let roll = Math.random() * 100
-  for (const w of WEATHERS) {
-    let weight = w.weight
-    if (w.key === 'storm') weight += extra
-    if (w.key === 'sunny') weight -= extra
-    roll -= weight
-    if (roll < 0) return w
+function endGame(reason) {
+  phase.value = 'over'
+  overReason.value = reason
+  // 破紀錄就存進 localStorage，下次進來還在
+  if (score.value > best.value) {
+    best.value = score.value
+    localStorage.setItem(BEST_KEY, String(best.value))
   }
-  return WEATHERS[0]
 }
 
-// 點擊農地格子：空地 → 種植；成熟 → 收成；成長中 → 什麼都不做
-function clickPlot(plot) {
-  if (isBankrupt.value) return   // 遊戲結束後鎖住農地
-  if (!plot.crop) {
-    // --- 種植 ---
-    const crop = CROPS[selectedCrop.value]
-    if (money.value < crop.cost) {
-      addLog(`💸 錢不夠！${crop.name}種子要 $${crop.cost}。`)
+/* ==============================
+   生成農產品
+   ============================== */
+
+// 從畫面底下往上拋一顆。位置、角度、初速度都帶點隨機才自然
+function spawnOne() {
+  const isBomb = Math.random() < BOMB_CHANCE
+  const type = isBomb ? BOMB : PRODUCES[Math.floor(Math.random() * PRODUCES.length)]
+  const x = W * (0.15 + Math.random() * 0.7)          // 從畫面中間 70% 範圍出發
+  // 往上的初速度：用物理公式 v = √(2gh) 回推，讓它大約飛到畫面 60%~90% 高
+  const peak = H * (0.6 + Math.random() * 0.3)
+  const vy = -Math.sqrt(2 * GRAVITY * peak)
+  // 水平速度：往畫面中央偏，比較不會直接飛出左右邊界
+  const vx = (W / 2 - x) * (0.2 + Math.random() * 0.5)
+
+  fruits.push({
+    x, y: H + type.radius,   // 從畫布底部下面一點點出現
+    vx, vy,
+    rot: Math.random() * Math.PI * 2,           // 初始旋轉角
+    vr: (Math.random() - 0.5) * 4,              // 旋轉速度（弧度/秒）
+    type, isBomb,
+  })
+}
+
+// 一次丟一波（1~3 顆），而且越玩越快、越玩越多
+function spawnWave() {
+  const difficulty = Math.min(1, elapsed / 60)  // 0 → 1，60 秒後達到最難
+  const count = 1 + Math.floor(Math.random() * (2 + difficulty * 2))
+  for (let i = 0; i < count; i++) {
+    // 同一波的每顆錯開一點時間丟，不要疊在一起
+    setTimeout(spawnOne, i * 150)
+  }
+  spawnTimer = 1.6 - difficulty * 0.8  // 生成間隔從 1.6 秒縮到 0.8 秒
+}
+
+/* ==============================
+   切割判定與效果
+   ============================== */
+
+// 數學小工具：點 p 到「線段 a→b」的最短距離
+// 用來判斷刀刃線段有沒有掃到農產品（距離 < 半徑就是切到）
+function segmentDist(ax, ay, bx, by, px, py) {
+  const dx = bx - ax, dy = by - ay
+  const lenSq = dx * dx + dy * dy
+  // t = 投影比例，夾在 0~1 之間代表最近點落在線段上
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq))
+  const cx = ax + t * dx, cy = ay + t * dy
+  return Math.hypot(px - cx, py - cy)
+}
+
+// 滑鼠從 (ax,ay) 滑到 (bx,by)，檢查有沒有切到東西
+function checkSlice(ax, ay, bx, by) {
+  const angle = Math.atan2(by - ay, bx - ax)  // 這一刀的方向（切面角度用）
+
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i]
+    if (segmentDist(ax, ay, bx, by, f.x, f.y) > f.type.radius) continue
+
+    fruits.splice(i, 1)  // 從場上移除這顆
+
+    if (f.isBomb) {
+      // 切到炸彈：全畫面閃白 + 遊戲結束
+      spawnParticles(f.x, f.y, '#333', 24)
+      endGame('💥 切到炸彈了！')
       return
     }
-    money.value -= crop.cost
-    plot.crop = selectedCrop.value
-    plot.progress = 0
-    plot.ripeDays = 0
-    addLog(`🌱 花 $${crop.cost} 種下${crop.name}。`)
-  } else if (plot.progress >= CROPS[plot.crop].grow) {
-    // --- 收成 ---
-    const crop = CROPS[plot.crop]
-    money.value += crop.sell
-    addLog(`${crop.emoji} 收成${crop.name}，賣得 $${crop.sell}！`)
-    plot.crop = null
-    plot.progress = 0
-    plot.ripeDays = 0
-  }
-  // 成長中點了沒反應，讓玩家等天數
-}
 
-// 把一格清回空地（被摧毀 / 腐爛時用）
-function clearPlot(plot) {
-  plot.crop = null
-  plot.progress = 0
-  plot.ripeDays = 0
-}
+    // --- 切到農產品 ---
+    score.value += f.type.score
+    floats.push({ x: f.x, y: f.y - 30, text: `+${f.type.score}`, t: 0 })
+    spawnPieces(f, angle)                          // 裂成兩半
+    spawnParticles(f.x, f.y, f.type.juice, 12)     // 噴果汁
 
-// 「下一天」：抽新天氣 → 扣維護費 → 依天氣讓作物成長
-// 額外風險：暴風雨摧毀、成熟太久腐爛、隨機蟲害
-function nextDay() {
-  if (isBankrupt.value) return   // 遊戲結束後不能再過天
-  day.value += 1
-  weather.value = rollWeather()
-  addLog(`${weather.value.name}｜${weather.value.desc}`)
-
-  // 每日維護費（輕鬆模式是 0）：錢最低扣到 0，不會變負數
-  if (diff.value.dailyCost > 0) {
-    money.value = Math.max(0, money.value - diff.value.dailyCost)
-    addLog(`🧾 支付農場維護費 $${diff.value.dailyCost}。`)
-  }
-
-  let destroyed = 0
-  let rotted = 0
-  for (const plot of plots.value) {
-    if (!plot.crop) continue
-    if (weather.value.key === 'storm' && Math.random() < diff.value.stormDestroy) {
-      // 暴風雨：這株作物被摧毀，整格清空
-      clearPlot(plot)
-      destroyed++
-    } else if (plot.progress >= CROPS[plot.crop].grow) {
-      // 已成熟：不再成長，開始累積過熟天數，放太久就腐爛
-      plot.ripeDays += 1
-      if (plot.ripeDays >= diff.value.rotDays) {
-        clearPlot(plot)
-        rotted++
-      }
-    } else {
-      plot.progress += weather.value.boost
+    // 連擊：短時間內切到第 2 顆以上，額外加分
+    comboCount++
+    comboTimer = COMBO_WINDOW
+    if (comboCount >= 2) {
+      const bonus = comboCount * 5
+      score.value += bonus
+      floats.push({ x: f.x, y: f.y - 60, text: `${comboCount} 連擊 +${bonus}！`, t: 0, big: true })
     }
   }
-  if (destroyed > 0) addLog(`💥 暴風雨摧毀了 ${destroyed} 株作物…`)
-  if (rotted > 0) addLog(`🥀 ${rotted} 株作物放太久腐爛了，血本無歸…`)
+}
 
-  // 蟲害：每天有機率隨機挑一株成長中的作物，成長倒退 4 點
-  if (Math.random() < diff.value.pestChance) {
-    const growing = plots.value.filter(p => p.crop && p.progress < CROPS[p.crop].grow)
-    if (growing.length > 0) {
-      const victim = growing[Math.floor(Math.random() * growing.length)]
-      victim.progress = Math.max(0, victim.progress - 4)
-      addLog(`🐛 蟲害來襲！${CROPS[victim.crop].name}的成長倒退 4 點…`)
-    }
-  }
-
-  // 一天結束後檢查有沒有輸：買不起最便宜的種子、田裡又空無一物 → 遊戲結束
-  if (isBankrupt.value) {
-    addLog('💀 破產了！沒錢買種子、田裡也沒作物，農場經營失敗…')
+// 產生左右兩個半塊：沿著切割方向的「垂直方向」彈開
+function spawnPieces(f, angle) {
+  const push = 160  // 兩半彈開的速度
+  for (const side of ['left', 'right']) {
+    const dir = side === 'left' ? -1 : 1
+    pieces.push({
+      x: f.x, y: f.y,
+      // 原本的速度 + 垂直於刀向的推力，兩半往反方向飛
+      vx: f.vx * 0.5 + Math.cos(angle + Math.PI / 2) * push * dir,
+      vy: f.vy * 0.5 + Math.sin(angle + Math.PI / 2) * push * dir,
+      rot: f.rot,
+      vr: dir * (2 + Math.random() * 3),
+      sliceAngle: angle,   // 記住切面角度，畫的時候用來裁切
+      side,
+      type: f.type,
+      life: 1,             // 1 → 0 慢慢變透明
+    })
   }
 }
 
-// 重新開始：把所有狀態設回初始值（難度維持目前選的）
-function restart() {
-  money.value = START_MONEY
-  day.value = 1
-  weather.value = WEATHERS[0]
-  plots.value = Array.from({ length: GRID_SIZE }, () => ({ crop: null, progress: 0, ripeDays: 0 }))
-  log.value = [`🌞 第 1 天：新的農場（${diff.value.name}模式），重新出發！`]
-}
-
-// 切換難度：因為規則整個變了，直接重開一局才公平
-function setDifficulty(key) {
-  if (difficulty.value === key) return
-  difficulty.value = key
-  restart()
+// 果汁粒子：往四面八方噴的小圓點
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2
+    const speed = 120 + Math.random() * 260
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed - 100,  // 稍微往上噴比較好看
+      r: 3 + Math.random() * 5,
+      color,
+      life: 1,
+    })
+  }
 }
 
 /* ==============================
-   顯示用的小工具函式
+   每一幀的更新（物理）
    ============================== */
 
-// 決定某一格要顯示的表情符號：空地 / 種子 / 幼苗 / 成熟作物
-function plotEmoji(plot) {
-  if (!plot.crop) return ''
-  const crop = CROPS[plot.crop]
-  const ratio = plot.progress / crop.grow
-  if (ratio >= 1) return crop.emoji     // 成熟
-  if (ratio >= 0.5) return '🌿'         // 長到一半
-  return '🌱'                            // 剛種下
+function update(dt) {
+  elapsed += dt
+
+  // --- 生成 ---
+  spawnTimer -= dt
+  if (spawnTimer <= 0) spawnWave()
+
+  // --- 連擊窗口倒數 ---
+  if (comboTimer > 0) {
+    comboTimer -= dt
+    if (comboTimer <= 0) comboCount = 0  // 時間到，連擊歸零
+  }
+
+  // --- 完整農產品：重力 + 移動，掉出底部沒切到就扣命 ---
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i]
+    f.vy += GRAVITY * dt
+    f.x += f.vx * dt
+    f.y += f.vy * dt
+    f.rot += f.vr * dt
+
+    // vy > 0 代表正在往下掉，而且已經掉出畫面底部
+    if (f.vy > 0 && f.y > H + f.type.radius * 2) {
+      fruits.splice(i, 1)
+      if (!f.isBomb) {          // 炸彈沒接到是好事，不扣命
+        lives.value--
+        if (lives.value <= 0) {
+          endGame('💔 太多農產品掉到地上了…')
+          return
+        }
+      }
+    }
+  }
+
+  // --- 半塊：一樣受重力，同時慢慢變透明後移除 ---
+  for (let i = pieces.length - 1; i >= 0; i--) {
+    const p = pieces[i]
+    p.vy += GRAVITY * dt
+    p.x += p.vx * dt
+    p.y += p.vy * dt
+    p.rot += p.vr * dt
+    p.life -= dt * 0.9
+    if (p.life <= 0 || p.y > H + 100) pieces.splice(i, 1)
+  }
+
+  // --- 果汁粒子 ---
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]
+    p.vy += GRAVITY * 0.6 * dt
+    p.x += p.vx * dt
+    p.y += p.vy * dt
+    p.life -= dt * 1.8
+    if (p.life <= 0) particles.splice(i, 1)
+  }
+
+  // --- 加分文字：往上飄、變淡 ---
+  for (let i = floats.length - 1; i >= 0; i--) {
+    const f = floats[i]
+    f.y -= 50 * dt
+    f.t += dt
+    if (f.t > 1) floats.splice(i, 1)
+  }
+
+  // --- 刀光：只保留最近 0.15 秒的軌跡點 ---
+  const now = performance.now()
+  trail = trail.filter(p => now - p.t < 150)
 }
 
-// 某一格的成長百分比（給進度條用），最多 100
-function plotPercent(plot) {
-  if (!plot.crop) return 0
-  return Math.min(100, Math.round((plot.progress / CROPS[plot.crop].grow) * 100))
+/* ==============================
+   每一幀的繪製
+   ============================== */
+
+// 用 emoji 當圖：把畫筆移到中心、旋轉，再把字畫在正中央
+function drawEmoji(item) {
+  ctx.save()
+  ctx.translate(item.x, item.y)
+  ctx.rotate(item.rot)
+  ctx.font = `${item.type.radius * 2}px serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(item.type.emoji, 0, 0)
+  ctx.restore()
 }
 
-// 是否已成熟（成熟的格子要發光提示可收成）
-function isReady(plot) {
-  return plot.crop && plot.progress >= CROPS[plot.crop].grow
+// 半塊：跟上面一樣，但先用 clip() 把畫布「裁掉一半」再畫 emoji，
+// 只露出切面其中一側 → 看起來就像被切開了
+function drawPiece(p) {
+  const r = p.type.radius * 2
+  ctx.save()
+  ctx.globalAlpha = Math.max(0, p.life)
+  ctx.translate(p.x, p.y)
+  ctx.rotate(p.sliceAngle)      // 先轉到切割方向
+  ctx.beginPath()
+  if (p.side === 'left') ctx.rect(-r, -r, r * 2, r)   // 上半
+  else ctx.rect(-r, 0, r * 2, r)                       // 下半
+  ctx.clip()
+  ctx.rotate(p.rot - p.sliceAngle)  // 再轉回 emoji 自己的旋轉角
+  ctx.font = `${r}px serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(p.type.emoji, 0, 0)
+  ctx.restore()
 }
 
-// 是否快腐爛了（成熟後只剩最後一天可收 → 標籤變紅色警告）
-function isRotting(plot) {
-  return isReady(plot) && diff.value.rotDays < 99 && plot.ripeDays >= diff.value.rotDays - 1
+function draw() {
+  // 每一幀都整張擦掉重畫（canvas 的標準做法）
+  ctx.clearRect(0, 0, W, H)
+
+  // 果汁粒子（畫在最下層）
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life)
+    ctx.fillStyle = p.color
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+
+  for (const p of pieces) drawPiece(p)
+  for (const f of fruits) drawEmoji(f)
+
+  // 加分文字
+  for (const f of floats) {
+    ctx.globalAlpha = Math.max(0, 1 - f.t)
+    ctx.font = f.big ? 'bold 28px sans-serif' : 'bold 20px sans-serif'
+    ctx.fillStyle = f.big ? '#ffd75e' : '#ffffff'
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'
+    ctx.lineWidth = 3
+    ctx.textAlign = 'center'
+    ctx.strokeText(f.text, f.x, f.y)
+    ctx.fillText(f.text, f.x, f.y)
+  }
+  ctx.globalAlpha = 1
+
+  // 刀光：把軌跡點連成線，越舊的越透明、越細
+  if (trail.length >= 2) {
+    const now = performance.now()
+    for (let i = 1; i < trail.length; i++) {
+      const age = (now - trail[i].t) / 150     // 0 = 剛畫，1 = 快消失
+      ctx.strokeStyle = `rgba(255, 255, 255, ${1 - age})`
+      ctx.lineWidth = 6 * (1 - age) + 1
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(trail[i - 1].x, trail[i - 1].y)
+      ctx.lineTo(trail[i].x, trail[i].y)
+      ctx.stroke()
+    }
+  }
 }
+
+// 遊戲主迴圈：瀏覽器每一幀（約 1/60 秒）呼叫一次
+function loop(now) {
+  // dt = 距離上一幀過了幾秒。切到別的分頁再回來 dt 會爆大，
+  // 所以最多當作 1/30 秒，避免農產品「瞬移」穿出畫面
+  const dt = Math.min((now - lastTime) / 1000, 1 / 30)
+  lastTime = now
+
+  if (phase.value === 'playing') update(dt)
+  draw()
+
+  rafId = requestAnimationFrame(loop)  // 預約下一幀，形成無限迴圈
+}
+
+/* ==============================
+   滑鼠 / 觸控輸入
+   ------------------------------
+   用 pointer 事件一次搞定滑鼠和手機觸控
+   ============================== */
+
+// 把「視窗座標」換算成「畫布座標」
+function toCanvasXY(e) {
+  const rect = canvasRef.value.getBoundingClientRect()
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+}
+
+function onPointerDown(e) {
+  pointerDown = true
+  lastPointer = toCanvasXY(e)
+}
+
+function onPointerMove(e) {
+  if (!pointerDown || phase.value !== 'playing') return
+  const p = toCanvasXY(e)
+  trail.push({ x: p.x, y: p.y, t: performance.now() })
+  if (lastPointer) {
+    // 上一點 → 這一點連成刀刃線段，拿去做切割判定
+    checkSlice(lastPointer.x, lastPointer.y, p.x, p.y)
+  }
+  lastPointer = p
+}
+
+function onPointerUp() {
+  pointerDown = false
+  lastPointer = null
+}
+
+/* ==============================
+   生命週期：進頁面啟動、離開時清乾淨
+   ============================== */
+
+// 讓 canvas 的「實際像素」跟上螢幕大小和解析度（Retina 螢幕才不會糊）
+function resizeCanvas() {
+  const canvas = canvasRef.value
+  const rect = canvas.getBoundingClientRect()
+  const dpr = window.devicePixelRatio || 1
+  W = rect.width
+  H = rect.height
+  canvas.width = W * dpr
+  canvas.height = H * dpr
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)  // 之後都用 CSS px 座標來畫
+}
+
+onMounted(() => {
+  ctx = canvasRef.value.getContext('2d')
+  resizeCanvas()
+  window.addEventListener('resize', resizeCanvas)
+  lastTime = performance.now()
+  rafId = requestAnimationFrame(loop)
+})
+
+// 離開頁面一定要取消動畫迴圈和事件監聽，不然它會在背景一直跑
+onBeforeUnmount(() => {
+  cancelAnimationFrame(rafId)
+  window.removeEventListener('resize', resizeCanvas)
+})
 </script>
 
 <template>
-  <main class="game" :style="{ backgroundImage: `url(${fieldBg})` }">
-    <div class="game-inner">
-      <!-- ========== 標題列 ========== -->
-      <header class="game-head">
-        <img class="farmer" :src="farmerImg" alt="小農夫" />
-        <div>
-          <h1>Farmily 小農場</h1>
-          <p>點空地種植、成熟後儘快收成，小心暴風雨、蟲害和每天的維護費！</p>
+  <main class="slice-game">
+    <div class="stage">
+      <!-- ========== 上方資訊列 ========== -->
+      <div class="hud">
+        <div class="hud-item">🏆 分數 <strong>{{ score }}</strong></div>
+        <div class="hud-item">⭐ 最高 <strong>{{ best }}</strong></div>
+        <div class="hud-item lives">
+          <!-- 生命用愛心排出來：還活著是 ❤️，扣掉的變 🤍 -->
+          <span v-for="n in 3" :key="n">{{ n <= lives ? '❤️' : '🤍' }}</span>
         </div>
-      </header>
+      </div>
 
-      <!-- ========== 資訊列：金錢 / 天數 / 天氣 / 可收成 ========== -->
-      <section class="stats">
-        <div class="stat">
-          <span class="stat-label">💰 金錢</span>
-          <strong class="stat-value">${{ money }}</strong>
-        </div>
-        <div class="stat">
-          <span class="stat-label">📅 天數</span>
-          <strong class="stat-value">第 {{ day }} 天</strong>
-        </div>
-        <div class="stat weather-stat">
-          <img class="weather-icon" :src="weather.icon" :alt="weather.name" />
-          <div>
-            <strong class="stat-value">{{ weather.name }}</strong>
-            <span class="weather-desc">{{ weather.desc }}</span>
-          </div>
-        </div>
-        <div class="stat">
-          <span class="stat-label">✅ 可收成</span>
-          <strong class="stat-value">{{ readyCount }} 格</strong>
-        </div>
-      </section>
+      <!-- ========== 遊戲畫布 ========== -->
+      <!--
+        touch-action: none 寫在 CSS 裡：告訴手機瀏覽器
+        「這裡的滑動是玩遊戲，不要拿去捲動頁面」
+      -->
+      <canvas
+        ref="canvasRef"
+        class="canvas"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointerleave="onPointerUp"
+      ></canvas>
 
-      <div class="game-body">
-        <!-- ========== 左：農地格子 ========== -->
-        <section class="field">
-          <button
-            v-for="(plot, i) in plots"
-            :key="i"
-            class="plot"
-            :class="{ ready: isReady(plot), growing: plot.crop && !isReady(plot) }"
-            @click="clickPlot(plot)"
-          >
-            <span class="plot-emoji">{{ plotEmoji(plot) }}</span>
-            <!-- 有作物才顯示進度條 -->
-            <span v-if="plot.crop" class="bar">
-              <span class="bar-fill" :style="{ width: plotPercent(plot) + '%' }"></span>
-            </span>
-            <span v-if="isReady(plot)" class="ready-tag" :class="{ rot: isRotting(plot) }">
-              {{ isRotting(plot) ? '快爛了！' : '收成！' }}
-            </span>
-          </button>
+      <!-- ========== 開始畫面（蓋在畫布上的半透明層） ========== -->
+      <div v-if="phase === 'ready'" class="overlay">
+        <h1>🔪 農產切切樂</h1>
+        <p>滑動切開飛起來的農產品！</p>
+        <ul class="rules">
+          <li>🍉 滑過農產品就能切開得分</li>
+          <li>⚡ 一口氣連切多顆有連擊加分</li>
+          <li>💣 千萬別切到炸彈！</li>
+          <li>💔 農產品落地會扣一條命，三條命用完就結束</li>
+        </ul>
+        <button class="btn-start" @click="startGame">開始遊戲</button>
+      </div>
 
-          <!-- 遊戲結束畫面：破產時整個蓋在農地上，只能重新開始 -->
-          <div v-if="isBankrupt" class="gameover">
-            <div class="gameover-card">
-              <span class="gameover-emoji">💀</span>
-              <h2>破產了！</h2>
-              <p>你的農場在「{{ diff.name }}」模式下撐了 {{ day }} 天。</p>
-              <button class="btn-restart" @click="restart">🔄 重新開始</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- ========== 右：操作面板 ========== -->
-        <aside class="panel">
-          <!-- 選難度：切換會直接重開一局 -->
-          <h2>🎯 難度</h2>
-          <div class="diff-list">
-            <button
-              v-for="(d, key) in DIFFICULTIES"
-              :key="key"
-              class="diff"
-              :class="{ active: difficulty === key }"
-              @click="setDifficulty(key)"
-            >
-              {{ d.name }}
-            </button>
-          </div>
-          <p class="diff-desc">{{ diff.desc }}</p>
-
-          <!-- 選種子 -->
-          <h2>🛒 選擇種子</h2>
-          <div class="seed-list">
-            <button
-              v-for="(crop, key) in CROPS"
-              :key="key"
-              class="seed"
-              :class="{ active: selectedCrop === key, disabled: money < crop.cost }"
-              @click="selectedCrop = key"
-            >
-              <span class="seed-emoji">{{ crop.emoji }}</span>
-              <span class="seed-name">{{ crop.name }}</span>
-              <span class="seed-info">成本 ${{ crop.cost }}｜賣 ${{ crop.sell }}｜需 {{ crop.grow }} 成長</span>
-            </button>
-          </div>
-
-          <!-- 下一天（遊戲結束時鎖住，逼玩家按重新開始） -->
-          <button class="btn-next" :disabled="isBankrupt" @click="nextDay">🌙 下一天</button>
-
-          <!-- 遊戲日誌 -->
-          <h2>📜 農場日誌</h2>
-          <ul class="log">
-            <li v-for="(msg, i) in log" :key="log.length - i">{{ msg }}</li>
-          </ul>
-        </aside>
+      <!-- ========== 結束畫面 ========== -->
+      <div v-else-if="phase === 'over'" class="overlay">
+        <h1>遊戲結束</h1>
+        <p class="reason">{{ overReason }}</p>
+        <p class="final">
+          得分 <strong>{{ score }}</strong>
+          <span v-if="score >= best && score > 0" class="new-best">🎉 新紀錄！</span>
+        </p>
+        <button class="btn-start" @click="startGame">再玩一次</button>
       </div>
     </div>
   </main>
 </template>
 
 <style scoped>
-/* ========== 整頁背景：農場 SVG 圖鋪底 ========== */
-.game {
+.slice-game {
   min-height: 100vh;
-  background-size: cover;
-  background-position: center bottom;
   padding: 24px 16px 48px;
-}
-
-.game-inner {
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-/* ========== 標題列 ========== */
-.game-head {
+  /* 深色夜空漸層當背景，刀光和果汁比較顯眼 */
+  background: linear-gradient(180deg, #1d3557 0%, #2f5233 100%);
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  justify-content: center;
 }
 
-.farmer {
-  width: 84px;
-  height: auto;
-  filter: drop-shadow(0 4px 6px rgba(55, 45, 28, 0.25));
-}
-
-.game-head h1 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 1.8rem;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.game-head p {
-  margin: 4px 0 0;
-  color: var(--ink-soft);
+.stage {
+  position: relative;  /* 讓 overlay 可以用 absolute 蓋滿整個舞台 */
+  width: min(1080px, 100%);
 }
 
 /* ========== 資訊列 ========== */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.stat {
-  background: var(--cream);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 10px 14px;
-  box-shadow: var(--shadow);
+.hud {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label { color: var(--muted); font-size: 0.85rem; }
-.stat-value { color: var(--ink); font-size: 1.15rem; }
-
-.weather-stat {
-  flex-direction: row;
   align-items: center;
-  gap: 10px;
-}
-
-.weather-icon { width: 40px; height: 40px; }
-.weather-desc { display: block; color: var(--muted); font-size: 0.78rem; }
-
-/* ========== 主體：左農地、右面板 ========== */
-.game-body {
-  display: grid;
-  grid-template-columns: 1fr 320px;
   gap: 16px;
+  margin-bottom: 12px;
+  color: #fff;
 }
 
-/* 窄螢幕改成上下排列 */
-@media (max-width: 860px) {
-  .game-body { grid-template-columns: 1fr; }
-}
-
-/* ========== 農地格子 ========== */
-.field {
-  position: relative;   /* 讓遊戲結束畫面可以絕對定位蓋在上面 */
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  background: rgba(139, 96, 54, 0.25);
-  border: 2px solid rgba(139, 96, 54, 0.4);
-  border-radius: 18px;
-  padding: 14px;
-  align-content: start;
-}
-
-/* ========== 遊戲結束畫面 ========== */
-.gameover {
-  position: absolute;
-  inset: 0;
-  background: rgba(40, 30, 18, 0.72);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 5;
-}
-
-.gameover-card {
-  background: var(--cream);
-  border-radius: 18px;
-  padding: 28px 36px;
-  text-align: center;
-  box-shadow: var(--shadow-hover);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.gameover-emoji { font-size: 3rem; line-height: 1; }
-.gameover-card h2 { margin: 0; color: var(--ink); font-size: 1.5rem; }
-.gameover-card p { margin: 0 0 6px; color: var(--ink-soft); }
-
-.plot {
-  position: relative;
-  aspect-ratio: 1;           /* 永遠正方形 */
-  border: 2px dashed #b08a5e;
+.hud-item {
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 12px;
-  background: linear-gradient(180deg, #a9744a, #8f5f3b);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  padding: 8px 14px;
+  font-size: 0.95rem;
 }
 
-.plot:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
-}
+.hud-item strong { font-size: 1.2rem; margin-left: 4px; }
+.lives { margin-left: auto; letter-spacing: 2px; }
 
-/* 成長中的格子：土色深一點表示有東西 */
-.plot.growing {
-  border-style: solid;
-  background: linear-gradient(180deg, #8f6238, #74502e);
-}
-
-/* 成熟的格子：發出金色光暈，提示可以點收成 */
-.plot.ready {
-  border: 2px solid #ffd75e;
-  box-shadow: 0 0 14px rgba(255, 215, 94, 0.8);
-  animation: glow 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from { box-shadow: 0 0 8px rgba(255, 215, 94, 0.5); }
-  to   { box-shadow: 0 0 18px rgba(255, 215, 94, 0.95); }
-}
-
-.plot-emoji { font-size: 2rem; line-height: 1; }
-
-/* 成長進度條 */
-.bar {
-  width: 70%;
-  height: 7px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.bar-fill {
+/* ========== 畫布 ========== */
+.canvas {
   display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #9bd66b, #ffd75e);
-  transition: width 0.3s ease;
-}
-
-.ready-tag {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: #ffd75e;
-  color: #6b4a12;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 8px;
-}
-
-/* 快腐爛的警告標籤：換成紅色，催玩家趕快收 */
-.ready-tag.rot {
-  background: #d9534f;
-  color: #fff;
-}
-
-/* ========== 右側面板 ========== */
-.panel {
-  background: var(--cream);
-  border: 1px solid var(--line);
+  width: 100%;
+  height: min(70vh, 640px);
   border-radius: 18px;
-  padding: 16px;
-  box-shadow: var(--shadow);
+  background: rgba(0, 0, 0, 0.25);
+  cursor: crosshair;
+  touch-action: none;  /* 手機上滑動不要捲頁面，交給遊戲處理 */
+}
+
+/* ========== 開始 / 結束畫面 ========== */
+.overlay {
+  position: absolute;
+  inset: 44px 0 0;               /* 從 HUD 下方開始蓋，蓋住整個畫布 */
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-self: start;
-}
-
-.panel h2 {
-  margin: 4px 0 2px;
-  font-size: 1rem;
-  color: var(--ink);
-}
-
-/* 難度按鈕：三顆並排 */
-.diff-list { display: flex; gap: 8px; }
-
-.diff {
-  flex: 1;
-  padding: 8px 0;
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  font-weight: 700;
-  color: var(--ink);
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-
-.diff.active {
-  border-color: var(--leaf);
-  background: var(--leaf-soft);
-}
-
-.diff-desc {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-/* 種子按鈕 */
-.seed-list { display: flex; flex-direction: column; gap: 8px; }
-
-.seed {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  grid-template-areas: "emoji name" "emoji info";
   align-items: center;
-  text-align: left;
-  gap: 0 8px;
-  padding: 8px 10px;
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-
-.seed.active {
-  border-color: var(--leaf);
-  background: var(--leaf-soft);
-}
-
-.seed.disabled { opacity: 0.55; }
-
-.seed-emoji { grid-area: emoji; font-size: 1.6rem; }
-.seed-name  { grid-area: name; font-weight: 700; color: var(--ink); }
-.seed-info  { grid-area: info; font-size: 0.75rem; color: var(--muted); }
-
-/* 下一天按鈕：整個面板最重要的動作，做大做醒目 */
-.btn-next {
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  background: var(--leaf);
+  justify-content: center;
+  gap: 12px;
   color: #fff;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.12s ease, transform 0.12s ease;
+  text-align: center;
+  padding: 24px;
 }
 
-.btn-next:hover { background: var(--leaf-dark); transform: translateY(-1px); }
+.overlay h1 { margin: 0; font-size: 2.2rem; }
+.overlay p { margin: 0; opacity: 0.9; }
 
-/* 遊戲結束時的下一天按鈕：變灰、不能按 */
-.btn-next:disabled {
-  background: #b6b0a4;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-restart {
-  padding: 10px;
-  border: none;
-  border-radius: 12px;
-  background: #c0563e;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* 遊戲日誌 */
-.log {
+.rules {
   list-style: none;
-  margin: 0;
+  margin: 8px 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 200px;
-  overflow-y: auto;
+  gap: 6px;
+  font-size: 0.95rem;
+  opacity: 0.85;
 }
 
-.log li {
-  font-size: 0.82rem;
-  color: var(--ink-soft);
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  padding: 5px 8px;
+.reason { font-size: 1.1rem; }
+.final { font-size: 1.3rem; }
+.final strong { color: #ffd75e; font-size: 1.8rem; margin: 0 6px; }
+.new-best { color: #ffd75e; font-weight: 700; }
+
+.btn-start {
+  margin-top: 8px;
+  padding: 14px 40px;
+  border: none;
+  border-radius: 14px;
+  background: #e0505a;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
 }
 
-/* 最新一筆日誌加深強調 */
-.log li:first-child {
-  color: var(--ink);
-  font-weight: 600;
-  border-left: 3px solid var(--leaf);
-}
+.btn-start:hover { background: #c93d47; transform: translateY(-2px); }
 </style>
