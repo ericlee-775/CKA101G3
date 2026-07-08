@@ -10,17 +10,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
-
     // 寄件者信箱（用 application.properties 設定的帳號）
     @Value("${spring.mail.username}")
     private String fromEmail;
+
+    private final JavaMailSender mailSender;
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    // 寄出 Email 驗證信 (會員)
+    // 寄出會員驗證信
     // @Async：另開執行緒寄信，不要卡住註冊的回應
     @Async
     public void sendVerifyEmail(String toEmail, String verifyLink) {
@@ -60,8 +60,8 @@ public class EmailService {
         message.setSubject("Farmily 小農申請審核結果通知");
         message.setText("您好，\n\n"
                 + "很抱歉，您申請的小農帳號本次審核未通過。\n"
-                + "退件理由：" + (rejectReason == null || rejectReason.isBlank() ? "（未提供）" : rejectReason) + "\n\n"
-                + "您可以點擊以下連結查看審核進度，並修正資料後重新送審：\n"
+                + "退件理由：" + (rejectReason == null || rejectReason.isBlank() ? "(未提供)" : rejectReason) + "\n\n"
+                + "您可以點擊以下連結查看審核進度或重新申請：\n"
                 + applicationLink + "\n\n"
                 + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
 
