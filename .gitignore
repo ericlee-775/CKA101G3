@@ -16,6 +16,9 @@ build/
 # 前端打包產物（由 frontend/ 執行 npm run build 生成，不進版控避免衝突）
 src/main/resources/static/farmily-web/
 
+# 部落格圖片匯入成品（由 sql/blog 的腳本自動產生，檔案太大不進版控；組員雙擊 .bat 重新產生）
+src/main/resources/sql/blog/blog_photos_data.sql
+
 ##############################
 # Maven
 ##############################
