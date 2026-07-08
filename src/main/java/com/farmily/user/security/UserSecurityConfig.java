@@ -87,7 +87,7 @@ public class UserSecurityConfig {
     @Order(0)
     public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider) throws Exception {
         return http
-                .securityMatcher("/admin/**")
+                .securityMatcher("/admin/**", "/api/admin/**")
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/admin/login").permitAll()
