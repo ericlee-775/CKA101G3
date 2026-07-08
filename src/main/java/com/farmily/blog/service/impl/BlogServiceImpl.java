@@ -283,16 +283,32 @@ public class BlogServiceImpl implements BlogService {
         if (blog == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
         }
+        boolean nowLiked;
         if (blogDao.existsLike(blogId, userId)) {
             // 已經按過 → 取消讚
             blogDao.deleteLike(blogId, userId);
             blogDao.decreaseLikeCount(blogId);
+            nowLiked = false;
         } else {
             // 還沒按過 → 按讚
             blogDao.insertLike(blogId, userId);
             blogDao.increaseLikeCount(blogId);
+            nowLiked = true;
         }
-        return BlogResponse.from(blogDao.getBlogById(blogId));
+        BlogResponse r = BlogResponse.from(blogDao.getBlogById(blogId));
+        r.setLiked(nowLiked);   // 告訴前端切換後的狀態，畫實心/空心
+        return r;
+    }
+
+    @Override
+    public BlogResponse getLikeStatus(Integer blogId, Integer userId) {
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
+        BlogResponse r = BlogResponse.from(blog);
+        r.setLiked(userId != null && blogDao.existsLike(blogId, userId));
+        return r;
     }
 
     @Override

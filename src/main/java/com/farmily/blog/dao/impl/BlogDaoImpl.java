@@ -257,7 +257,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public void insertLike(Integer blogId, Integer userId) {
-        String sql = "INSERT INTO blog_like (blog_id, user_id, create_at) VALUES (:blogId, :userId, NOW())";
+        String sql = "INSERT INTO blog_like (blog_id, user_id, created_at) VALUES (:blogId, :userId, NOW())";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
         map.put("userId", userId);
