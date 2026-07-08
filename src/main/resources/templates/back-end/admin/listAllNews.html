@@ -4,6 +4,42 @@
   <meta charset="UTF-8">
   <title>最新消息管理</title>
   <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+  <style>
+    .news-content-cell {
+      max-width: 360px;
+      white-space: pre-line;
+    }
+
+    .edit-row td {
+      background: #f8fbf8;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('[data-publish-time]').forEach(function (input) {
+        const value = input.dataset.publishTime;
+        if (!value) return;
+        input.value = value.replace(' ', 'T').slice(0, 16);
+      });
+
+      document.querySelectorAll('[data-toggle-edit]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          const newsId = button.dataset.newsId;
+          const row = document.querySelector('[data-edit-row="' + newsId + '"]');
+          if (!row) return;
+          row.classList.toggle('d-none');
+        });
+      });
+
+      document.querySelectorAll('[data-cancel-edit]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          const row = button.closest('[data-edit-row]');
+          if (row) row.classList.add('d-none');
+        });
+      });
+
+    });
+  </script>
 </head>
 <body>
 <nav class="navbar navbar-dark bg-success">
@@ -12,7 +48,7 @@
     最新消息管理
     <span th:text="${success}"></span>
     <span class="text-warning ml-2" th:text="${error}"></span>
-</span>
+  </span>
 </nav>
 
 <div class="container mt-3">
@@ -33,7 +69,6 @@
         <div class="form-group">
           <label>發布時間</label>
           <input type="datetime-local" name="publishTime" class="form-control">
-                 placeholder="例如：2024-06-05 09:00:00">
         </div>
 
         <div class="form-group">
@@ -59,7 +94,8 @@
     </tr>
     </thead>
     <tbody>
-    <tr th:each="news : ${newsListData}">
+    <th:block th:each="news : ${newsListData}">
+    <tr>
       <td th:text="${news.newsId}"></td>
       <td>
         <img th:src="@{/api/news/{id}/image(id=${news.newsId})}"
@@ -67,10 +103,15 @@
              onerror="this.style.display='none'">
       </td>
       <td th:text="${news.title}"></td>
-      <td th:text="${news.content}"></td>
+      <td class="news-content-cell" th:text="${news.content}"></td>
       <td th:text="${news.publishTime}"></td>
       <td th:text="${news.newsStatus}"></td>
       <td>
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                th:attr="data-news-id=${news.newsId}"
+                data-toggle-edit>修改</button>
+
         <form method="post" class="d-inline"
               th:action="@{/admin/news/{id}/status(id=${news.newsId})}">
           <input type="hidden" name="publish" value="true">
@@ -90,6 +131,41 @@
         </form>
       </td>
     </tr>
+    <tr class="edit-row d-none" th:attr="data-edit-row=${news.newsId}">
+      <td colspan="7">
+        <form method="post" enctype="multipart/form-data"
+              th:action="@{/admin/news/{id}/update(id=${news.newsId})}">
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label>標題</label>
+              <input type="text" name="title" class="form-control"
+                     th:value="${news.title}" required>
+            </div>
+
+            <div class="form-group col-md-4">
+              <label>發布時間</label>
+              <input type="datetime-local" name="publishTime" class="form-control"
+                     th:attr="data-publish-time=${news.publishTime}">
+            </div>
+
+            <div class="form-group col-md-4">
+              <label>更換封面圖片</label>
+              <input type="file" name="coverImg" class="form-control-file" accept="image/*">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>內容</label>
+            <textarea name="content" class="form-control" rows="4"
+                      th:text="${news.content}" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-sm btn-success">儲存修改</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-cancel-edit>取消</button>
+        </form>
+      </td>
+    </tr>
+    </th:block>
     </tbody>
   </table>
 </div>
