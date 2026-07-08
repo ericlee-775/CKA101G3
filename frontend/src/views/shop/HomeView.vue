@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import EditorialHero from '@/components/home/EditorialHero.vue'
 
 // 首頁的三個賣點（特色區用 v-for 渲染）
 const features = ref([
@@ -20,17 +21,8 @@ const products = ref([
 
 <template>
   <main class="home">
-    <!-- ========== 主視覺 Hero ========== -->
-    <section class="hero">
-      <div class="hero-inner">
-        <h1>新鮮，從產地開始</h1>
-        <p>Farmily 嚴選台灣在地小農，把當季最好的食材直送到你家餐桌。</p>
-        <div class="hero-actions">
-          <router-link class="btn btn-primary" to="/products">立即選購</router-link>
-          <router-link class="btn btn-ghost" to="/farmily">認識農場</router-link>
-        </div>
-      </div>
-    </section>
+    <!-- ========== 主視覺 Hero（編輯風主視覺元件） ========== -->
+    <EditorialHero />
 
     <!-- ========== 三大特色 ========== -->
     <section class="features">
@@ -100,53 +92,11 @@ const products = ref([
 .btn-primary:hover {
   background: var(--leaf-dark);
 }
-.btn-ghost {
-  background: transparent;
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.7);
-}
-.btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* ========== 主視覺 ========== */
-.hero {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 440px;
-  padding: 48px 18px;
-  text-align: center;
-  color: #fff;
-  /* 綠色漸層疊在農場照片上，讓文字看得清楚 */
-  background:
-    linear-gradient(rgba(28, 48, 32, 0.55), rgba(28, 48, 32, 0.55)),
-    url('https://picsum.photos/seed/farmhero/1600/700') center / cover no-repeat;
-}
-.hero-inner {
-  max-width: 640px;
-}
-.hero h1 {
-  margin: 0 0 16px;
-  font-size: clamp(28px, 5vw, 46px);
-}
-.hero p {
-  margin: 0 0 28px;
-  font-size: clamp(15px, 2vw, 18px);
-  line-height: 1.7;
-  color: #eef3ec;
-}
-.hero-actions {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
 
 /* ========== 三大特色 ========== */
 .features {
   max-width: 1100px;
-  margin: -48px auto 0;             /* 往上疊一點，蓋住 hero 底緣 */
+  margin: 8px auto 0;               /* 編輯風 hero 已自帶留白，這裡用小正距即可 */
   padding: 0 clamp(18px, 4vw, 56px);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
