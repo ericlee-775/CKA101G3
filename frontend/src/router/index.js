@@ -18,6 +18,7 @@ import CartView from '@/views/shop/CartView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
 import GroupBuyDetailView from '@/views/shop/GroupBuyDetailView.vue'
 import BlogsView from '@/views/shop/BlogsView.vue'
+import BlogDetailView from '@/views/shop/BlogDetailView.vue'
 import FarmTripsView from '@/views/shop/FarmTripsView.vue'
 import FarmMapView from '@/views/shop/FarmMapView.vue'
 import FarmGameView from '@/views/shop/FarmGameView.vue'
@@ -81,6 +82,7 @@ const router = createRouter({
         // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}）
         { path: 'group-buys/:groupBuyId', name: 'group-buy-detail', component: GroupBuyDetailView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
+        { path: 'blogs/:blogId', name: 'blog-detail', component: BlogDetailView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
         { path: 'farm-map',    name: 'farm-map',   component: FarmMapView },
         { path: 'farm-game',   name: 'farm-game',  component: FarmGameView },

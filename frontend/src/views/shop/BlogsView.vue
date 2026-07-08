@@ -1,6 +1,7 @@
 <script setup>
 // 「部落格」頁面 — 串接後端 GET /api/blogs(查詢 + 分頁)
 import { ref, computed, onMounted } from 'vue'
+import { listPublicBlogs } from '@/api/blog'
 
 const blogs = ref([])
 const loadState = ref('loading')   // loading | ready | empty | error
@@ -17,9 +18,7 @@ async function load() {
   loadState.value = 'loading'
   try {
     const offset = (page.value - 1) * pageSize          // 第 N 頁 → 跳過前面幾筆
-    const res = await fetch(`/api/blogs?limit=${pageSize}&offset=${offset}`)
-    if (!res.ok) throw new Error('HTTP ' + res.status)
-    const data = await res.json()
+    const data = await listPublicBlogs(offset, pageSize)
     blogs.value = data.results || []                    // 這一頁的文章
     total.value = data.total || 0                       // 全部共幾筆
     loadState.value = blogs.value.length ? 'ready' : 'empty'
@@ -43,6 +42,11 @@ function fmt(iso) {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`
 }
 
+// 內容現在是 HTML，列表預覽把標籤去掉、只留純文字
+function snippet(html) {
+  return (html || '').replace(/<[^>]*>/g, '').trim()
+}
+
 onMounted(load)
 </script>
 
@@ -56,12 +60,14 @@ onMounted(load)
 
     <template v-else>
       <ul class="list">
-        <li v-for="b in blogs" :key="b.blogId" class="card">
-          <img class="cover" :src="`/api/blogs/${b.blogId}/image`"
-               @error="$event.target.style.display = 'none'" alt="" />
-          <h3>{{ b.blogTitle }}</h3>
-          <p class="content">{{ b.blogContent }}</p>
-          <div class="meta">♡ {{ b.blogLikeCount || 0 }} ｜ {{ fmt(b.blogTime) }}</div>
+        <li v-for="b in blogs" :key="b.blogId">
+          <router-link class="card" :to="`/blogs/${b.blogId}`">
+            <img class="cover" :src="`/api/blogs/${b.blogId}/image`"
+                 @error="$event.target.style.display = 'none'" alt="" />
+            <h3>{{ b.blogTitle }}</h3>
+            <p class="content">{{ snippet(b.blogContent) }}</p>
+            <div class="meta">♡ {{ b.blogLikeCount || 0 }} ｜ {{ fmt(b.blogTime) }}</div>
+          </router-link>
         </li>
       </ul>
 
@@ -82,7 +88,12 @@ onMounted(load)
   list-style: none; padding: 0; display: grid; gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
-.card { border: 1px solid #e3e3e3; border-radius: 12px; padding: 16px; }
+.card {
+  display: block; border: 1px solid #e3e3e3; border-radius: 12px; padding: 16px;
+  text-decoration: none; color: inherit; cursor: pointer;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.card:hover { box-shadow: 0 6px 18px #0000001f; transform: translateY(-2px); }
 .cover { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
 .card h3 { margin: 0 0 8px; }
 .content { color: #555; font-size: 14px; margin: 0 0 12px; max-height: 4.5em; overflow: hidden; }

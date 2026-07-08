@@ -53,6 +53,28 @@ function createBlogApi(base, fixedBlogTypeId) {
 // 部落格分類清單（公開）：給會員發文選分類用
 export const listBlogTypes = () => http.get('/api/blogs/types')
 
+// ===== 公開（商城前台，任何人可讀）=====
+export const listPublicBlogs = (offset = 0, limit = 5) =>
+  http.get(`/api/blogs?offset=${offset}&limit=${limit}`)
+export const getPublicBlog = (blogId) => http.get(`/api/blogs/${blogId}`)
+export const publicBlogPhotos = (blogId) => http.get(`/api/blogs/${blogId}/photos`)
+export const publicBlogComments = (blogId) => http.get(`/api/blogs/${blogId}/comments`)
+
+// 需登入會員（userId 由後端 session 取，前端不用傳）
+export const addBlogComment = (blogId, commentPost) =>
+  http.post(`/api/blogs/${blogId}/comments`, { commentPost })
+export const likeBlog = (blogId) =>
+  http.post(`/api/blogs/${blogId}/like`)
+// 進頁面查目前會員按過沒（未登入回 liked:false）
+export const blogLikeStatus = (blogId) =>
+  http.get(`/api/blogs/${blogId}/like-status`)
+
+// 檢舉（reportReason 必填；檢舉人由後端 session 取）
+export const reportBlog = (blogId, reportReason) =>
+  http.post(`/api/blogs/${blogId}/reports`, { reportReason })
+export const reportComment = (commentId, reportReason) =>
+  http.post(`/api/comments/${commentId}/reports`, { reportReason })
+
 export const farmerBlogApi = createBlogApi('/api/farmer/blogs', 1)   // 小農：固定產地日記
 export const memberBlogApi = createBlogApi('/api/member/blogs', null) // 會員：分類自己選
 
