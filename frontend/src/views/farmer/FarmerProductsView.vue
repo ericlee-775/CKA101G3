@@ -5,13 +5,21 @@ import { ref, onMounted} from 'vue'
 const products = ref([])
 const loading = ref(true)
 const error = ref('')
+const categories = ref([])
+const selectedMainCat = ref('')
+const newProduct = ref([])
+const selectedImage = ref(null)
+const addMsg = ref('')
+const addErr = ref('')
+const adding = ref([])
+
 
 async function loadProducts() {
 
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch('/api/products/my')
+    const res = await fetch('/api/farmer/products/list')
     if (!res.ok) {
 
       throw new Error(`伺服器回應${res.status}`)
@@ -30,7 +38,7 @@ async function savePrice(product) {
 
   const id = product.productId
   try {
-    const res = await fetch(`/api/products/${id}`, {
+    const res = await fetch(`/api/farmer/products/${id}`, {
 
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +59,7 @@ async function changeStatus(product, status) {
 
   const id = product.productId;
   try {
-    const res = await fetch(`/api/products/${id}`, {
+    const res = await fetch(`/api/farmer/products/${id}`, {
 
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -2,37 +2,22 @@ package com.farmily.product.controller;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductDetailDTO;
-import com.farmily.product.dto.ProductInsertDTO;
-import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
-import com.farmily.product.dto.ProductUpdatedDTO;
+import com.farmily.product.dto.SubCategoryOptionDTO;
+import com.farmily.product.model.SubCategoryRepository;
 import com.farmily.product.service.ProductService;
-import com.farmily.user.security.FarmerUserDetails;
-import com.farmily.user.security.MemberUserDetails;
-
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/products")
@@ -40,6 +25,8 @@ public class ProductController {
 
 	@Autowired
 	private ProductService productService;
+	@Autowired
+	private SubCategoryRepository subCategoryRepository;
 
 	// 查詢所有商品（統一回傳 DTO，對應前端 Vue 串接）
 	@GetMapping
@@ -94,30 +81,12 @@ public class ProductController {
 	// res.setStatus(HttpStatus.NOT_FOUND.value()); // ④ 沒圖自己設 404
 	// }
 	// }
-
-	@PostMapping("/{productId}/wishlist")
-	public ResponseEntity<Void> addWishList(@PathVariable Integer productId,
-			@AuthenticationPrincipal MemberUserDetails me) {
-
-		boolean added = productService.addWishList(productId, me.getUserId());
-		return added ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
-
+	
+	//找出所有類別
+	@GetMapping("/categories")
+	public ResponseEntity<List<SubCategoryOptionDTO>> getCategoryOptions() {
+		List<SubCategoryOptionDTO> subCategoryOptions = subCategoryRepository.findAllOptions();
+		return ResponseEntity.ok(subCategoryOptions);
 	}
-
-	@DeleteMapping("/{productId}/wishlist")
-	public ResponseEntity<Void> deleteWishList(@PathVariable Integer productId,
-			@AuthenticationPrincipal MemberUserDetails me) {
-
-		boolean deleted = productService.deleteWishList(productId, me.getUserId());
-		return deleted ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
-
-	}
-
-	@GetMapping("/wishlist")
-	public ResponseEntity<List<ProductSummeryDTO>> getWishList(@AuthenticationPrincipal MemberUserDetails me) {
-
-		List<ProductSummeryDTO> wishlists = productService.getAllWishLists(me.getUserId());
-		return ResponseEntity.ok(wishlists);
-	}
-
+	
 }

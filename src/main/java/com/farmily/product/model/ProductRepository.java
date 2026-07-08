@@ -12,7 +12,7 @@ import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummeryDTO;
 
 public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
-	@Query("SELECT new com.farmily.product.dto.ProductSummeryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p")
+	@Query("SELECT new com.farmily.product.dto.ProductSummeryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE")
 	List<ProductSummeryDTO> findAllProjectedToDto();
 
 	@Query("SELECT new com.farmily.product.dto.ProductManageDTO(p.productId, p.productName, p.retailPrice, "
@@ -23,7 +23,8 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	@Query("SELECT new com.farmily.product.dto.ProductDetailDTO("
 			+ "p.productId, p.productName, p.retailPrice, p.groupPrice, "
 			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, " + "s.subCatClassId, s.subCatClassName) "
-			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s " + "WHERE p.productId = :id")
+			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s "
+			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.Status.ACTIVE")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
 	// [暫時停用] ProductGroupBuyDTO 缺少對應此查詢 7 個參數的建構子，會導致 App 啟動失敗。
