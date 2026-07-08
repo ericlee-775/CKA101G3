@@ -18,6 +18,7 @@ public class ProductGroupBuyDTO {
 	    private String description;
 	    private Integer subCatClassId;
 	    private String subCatClassName;
+	    
 	    public ProductGroupBuyDTO(
 	            Integer productId,
 	            String productName,
