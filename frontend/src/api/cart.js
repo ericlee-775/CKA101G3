@@ -11,7 +11,7 @@ export const cartApi = {
   // 回傳：[{ productId, productName, retailPrice, unitPricingMeasure, quantity }]
   getCart: () => http.get(BASE),
 
-  // 加入商品（同商品已存在會累加）；quantity 走 query string
+  // 加入商品（同商品已存在會累加）；quantity 放 request body
   add: (productId, quantity = 1) =>
     http.post(`${BASE}/${productId}`,{quantity}),
 
@@ -21,6 +21,9 @@ export const cartApi = {
 
   // 移除某商品
   remove: (productId) => http.del(`${BASE}/${productId}`),
+
+  // 清空整個購物車（對應後端無參數的 DELETE /api/shoppingcart）
+  clearAll: () => http.del(BASE),
 }
 
 export default cartApi

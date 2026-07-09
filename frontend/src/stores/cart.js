@@ -127,9 +127,8 @@ async function removeItem(id) {
 // 清空購物車
 async function clear() {
   if (isLoggedIn()) {
-    // 後端沒有「清空」端點，逐筆刪除後重載
-    const ids = state.items.map((it) => it.productId)
-    await Promise.all(ids.map((id) => cartApi.remove(id).catch(() => {})))
+    // 一次清空（打 DELETE /api/shoppingcart，後端 deleteByUserId）
+    await cartApi.clearAll()
     await reloadFromServer()
     return
   }
