@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, BaseTransition } from 'vue'
 import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import cartStore from '@/stores/cart'
 import authApi from '@/api/auth'
 import { confirm } from '@/composables/useConfirm'
+import notificationApi from '@/api/memberNotification'
+import notificationStore from '@/stores/memberNotification'
 
 const router = useRouter()
 
@@ -51,16 +53,55 @@ onMounted(() => document.addEventListener('click', onDocClick))
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 // ===== 通知小鈴鐺 =====
-// 假資料先寫死五筆，之後接後端 API 再換掉
-const notifications = ref([
-  { id: 1, icon: '📦', title: '訂單已出貨', text: '您的訂單 #20260705001 已出貨，預計 2 天內送達。', time: '5 分鐘前', unread: true },
-  { id: 2, icon: '👥', title: '團購即將成團', text: '「有機小番茄 5 斤箱」再 2 人即可成團！', time: '1 小時前', unread: true },
-  { id: 3, icon: '🎟️', title: '優惠券即將到期', text: '您有 1 張 9 折券將於 7/10 到期，記得使用。', time: '3 小時前', unread: true },
-  { id: 4, icon: '💬', title: '文章有新留言', text: '有人在您的文章「夏日果醬手作」留言了。', time: '昨天', unread: false },
-  { id: 5, icon: '🌱', title: '收藏的商品降價', text: '您收藏的「紅心芭樂」降價 15%，快去看看！', time: '2 天前', unread: false },
-])
-// 未讀數（給鈴鐺右上角小紅點）
-const unreadCount = computed(() => notifications.value.filter((n) => n.unread).length)
+
+const notifications = ref([])
+const unreadCount = notificationStore.unreadCount
+
+// 小鈴鐺分類 icon (targetType)
+const ICON_BY_TYPE = {
+  account: '👤', order: '📦', groupbuy: '👥', trip: '🌱', blog: '✍️'
+}
+
+// 分類對應中文標題 (title)
+const TITLE_BY_TYPE = {
+  account : '帳號異動', order: '訂單狀態', groupbuy: '團購動態', trip: '體驗活動', blog: '文章評論'
+}
+
+// 轉換時間 (N 分鐘前)
+function timeAgo(dt){
+  if (!dt) { return '' }
+  const diffMs = Date.now() - new Date(dt).getTime()
+  const min = Math.floor(diffMs / 60000)
+  if (min < 1) return '剛剛'
+  if (min < 60) return `${min} 分鐘前`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} 小時前`
+  const day = Math.floor(hr / 24)
+  if (day < 7) return `${day} 天前`
+  // 超過一週顯示日期
+  return new Date(dt).toLocaleDateString('zh-TW')
+}
+
+// 取得小鈴鐺 preview list 和未讀數
+async function loadBell(){
+  if (!authStore.isMember) { return }
+  await notificationStore.refresh()
+  try {
+    notifications.value = await notificationApi.getNotifPreview()
+  } catch (e){
+  }
+}
+
+// 載入小鈴鐺，每 {300} 秒自動更新一次未讀數
+let BellTimer = null
+onMounted(() => {
+  loadBell()
+  BellTimer = setInterval(loadBell, 300000)
+})
+onBeforeUnmount(() => {
+  if (BellTimer) clearInterval(BellTimer)
+})
+
 
 // 登出：先跳彈窗確認，再打後端清 session、清前端狀態，導回首頁
 async function logout() {
@@ -130,19 +171,19 @@ async function logout() {
               <span v-if="unreadCount > 0" class="bell-badge">{{ unreadCount }}</span>
             </router-link>
 
-            <!-- hover 小視窗：先用前端寫死的五筆假資料 -->
+            <!-- hover 小視窗 -->
             <div class="notify-popover">
               <div class="notify-head">
                 <strong>通知</strong>
                 <span v-if="unreadCount > 0" class="notify-unread">{{ unreadCount }} 則未讀</span>
               </div>
               <ul class="notify-list">
-                <li v-for="n in notifications" :key="n.id" class="notify-item" :class="{ unread: n.unread }">
-                  <span class="notify-icon">{{ n.icon }}</span>
+                <li v-for="n in notifications" :key="n.id" class="notify-item" :class="{ unread: (n.status === 'unread') }">
+                  <span class="notify-icon">{{ ICON_BY_TYPE[n.targetType] }}</span>
                   <div class="notify-body">
-                    <p class="notify-title">{{ n.title }}</p>
-                    <p class="notify-text">{{ n.text }}</p>
-                    <small class="notify-time">{{ n.time }}</small>
+                    <p class="notify-title">{{ TITLE_BY_TYPE[n.targetType] }}</p>
+                    <p class="notify-text">{{ n.content }}</p>
+                    <small class="notify-time">{{ timeAgo(n.createdAt) }}</small>
                   </div>
                 </li>
               </ul>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import notificationApi from '@/api/memberNotification';
 import { confirm } from '@/composables/useConfirm';
+import notificationStore from '@/stores/memberNotification';
 
 const notifs = ref([])
 const loading = ref(true)
@@ -85,6 +86,7 @@ async function markAll() {
   marking.value = true
   try {
     await notificationApi.markAllAsRead()
+    notificationStore.reset()
     await loadNotif()
   } catch (e) {
     alert(e.message || '操作失敗')
@@ -95,12 +97,14 @@ async function markAll() {
 
 // 單筆標為已讀
 async function markOne(n) {
-  if (n.status === 'read') { return }
-  try {
-    await notificationApi.markOneAsRead(n.notificationId)
-    await loadNotif()
-  } catch (e) {
-    alert(e.message || '操作失敗')
+  if (n.status === 'unread') {
+    try {
+      await notificationApi.markOneAsRead(n.notificationId)
+      notificationStore.decrement()
+      await loadNotif()
+    } catch (e) {
+      alert(e.message || '操作失敗')
+    }
   }
 }
 
@@ -296,7 +300,7 @@ function formateDateTime(dt) {
 .tag-account  { background: #ffe4e4; color: #d60000; }  /* 會員:紅 */
 .tag-order    { background: #fdeede; color: #b5651d; }  /* 訂單:橘 */
 .tag-groupbuy { background: #e3eefb; color: #2f5fa5; }  /* 團購:藍 */
-.tag-trip     { background: #f7f59f; color: #dad60f; }  /* 體驗活動:黃 */
+.tag-trip     { background: #f7f59f; color: #8f8d05; }  /* 體驗活動:黃 */
 .tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 專欄文章:紫*/
 /* ...沒對到的就用預設綠色 */
 

@@ -24,7 +24,7 @@ import com.farmily.notification.model.NotificationVO;
 @Service
 public class NotificationService {
 	
-	private static final int PAGE_SIZE = 10;
+	private static final int PAGE_SIZE = 5;
 	
 	@Autowired
 	NotificationRepository repository;
@@ -220,7 +220,7 @@ public class NotificationService {
 		req.setTypeCode("gb_request_approved");			
 		req.setRecipientType(NotificationRecipientType.user);
 		req.setRecipientId(hostUserId);
-		req.setTargetType("GROUPBUY");
+		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
 		req.setVariables(Map.of("group_buy_id", groupBuyId.toString()));
 		sendOneNotif(req);
@@ -232,7 +232,7 @@ public class NotificationService {
 		req.setTypeCode("gb_request_rejected");			
 		req.setRecipientType(NotificationRecipientType.user);
 		req.setRecipientId(hostUserId);
-		req.setTargetType("GROUPBUY");
+		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
 		req.setVariables(Map.of("group_buy_id", groupBuyId.toString(), "reject_reason", rejectReason));
 		sendOneNotif(req);
