@@ -1,39 +1,31 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import noImage from '@/assets/no-image.svg'
+import { listFarms, normalizeFarm } from '@/api/farm'
 
-// 農場清單（示範資料）。
-// 之後可以改成從 Spring Boot 抓回來：fetch('/api/farms').then(...)
-// 現在先寫死，方便你先看到畫面、理解 v-for 怎麼用。
-const farms = ref([
-  {
-    id: 1,
-    name: '陽光有機農場',
-    location: '台中・新社',
-    desc: '無農藥栽培的當季時蔬，從產地直送到你家餐桌。',
-    image: 'https://picsum.photos/seed/farm1/600/400',
-  },
-  {
-    id: 2,
-    name: '山城果園',
-    location: '南投・信義',
-    desc: '海拔 800 公尺的高山果園，主打甜度爆表的當令水果。',
-    image: 'https://picsum.photos/seed/farm2/600/400',
-  },
-  {
-    id: 3,
-    name: '溪畔米鄉',
-    location: '花蓮・玉里',
-    desc: '純淨水源灌溉的稻田，孕育出粒粒分明的香Q好米。',
-    image: 'https://picsum.photos/seed/farm3/600/400',
-  },
-  {
-    id: 4,
-    name: '牧野牛奶坊',
-    location: '嘉義・中埔',
-    desc: '自家牧場的乳牛，每日新鮮現擠、低溫殺菌的純鮮乳。',
-    image: 'https://picsum.photos/seed/farm4/600/400',
-  },
-])
+const farms = ref([])
+const loading = ref(true)
+const error = ref('')
+
+async function loadFarms() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const data = await listFarms()
+    farms.value = data.map(normalizeFarm)
+  } catch (e) {
+    error.value = e.message || '無法載入農場資料，請稍後再試。'
+  } finally {
+    loading.value = false
+  }
+}
+
+function hideBrokenImage(event) {
+  event.target.style.display = 'none'
+}
+
+onMounted(loadFarms)
 </script>
 
 <template>
@@ -44,21 +36,29 @@ const farms = ref([
       <p>每一座農場，都是我們親自走訪、把關品質的好夥伴。</p>
     </section>
 
-    <!--
-      農場卡片清單。
-      v-for：把 farms 陣列裡的每一筆，各渲染成一張 <article> 卡片。
-      :key="farm.id"：給每筆一個唯一識別，Vue 用它來高效更新清單（一定要加）。
-    -->
-    <section class="farm-grid">
-      <article v-for="farm in farms" :key="farm.id" class="farm-card">
-        <img class="farm-card__img" :src="farm.image" :alt="farm.name" />
+    <p v-if="loading" class="state">農場資料載入中…</p>
+
+    <section v-else-if="error" class="state state--error">
+      <p>載入失敗：{{ error }}</p>
+      <button type="button" @click="loadFarms">重新載入</button>
+    </section>
+
+    <p v-else-if="farms.length === 0" class="state">目前還沒有可顯示的合作農場。</p>
+
+    <section v-else class="farm-grid">
+      <article v-for="farm in farms" :key="farm.farmerId" class="farm-card">
+        <img class="farm-card__img" :src="noImage" :alt="farm.farmName" @error="hideBrokenImage" />
 
         <div class="farm-card__body">
-          <!-- 用 {{ }} 把資料插進畫面 -->
-          <h2 class="farm-card__name">{{ farm.name }}</h2>
+          <h2 class="farm-card__name">{{ farm.farmName }}</h2>
           <p class="farm-card__loc">📍 {{ farm.location }}</p>
           <p class="farm-card__desc">{{ farm.desc }}</p>
-          <button class="farm-card__btn" type="button">查看農場</button>
+          <RouterLink
+            class="farm-card__btn"
+            :to="{ name: 'farm-detail', params: { farmerId: farm.farmerId } }"
+          >
+            查看農場
+          </RouterLink>
         </div>
       </article>
     </section>
@@ -85,6 +85,26 @@ const farms = ref([
 .hero p {
   color: var(--muted);
   margin: 0;
+}
+
+.state {
+  padding: 44px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.state--error {
+  color: #b42318;
+}
+
+.state--error button {
+  margin-top: 12px;
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
 }
 
 /* ---------- 卡片格線 ---------- */
@@ -140,6 +160,8 @@ const farms = ref([
   flex: 1;
 }
 .farm-card__btn {
+  display: inline-flex;
+  justify-content: center;
   margin-top: 4px;
   padding: 9px 0;
   border: none;
@@ -147,7 +169,7 @@ const farms = ref([
   background: var(--leaf);
   color: #fff;
   font-size: 14px;
-  cursor: pointer;
+  text-decoration: none;
   transition: background 0.18s ease;
 }
 .farm-card__btn:hover {

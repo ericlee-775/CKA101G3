@@ -1,41 +1,89 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { listFarms, getFarm, normalizeFarm } from '@/api/farm'
 
-// 產地清單（示範資料）。query 是給 Google 地圖定位用的關鍵字。
-// 之後一樣可以改成從 Spring Boot 的 /api/farms 抓回來。
-const farms = ref([
-  { id: 1, name: '陽光有機農場', region: '中部', location: '台中・新社', query: '台中市新社區' },
-  { id: 2, name: '山城果園',     region: '中部', location: '南投・信義', query: '南投縣信義鄉' },
-  { id: 3, name: '溪畔米鄉',     region: '東部', location: '花蓮・玉里', query: '花蓮縣玉里鎮' },
-  { id: 4, name: '牧野牛奶坊',   region: '南部', location: '嘉義・中埔', query: '嘉義縣中埔鄉' },
-  { id: 5, name: '北海漁村',     region: '北部', location: '宜蘭・頭城', query: '宜蘭縣頭城鎮' },
-])
+const farms = ref([])
+const loading = ref(true)
+const error = ref('')
+const detailError = ref('')
 
-// 所有地區（固定選項）
-const regions = ['全部', '北部', '中部', '南部', '東部']
-
-// 目前選到的地區（預設「全部」）。ref = 會變動、且變動時畫面自動更新的狀態。
 const selectedRegion = ref('全部')
+const selectedFarm = ref(null)
+const selectingId = ref(null)
 
-// 目前選到、要顯示在地圖上的農場（預設第一筆）。
-const selectedFarm = ref(farms.value[0])
+const regions = computed(() => {
+  const values = farms.value.map(farm => farm.region).filter(Boolean)
+  return ['全部', ...new Set(values)]
+})
 
-/*
-  computed（計算屬性）：根據 selectedRegion 自動算出「要顯示哪些農場」。
-  好處：selectedRegion 一變，這個清單自動重算，不用自己手動更新。
-*/
 const filteredFarms = computed(() => {
   if (selectedRegion.value === '全部') return farms.value
   return farms.value.filter(farm => farm.region === selectedRegion.value)
 })
 
-/*
-  地圖網址也用 computed：selectedFarm 一變，地圖 src 自動換 → 地圖重新定位。
-  output=embed 讓 Google 地圖可以直接內嵌，不需要 API 金鑰。
-*/
-const mapSrc = computed(
-  () => `https://www.google.com/maps?q=${encodeURIComponent(selectedFarm.value.query)}&output=embed`
-)
+const mapSrc = computed(() => {
+  if (!selectedFarm.value?.query) return ''
+  return `https://www.google.com/maps?q=${encodeURIComponent(selectedFarm.value.query)}&output=embed`
+})
+
+async function loadFarms() {
+  loading.value = true
+  error.value = ''
+  detailError.value = ''
+
+  try {
+    const data = await listFarms()
+    farms.value = data.map(normalizeFarm)
+  } catch (e) {
+    error.value = e.message || '無法載入農場資料，請稍後再試。'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function selectFarm(farm) {
+  if (!farm) return
+
+  selectedFarm.value = farm
+  selectingId.value = farm.farmerId
+  detailError.value = ''
+
+  try {
+    selectedFarm.value = normalizeFarm(await getFarm(farm.farmerId))
+  } catch (e) {
+    detailError.value = e.message || '無法載入農場詳細資料。'
+  } finally {
+    selectingId.value = null
+  }
+}
+
+watch(filteredFarms, (list) => {
+  if (list.length === 0) {
+    selectedFarm.value = null
+    return
+  }
+
+  const selectedStillVisible = list.some(farm => farm.farmerId === selectedFarm.value?.farmerId)
+  if (!selectedStillVisible) {
+    selectFarm(list[0])
+  }
+})
+
+// 收集每個清單項目的 DOM，讓「選中」時能把它捲進可視範圍
+const itemEls = {}
+function setItemRef(id, el) {
+  if (el) itemEls[id] = el
+  else delete itemEls[id]     // 元素卸載時清掉，避免留下失效參照
+}
+
+// 選中的農場改變時（不論點擊或篩選後自動選第一筆），把它捲到清單可視處
+watch(() => selectedFarm.value?.farmerId, async (id) => {
+  if (!id) return
+  await nextTick()            // 等 DOM 更新完(is-active 樣式等)再捲
+  itemEls[id]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+})
+
+onMounted(loadFarms)
 </script>
 
 <template>
@@ -43,60 +91,70 @@ const mapSrc = computed(
     <header class="map-hero">
       <h1>🗺️ 產地地圖</h1>
       <p>點選左側農場，看看你的食材來自台灣哪個角落。</p>
+      <p v-if="selectedFarm" class="current-farm">目前顯示：<strong>{{ selectedFarm.farmName }}</strong></p>
     </header>
 
-    <!-- 地區篩選列 -->
-    <div class="region-tabs">
-      <!--
-        v-for 產生每個地區按鈕。
-        :class 綁定：目前選到的地區加上 is-active 樣式。
-        @click：點一下就把 selectedRegion 換成這個地區 → filteredFarms 自動重算。
-      -->
-      <button
-        v-for="region in regions"
-        :key="region"
-        class="region-tab"
-        :class="{ 'is-active': selectedRegion === region }"
-        type="button"
-        @click="selectedRegion = region"
-      >
-        {{ region }}
-      </button>
-    </div>
+    <p v-if="loading" class="state">農場資料載入中…</p>
 
-    <!-- 左清單 + 右地圖 -->
-    <div class="map-layout">
-      <!-- 左：農場清單 -->
-      <ul class="farm-list">
-        <li
-          v-for="farm in filteredFarms"
-          :key="farm.id"
-          class="farm-item"
-          :class="{ 'is-active': selectedFarm.id === farm.id }"
-          @click="selectedFarm = farm"
+    <section v-else-if="error" class="state state--error">
+      <p>載入失敗：{{ error }}</p>
+      <button type="button" @click="loadFarms">重新載入</button>
+    </section>
+
+    <p v-else-if="farms.length === 0" class="state">目前還沒有可顯示的合作農場。</p>
+
+    <template v-else>
+      <div class="region-tabs">
+        <button
+          v-for="region in regions"
+          :key="region"
+          class="region-tab"
+          :class="{ 'is-active': selectedRegion === region }"
+          type="button"
+          @click="selectedRegion = region"
         >
-          <strong>{{ farm.name }}</strong>
-          <span>📍 {{ farm.location }}</span>
-        </li>
-
-        <!-- v-if：萬一某地區沒有農場，顯示提示 -->
-        <li v-if="filteredFarms.length === 0" class="farm-empty">
-          這個地區目前還沒有合作農場
-        </li>
-      </ul>
-
-      <!-- 右：地圖（:src 綁定 computed，選不同農場就重新定位） -->
-      <div class="map-frame">
-        <iframe
-          :src="mapSrc"
-          width="100%"
-          height="100%"
-          style="border: 0"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
+          {{ region }}
+        </button>
       </div>
-    </div>
+
+      <p v-if="detailError" class="detail-error">農場詳細資料載入失敗：{{ detailError }}</p>
+
+      <div class="map-layout">
+        <ul class="farm-list">
+          <li
+            v-for="farm in filteredFarms"
+            :key="farm.farmerId"
+            :ref="el => setItemRef(farm.farmerId, el)"
+            class="farm-item"
+            :class="{ 'is-active': selectedFarm?.farmerId === farm.farmerId }"
+            @click="selectFarm(farm)"
+          >
+            <strong>{{ farm.farmName }}</strong>
+            <span>📍 {{ farm.location }}</span>
+            <small v-if="farm.farmDesc">{{ farm.farmDesc }}</small>
+            <em v-if="selectingId === farm.farmerId">載入中…</em>
+          </li>
+
+          <li v-if="filteredFarms.length === 0" class="farm-empty">
+            這個地區目前還沒有合作農場
+          </li>
+        </ul>
+
+        <div class="map-frame">
+          <iframe
+            v-if="mapSrc"
+            :src="mapSrc"
+            :title="`${selectedFarm?.farmName || '農場'}位置地圖`"
+            width="100%"
+            height="100%"
+            style="border: 0"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+          <p v-else class="map-empty">請先選擇農場</p>
+        </div>
+      </div>
+    </template>
   </main>
 </template>
 
@@ -120,6 +178,40 @@ const mapSrc = computed(
 .map-hero p {
   color: var(--muted);
   margin: 0;
+}
+.current-farm {
+  margin-top: 10px !important;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.current-farm strong {
+  color: var(--ink);
+}
+
+.state {
+  padding: 44px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.state--error {
+  color: #b42318;
+}
+
+.state--error button {
+  margin-top: 12px;
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.detail-error {
+  margin: -6px 0 16px;
+  color: #b42318;
+  text-align: center;
 }
 
 /* ---------- 地區篩選列 ---------- */
@@ -192,6 +284,16 @@ const mapSrc = computed(
   color: var(--muted);
   font-size: 13px;
 }
+.farm-item small {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.farm-item em {
+  color: var(--leaf-dark);
+  font-size: 12px;
+  font-style: normal;
+}
 .farm-empty {
   padding: 16px;
   color: var(--muted);
@@ -204,6 +306,14 @@ const mapSrc = computed(
   border-radius: 14px;
   overflow: hidden;                 /* 讓 iframe 跟著圓角 */
   border: 1px solid var(--line);
+}
+
+.map-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  color: var(--muted);
 }
 
 /* ---------- 響應式：窄螢幕改成上下排 ---------- */
