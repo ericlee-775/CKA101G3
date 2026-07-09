@@ -20,4 +20,7 @@ public interface ProductShoppingCartRepository extends JpaRepository<ProductShop
 	 Optional<ProductShoppingCartVO> findByUserIdAndProductId(Integer userId, Integer productId);
 	 
 	 void deleteByUserIdAndProductId(Integer userId,Integer productId);
+	 
+	 //刪全部，當訂單成立刪除購物車商品
+	 void deleteByUserId(Integer userId);
 }
