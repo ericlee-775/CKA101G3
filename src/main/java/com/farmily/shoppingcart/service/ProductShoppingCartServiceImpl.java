@@ -41,8 +41,8 @@ public class ProductShoppingCartServiceImpl implements ProductShoppingCartServic
 	@Transactional
 	public void updatedQuantity(Integer productId, Integer quantity, Integer userId) {
 		cartRepository.findByUserIdAndProductId(userId,productId)
-		.ifPresent(vo ->vo.setQuantity(quantity));
-		
+		.orElseThrow(()->new IllegalArgumentException("購物車中無此商品"))
+		.setQuantity(quantity);
 	}
 
 	@Override
