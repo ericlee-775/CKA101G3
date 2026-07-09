@@ -174,6 +174,9 @@ public class UserSecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/farm-trips/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/farmer/farm-trips/**").permitAll()
 
+                        //產地地圖（公開：查全部農場 / 單一農場）
+                        .requestMatchers(HttpMethod.GET, "/api/farms", "/api/farms/**").permitAll()
+
                         //Blog （列表/詳情/封面/留言/照片）
                         .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
 
