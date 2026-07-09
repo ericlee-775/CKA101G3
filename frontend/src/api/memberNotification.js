@@ -22,7 +22,7 @@ export const notificationApi = {
     markAllAsRead: () => http.patch(`${BASE}/read-all`),
 
     // 小鈴鐺列表, getNotifPreview(@AuthenticationPrincipal MemberUserDetails user)
-    getNotifRewview: () => http.get(`${BASE}/preview`),
+    getNotifPreview: () => http.get(`${BASE}/preview`),
 
     // 小鈴鐺未讀數, getNotifUnreadCount(@AuthenticationPrincipal MemberUserDetails user)
     getNotifUnreadCount: () => http.get(`${BASE}/unread-count`)
