@@ -3,19 +3,18 @@
 // 這個元件對應兩條路由（見 router/index.js），依進來的網址決定要打哪支 API：
 //
 //   1) /group-buys/:groupBuyId（name: group-buy-detail）—— 這筆團購已經存在
-//      GET /api/groupBuy/{groupBuyId} → GroupBuyDetailDTO（商品名/團購價/目標數量/開團時間/截止時間/取貨地點/狀態）
-//      圖片：GroupBuyDetailDTO 沒有 productId 欄位，沒辦法直接查圖，
-//      做法是列表頁點卡片時把 productId 用路由 query 帶過來（見 GroupBuysView.vue），
-//      這裡讀 route.query.productId 去打 GET /api/products/{productId}/image。
+//      GET /api/groupBuy/{groupBuyId} → GroupBuyDetailDTO（productId/商品名/原價/團購價/達標金額/
+//      開團時間/截止時間/取貨地點/狀態）。DTO 現在有帶 productId，圖片直接用它打
+//      GET /api/products/{productId}/image，不用再靠列表頁用 query 傳了。
 //
 //   2) /group-buys/product/:productId（name: group-buy-host）—— 「可發起」的商品，還沒有任何團購紀錄
-//      後端 /api/groupBuy/consumer/list?type=available 現在改成查「支援團購的商品」而不是既有團購，
+//      後端 /api/groupBuy/consumer/list?type=available 改成查「支援團購的商品」而不是既有團購，
 //      回傳的每一筆 groupBuyId 都是 null，沒有 id 可以查 GroupBuyDetailDTO，
 //      所以這裡改打 GET /api/products/{productId}（商品本身的資料）組出一個「假的」團購物件顯示。
-//      這種情況下 productId 就是路由參數本身，不需要再靠 query 傳。
 //
 // 依團購狀態顯示對應的操作（兩者都需要以一般會員身分登入，MemberGroupBuyController 用 session 認證）：
 //   沒有 groupBuyId（可發起商品）或 status === 'pending' → 「我要發起團購」，打 POST /api/member/groupBuy/hostCreate/{productId}
+//     達標金額至少 1、開團時間不能早於今天、截止時間至少要比開團時間晚 5 天（前端擋，後端也有各自的驗證）。
 //   status === 'open'（開團中）→「我要參加團購」，打 POST /api/member/groupBuy/joinGroupBuy/{groupBuyId}
 //     這支不需要額外的 productId，body 其他欄位直接沿用已載入的 groupBuy 資料。
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
@@ -107,8 +106,7 @@ async function loadGroupBuy() {
       await loadImage(productId)
     } else {
       groupBuy.value = await groupBuyApi.getOne(route.params.groupBuyId)
-      // productId 是從列表頁用 query 帶過來的，只用來查圖片，不是這支 API 的欄位。
-      await loadImage(route.query.productId)
+      await loadImage(groupBuy.value.productId)
     }
   } catch (e) {
     error.value = e.status === 404 || /查無|找不到/.test(e.message || '')
@@ -129,6 +127,22 @@ const hostForm = ref({ targetAmount: null, openDatetime: '', ddlDatetime: '', pi
 const hostSubmitting = ref(false)
 const hostMsg = ref('')
 
+// 日期輸入用的 YYYY-MM-DD 字串（純本地日期組字串，避開 toISOString 的時區位移問題）。
+function toDateInputValue(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+// 開團時間不能選今天以前。
+const todayStr = ref(toDateInputValue(new Date()))
+// 截止時間至少要比「目前選的開團時間」晚 5 天；還沒選開團時間就以今天起算。
+const minDdlStr = computed(() => {
+  const base = new Date(hostForm.value.openDatetime || todayStr.value)
+  base.setDate(base.getDate() + 5)
+  return toDateInputValue(base)
+})
+
 function toggleHostForm() {
   showHostForm.value = !showHostForm.value
   hostMsg.value = ''
@@ -136,15 +150,23 @@ function toggleHostForm() {
 
 async function submitHostCreate() {
   hostMsg.value = ''
-  // 可發起商品模式下 productId 就是路由參數本身；既有團購模式下才需要靠 query 帶過來的 productId。
-  const productId = route.params.productId ?? route.query.productId
+  // 可發起商品模式下 productId 是路由參數；既有團購模式下 productId 已經在 GroupBuyDetailDTO 裡。
+  const productId = route.params.productId ?? groupBuy.value?.productId
   if (!productId) {
     hostMsg.value = '這個團購沒有帶入商品資訊，請從「可發起」列表頁點進來才能發起。'
     return
   }
   const { targetAmount, openDatetime, ddlDatetime, pickupAddress } = hostForm.value
   if (!targetAmount || !openDatetime || !ddlDatetime || !pickupAddress) {
-    hostMsg.value = '請完整填寫達標數量、開團/截止時間與取貨地址。'
+    hostMsg.value = '請完整填寫達標金額、開團/截止時間與取貨地址。'
+    return
+  }
+  if (openDatetime < todayStr.value) {
+    hostMsg.value = '開團時間不能早於今天。'
+    return
+  }
+  if (ddlDatetime < minDdlStr.value) {
+    hostMsg.value = '截止時間至少要在開團時間 5 天後。'
     return
   }
 
@@ -240,16 +262,20 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
 
         <p class="info__price">
           團購價 {{ formatPrice(groupBuy.groupPrice) }}
+          <span v-if="groupBuy.retailPrice != null" class="info__retail">原價 {{ formatPrice(groupBuy.retailPrice) }}</span>
         </p>
 
-        <!-- 可發起商品還沒有目標數量/時間/取貨地點這些資料，改顯示商品描述 -->
-        <p v-if="groupBuy.groupBuyId == null" class="info__desc">
-          {{ groupBuy.description || '這項商品支援團購，目前還沒有人發起，成為第一個發起的人吧！' }}
-        </p>
+        <!-- 可發起商品還沒有目標金額/時間/取貨地點這些資料，改顯示商品描述 -->
+        <template v-if="groupBuy.groupBuyId == null">
+          <p class="info__desc">
+            {{ groupBuy.description || '這項商品支援團購，目前還沒有人發起，成為第一個發起的人吧！' }}
+          </p>
+          <p class="info__notice">達標以後小農將會致電通知配達時間，請留意來電</p>
+        </template>
         <dl v-else class="info__meta">
           <div class="info__meta-row">
-            <dt>目標數量</dt>
-            <dd>{{ groupBuy.targetAmount ?? '—' }}</dd>
+            <dt>達標金額</dt>
+            <dd>{{ formatPrice(groupBuy.targetAmount) }}</dd>
           </div>
           <div class="info__meta-row">
             <dt>開團時間</dt>
@@ -276,9 +302,9 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
             {{ showHostForm ? '取消' : '我要發起團購' }}
           </button>
           <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
-            <label>達標數量 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
-            <label>開團時間 <input type="date" v-model="hostForm.openDatetime" /></label>
-            <label>截止時間 <input type="date" v-model="hostForm.ddlDatetime" /></label>
+            <label>達標金額 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
+            <label>開團時間 <input type="date" :min="todayStr" v-model="hostForm.openDatetime" /></label>
+            <label>截止時間（至少開團後 5 天） <input type="date" :min="minDdlStr" v-model="hostForm.ddlDatetime" /></label>
             <label>取貨地址 <input type="text" v-model="hostForm.pickupAddress" /></label>
             <button type="submit" class="btn" :disabled="hostSubmitting">送出申請</button>
           </form>
@@ -370,6 +396,22 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
   font-weight: 700;
   color: var(--leaf-dark);
   margin: 0 0 20px;
+}
+.info__retail {
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.info__notice {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .badge {

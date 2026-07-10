@@ -172,13 +172,13 @@ onMounted(loadGroupBuys)
         class="groupbuy-card"
       >
         <!--
-          有 groupBuyId → 已經有團購紀錄，進 /group-buys/:groupBuyId（帶 productId query 讓詳情頁能抓商品圖）
+          有 groupBuyId → 已經有團購紀錄，進 /group-buys/:groupBuyId（GroupBuyDetailDTO 現在自己帶 productId，不用再靠 query 傳）
           沒有 groupBuyId → 只是「可發起」的商品，進 /group-buys/product/:productId（走商品資料，不是團購資料）
         -->
         <RouterLink
           class="groupbuy-card__link"
           :to="gb.groupBuyId != null
-            ? { name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId }, query: { productId: gb.productId } }
+            ? { name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId } }
             : { name: 'group-buy-host', params: { productId: gb.productId } }"
         >
           <div class="groupbuy-card__img-wrap">
@@ -194,10 +194,11 @@ onMounted(loadGroupBuys)
           </div>
           <div class="groupbuy-card__body">
             <h2 class="groupbuy-card__name">{{ gb.productName }}</h2>
+            <p v-if="gb.subCatClassName" class="groupbuy-card__unit">{{ gb.subCatClassName }}</p>
             <p v-if="gb.unitPricingMeasure" class="groupbuy-card__unit">{{ gb.unitPricingMeasure }}</p>
             <p class="groupbuy-card__price">{{ formatPrice(gb.groupPrice) }}</p>
             <template v-if="gb.groupBuyId != null">
-              <p class="groupbuy-card__meta">目標數量：{{ gb.targetAmount ?? '—' }}</p>
+              <p class="groupbuy-card__meta">達標金額：{{ formatPrice(gb.targetAmount) }}</p>
               <p class="groupbuy-card__meta">截止日期：{{ formatDate(gb.ddlDatetime) }}</p>
               <p v-if="gb.pickupAddress" class="groupbuy-card__meta">取貨地點：{{ gb.pickupAddress }}</p>
             </template>
