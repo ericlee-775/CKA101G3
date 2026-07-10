@@ -1,2 +1,10 @@
-<!-- 後台共用 CSS 片段；其他頁面用 th:insert 引入 -->
+<!-- 後台共用 head 資源片段；其他頁面用 th:insert 引入 -->
+<!-- Bootstrap（webjars）-->
 <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.2.1/css/bootstrap.min.css}"/>
+<!-- 思源黑體（內文）+ 思源宋體（標題），與 Vue 前端一致 -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap"/>
+<!-- 品牌皮膚 -->
+<link rel="stylesheet" th:href="@{/admin/admin.css}"/>

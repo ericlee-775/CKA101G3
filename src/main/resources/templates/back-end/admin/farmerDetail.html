@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>小農詳情</title>
+</head>
+<body>
+
+<h1 class="page-title" layout:fragment="pagetitle">小農詳情</h1>
+
+<div layout:fragment="content">
+    <div class="crumbs mb-3"><a th:href="@{/admin/farmers}">← 回小農清單</a></div>
+
+    <div class="card" style="max-width: 720px;">
+        <div class="card-header">
+            #<span th:text="${farmer.farmerId}"></span>
+            <span th:text="${farmer.farmName}"></span>
+        </div>
+        <div class="card-body">
+            <table class="table table-borderless mb-0">
+                <tbody>
+                <tr><th style="width:130px;">Email</th><td th:text="${farmer.email}"></td></tr>
+                <tr><th>農場名稱</th><td th:text="${farmer.farmName}"></td></tr>
+                <tr><th>電話</th><td th:text="${farmer.farmerPhoneNum}"></td></tr>
+                <tr>
+                    <th>地址</th>
+                    <td>
+                        <span th:text="${farmer.cityName}"></span>
+                        <span th:text="${farmer.distName}"></span>
+                        <span th:text="${farmer.farmAddress}"></span>
+                    </td>
+                </tr>
+                <tr><th>座標</th>
+                    <td th:text="${farmer.locLat != null and farmer.locLong != null}
+                               ? (${farmer.locLat} + ', ' + ${farmer.locLong}) : '—'"></td></tr>
+                <tr><th>農場簡介</th><td th:text="${farmer.farmDesc} ?: '—'"></td></tr>
+                <tr>
+                    <th>小農狀態</th>
+                    <td>
+                        <span class="badge-status"
+                              th:classappend="${farmer.farmerStatus == 'ACTIVE'} ? 'st-active'
+                                            : (${farmer.farmerStatus == 'PENDING'} ? 'st-pending' : 'st-suspended')"
+                              th:text="${farmer.farmerStatus}"></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>最新審核</th>
+                    <td>
+                        <span th:if="${farmer.reviewStatus != null}" class="badge-status st-neutral"
+                              th:text="${farmer.reviewStatus} + '（第 ' + ${farmer.reviewRound} + ' 輪）'"></span>
+                        <span th:unless="${farmer.reviewStatus != null}" class="text-muted">尚無審核紀錄</span>
+                    </td>
+                </tr>
+                <tr><th>已設定密碼</th>
+                    <td th:text="${farmer.hasPassword} ? '是' : '否'"></td></tr>
+                </tbody>
+            </table>
+
+            <hr/>
+            <!-- 操作：沿用既有 POST 端點 -->
+            <form th:if="${farmer.farmerStatus == 'ACTIVE'}" method="post" class="d-inline"
+                  th:action="@{/admin/farmers/{id}/suspend(id=${farmer.farmerId})}">
+                <button class="btn btn-sm btn-outline-danger">停權</button>
+            </form>
+            <form th:if="${farmer.farmerStatus == 'SUSPENDED'}" method="post" class="d-inline"
+                  th:action="@{/admin/farmers/{id}/reinstate(id=${farmer.farmerId})}">
+                <button class="btn btn-sm btn-outline-success">恢復</button>
+            </form>
+
+            <a class="btn btn-sm btn-outline-primary ml-2"
+               th:href="@{/admin/reviews/farmer/{id}(id=${farmer.farmerId})}">查看審核紀錄</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

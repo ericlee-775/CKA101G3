@@ -1,5 +1,10 @@
 package com.farmily.user.controller;
 
+/*
+   本 class 為當初與 Vue 前端串接用的 REST API（/api/admin/members）
+   管理後台已改用 controller/view 下的 AdminMemberViewController（Thymeleaf）
+   前端與模板皆不再呼叫這些端點
+
 import com.farmily.user.dto.StatusUpdateRequest;
 import com.farmily.user.dto.UserProfileResponse;
 import com.farmily.user.service.AdminMemberService;
@@ -41,3 +46,4 @@ public class AdminUserController {
     }
 
 }
+*/

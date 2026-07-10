@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 各頁 <title> 會帶入 $CONTENT_TITLE -->
+    <title layout:title-pattern="$CONTENT_TITLE｜Farmily 管理後台">Farmily 管理後台</title>
+
+    <!-- 共用 head 資源（Bootstrap + 字型 + 品牌皮膚） -->
+    <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+    <!-- 各頁 <head> 內的額外資源（如 DataTables）由 layout-dialect 自動合併進來 -->
+</head>
+<body>
+<div class="admin-shell">
+
+    <!-- ===== 側邊欄 ===== -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <a class="brand" th:href="@{/admin/dashboard}"><span class="leaf">🌿</span> Farmily 後台</a>
+
+        <nav>
+            <div class="nav-section">管理模組</div>
+
+            <a class="nav-link" data-path="/admin/dashboard" th:href="@{/admin/dashboard}">
+                <span class="ico">🏠</span> 總覽</a>
+
+            <a class="nav-link" data-path="/admin/members"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')" th:href="@{/admin/members}">
+                <span class="ico">👥</span> 會員管理</a>
+
+            <a class="nav-link" data-path="/admin/farmers"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/farmers}">
+                <span class="ico">🧑‍🌾</span> 小農管理</a>
+
+            <a class="nav-link" data-path="/admin/reviews"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/reviews}">
+                <span class="ico">📋</span> 小農審核</a>
+
+            <a class="nav-link" data-path="/admin/news"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')" th:href="@{/admin/news}">
+                <span class="ico">📰</span> 最新消息</a>
+
+            <a class="nav-link" data-path="/admin/admins"
+               sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/admins}">
+                <span class="ico">🛡️</span> 管理員管理</a>
+
+            <div class="nav-section">帳號</div>
+            <a class="nav-link" data-path="/admin/profile" th:href="@{/admin/profile}">
+                <span class="ico">⚙️</span> 個人資料</a>
+        </nav>
+
+        <div class="sidebar-foot">
+            <div>登入身分</div>
+            <a class="who" th:href="@{/admin/profile}" style="text-decoration:none; display:block;"
+               sec:authentication="name">admin@farmily</a>
+            <!-- 登出 POST 表單；th:action 會自動帶 CSRF -->
+            <form th:action="@{/admin/logout}" method="post">
+                <button class="logout-btn" type="submit">登出</button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ===== 主內容 ===== -->
+    <div class="admin-main">
+        <header class="admin-topbar">
+            <div style="display:flex; align-items:center;">
+                <button class="sidebar-toggle" type="button" id="sidebarToggle">☰</button>
+                <h1 class="page-title" layout:fragment="pagetitle">管理後台</h1>
+            </div>
+            <div class="text-muted d-none d-md-block" style="font-size:.9rem;">
+                <span sec:authentication="name">admin</span>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            <!-- 全域提示：沿用既有 model 的 ${success} / ${error}，不需後端改動 -->
+            <div class="toast-stack">
+                <div class="app-toast" th:if="${success != null and !#strings.isEmpty(success)}">
+                    <span class="t-ico">✅</span><span th:text="${success}"></span>
+                </div>
+                <div class="app-toast is-error" th:if="${error != null and !#strings.isEmpty(error)}">
+                    <span class="t-ico">⚠️</span><span th:text="${error}"></span>
+                </div>
+            </div>
+
+            <!-- 頁面內容槽 -->
+            <section layout:fragment="content">內容</section>
+        </main>
+    </div>
+</div>
+
+<!-- 圖片放大 lightbox -->
+<div class="lightbox" id="lightbox"><img src="" alt="放大檢視"/></div>
+
+<script th:src="@{/admin/admin.js}"></script>
+<th:block layout:fragment="extrascript"></th:block>
+</body>
+</html>
