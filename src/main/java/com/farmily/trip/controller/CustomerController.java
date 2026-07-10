@@ -17,11 +17,16 @@ import com.farmily.trip.dto.CommentCreateRequest;
 import com.farmily.trip.dto.CommentResponse;
 import com.farmily.trip.dto.OrderCreateRequest;
 import com.farmily.trip.dto.OrderResponse;
-import com.farmily.trip.dto.OrderUpdateRequest;   // 【新增】
+import com.farmily.trip.dto.OrderUpdateRequest; // 【新增】
 import com.farmily.trip.dto.SessionResponse;
 import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.service.FarmTripService;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URLConnection;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/farm-trips")
@@ -88,6 +93,18 @@ public class CustomerController {
 	public ResponseEntity<CommentResponse> addComment(@PathVariable Integer farmTripId,
 			@RequestBody CommentCreateRequest request) {
 		return ResponseEntity.ok(farmTripService.addComment(farmTripId, request));
+	}
+
+	// GET /api/farm-trips/3/image → 活動圖片（回二進位，前端用 <img src> 顯示；沒圖回 404）
+	@GetMapping("/{farmTripId}/image")
+	public ResponseEntity<byte[]> getImage(@PathVariable Integer farmTripId) throws IOException {
+		byte[] img = farmTripService.getTripImage(farmTripId);
+		if (img == null || img.length == 0) {
+			return ResponseEntity.notFound().build();
+		}
+		String type = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(img));
+		MediaType mediaType = (type != null) ? MediaType.parseMediaType(type) : MediaType.IMAGE_JPEG;
+		return ResponseEntity.ok().contentType(mediaType).body(img);
 	}
 
 }
