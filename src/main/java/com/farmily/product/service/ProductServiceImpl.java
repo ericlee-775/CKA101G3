@@ -28,7 +28,6 @@ public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private ProductRepository productRepository;
-	// 取所有產品
 	@Autowired
 	private WishListRepository wishListRepository;
 	@Autowired
