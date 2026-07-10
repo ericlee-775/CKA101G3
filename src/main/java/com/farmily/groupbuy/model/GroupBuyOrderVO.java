@@ -37,8 +37,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	private Integer totalAmount;
 
 	
-	@Column(name = "shipping_address")
-	private String shippingAddress;
+
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "shipped_status")
@@ -47,8 +46,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	@Column(name = "shipped_at")
 	private Timestamp shippedAt;
 
-	@Column(name = "tracking_num")
-	private String trackingNum;
+	
 
 	@Column(name = "created_at")
 	private Timestamp createdAt;
@@ -108,13 +106,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	}
 
 
-	public String getShippingAddress() {
-		return shippingAddress;
-	}
 
-	public void setShippingAddress(String shippingAddress) {
-		this.shippingAddress = shippingAddress;
-	}
 
 	public ShippedStatus getShippedStatus() {
 		return shippedStatus;
@@ -132,13 +124,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.shippedAt = shippedAt;
 	}
 
-	public String getTrackingNum() {
-		return trackingNum;
-	}
 
-	public void setTrackingNum(String trackingNum) {
-		this.trackingNum = trackingNum;
-	}
 
 	public Timestamp getCreatedAt() {
 		return createdAt;
@@ -181,7 +167,7 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 	}
 
 	public GroupBuyOrderVO(Integer orderId, GroupBuyVO groupBuyId, Integer totalQuantity, Integer groupPrice,
-			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
+			Integer totalAmount, ShippedStatus shippedStatus, Timestamp shippedAt,
 			String trackingNum, Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
 			PaidStatus paidStatus, Timestamp completedAt) {
 		super();
@@ -190,10 +176,9 @@ public class GroupBuyOrderVO implements java.io.Serializable {
 		this.totalQuantity = totalQuantity;
 		this.groupPrice = groupPrice;
 		this.totalAmount = totalAmount;
-		this.shippingAddress = shippingAddress;
+	
 		this.shippedStatus = shippedStatus;
 		this.shippedAt = shippedAt;
-		this.trackingNum = trackingNum;
 		this.createdAt = createdAt;
 		this.receivedAt = receivedAt;
 		this.orderStatus = orderStatus;

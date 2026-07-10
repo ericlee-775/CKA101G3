@@ -1,33 +1,31 @@
 <script setup>
 // 小農後台：團購管理
-// 串接 FarmerGroupBuyController（/api/farmer/groupBuy，需以小農身分登入，session cookie 認證）：
-//   GET  /api/farmer/groupBuy/list                    → GroupBuyFarmerDTO[]（自己商品底下的團購申請/清單）
-//   POST /api/farmer/groupBuy/farmerResponse/{id}      → 審核（通過／拒絕），body: { requestStatus, rejectReason? }
+// 分兩大區塊（上方切換）：
+//   1) 團購審核：GET /api/farmer/groupBuy/list，依 requestStatus 分「待審核／開團中／已拒絕」三個頁籤
+//      - 待審核可「通過／拒絕」（POST /api/farmer/groupBuy/farmerResponse/{id}）
+//      - 每筆都有「詳細資料」按鈕 → GET /api/farmer/groupBuy/list/{groupBuyId}
+//      - 開團中的多一個「進度」按鈕 → GET /api/farmer/groupBuy/progress/{groupBuyId}
+//   2) 團購訂單：GET /api/farmer/groupBuy/orderList，依 shippedStatus 分「待出貨／已送達」
+//      - 待出貨可「標記已送達」（POST /api/farmer/groupBuy/orderShipped/{orderId}）
+//      - 每筆都有「詳細資料」按鈕 → GET /api/farmer/groupBuy/order/{orderId}（含團購主聯絡方式）
 //
-// 注意：FarmerGroupBuyController 還有一支 GET /order/{groupBuyId} 可查團購訂單明細，
-// 但後端 GroupBuyService.showOrder() 內部其實是拿這個 id 去查「訂單(order)」的主鍵，
-// 而不是團購(group buy)的主鍵，兩者目前對不上，GroupBuyFarmerDTO 也沒有回傳 orderId，
-// 沒有可靠的 id 能打這支 API，因此這裡先不接，避免做出一個看似能用、實際上會查錯筆資料的功能。
-import { ref, onMounted } from 'vue'
+// 注意：/list/{groupBuyId} 原本直接回傳 JPA entity（GroupBuyVO）造成循環參照序列化爆掉，已修好，
+// 現在回傳的是跟 GroupBuyFarmerDTO 一樣的扁平欄位（沒有巢狀的 product/hostUser），下面 modal 內容依此對應。
+// /orderList、/order/{orderId}、會員端 /mySuccessOrders 三支原本是 gb_order 資料表少了 shipping_address
+// 欄位，SQL 400；shipping_address 已修好，但目前換成同一張表少了 tracking_num 欄位，一樣是 400，
+// 這三支功能還是打不通。不能動後端程式碼，前端用一般的 loading/error 狀態顯示，不會白畫面或整頁掛掉，
+// 等後端補上 tracking_num 欄位就會自動恢復正常，不需要再改前端。
+import { ref, computed, onMounted } from 'vue'
 import farmerGroupBuyApi from '@/api/farmerGroupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 import { confirm } from '@/composables/useConfirm'
 
-const list = ref([])
-const loading = ref(true)
-const error = ref('')
-
-async function loadList() {
-  loading.value = true
-  error.value = ''
-  try {
-    list.value = await farmerGroupBuyApi.list()
-  } catch (e) {
-    error.value = e.message || '無法載入團購清單，請稍後再試。'
-  } finally {
-    loading.value = false
-  }
-}
+// ========== 上方主分頁：審核 / 訂單 ==========
+const MAIN_TABS = [
+  { key: 'review', label: '團購審核' },
+  { key: 'orders', label: '團購訂單' },
+]
+const mainTab = ref('review')
 
 function formatPrice(price) {
   if (price == null) return '—'
@@ -36,6 +34,33 @@ function formatPrice(price) {
 function formatDate(datetime) {
   if (!datetime) return '—'
   return new Date(datetime).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+// ========== 團購審核 ==========
+const reviewList = ref([])
+const reviewLoading = ref(true)
+const reviewError = ref('')
+
+const REVIEW_TABS = [
+  { key: 'pending', label: '待審核' },
+  { key: 'approved', label: '開團中' },
+  { key: 'rejected', label: '已拒絕' },
+]
+const reviewSubTab = ref('pending')
+const filteredReviewList = computed(() =>
+  reviewList.value.filter((gb) => gb.requestStatus === reviewSubTab.value)
+)
+
+async function loadReviewList() {
+  reviewLoading.value = true
+  reviewError.value = ''
+  try {
+    reviewList.value = await farmerGroupBuyApi.list()
+  } catch (e) {
+    reviewError.value = e.message || '無法載入團購清單，請稍後再試。'
+  } finally {
+    reviewLoading.value = false
+  }
 }
 
 // 審核狀態（RequestStatus enum）→ 顯示文字與樣式
@@ -84,9 +109,9 @@ async function approve(gb) {
   setBusy(gb.groupBuyId, true)
   try {
     await farmerGroupBuyApi.review(gb.groupBuyId, { requestStatus: 'approved' })
-    await loadList()
+    await loadReviewList()
   } catch (e) {
-    error.value = e.message || '審核失敗，請稍後再試。'
+    reviewError.value = e.message || '審核失敗，請稍後再試。'
   } finally {
     setBusy(gb.groupBuyId, false)
   }
@@ -95,7 +120,7 @@ async function approve(gb) {
 async function submitReject(gb) {
   const reason = rejectReasonText.value.trim()
   if (!reason) {
-    error.value = '請填寫拒絕原因'
+    reviewError.value = '請填寫拒絕原因'
     return
   }
   const ok = await confirm({
@@ -110,32 +135,144 @@ async function submitReject(gb) {
   try {
     await farmerGroupBuyApi.review(gb.groupBuyId, { requestStatus: 'rejected', rejectReason: reason })
     cancelReject()
-    await loadList()
+    await loadReviewList()
   } catch (e) {
-    error.value = e.message || '審核失敗，請稍後再試。'
+    reviewError.value = e.message || '審核失敗，請稍後再試。'
   } finally {
     setBusy(gb.groupBuyId, false)
   }
 }
 
-onMounted(loadList)
+// ========== 團購訂單 ==========
+const orderList = ref([])
+const orderLoading = ref(true)
+const orderError = ref('')
+
+const ORDER_TABS = [
+  { key: 'pending', label: '待出貨' },
+  { key: 'delivered', label: '已送達' },
+]
+const orderSubTab = ref('pending')
+const filteredOrderList = computed(() =>
+  orderList.value.filter((o) => o.shippedStatus === orderSubTab.value)
+)
+
+// 訂單本身沒有商品名稱，用審核清單（同樣是這位小農的資料）依 groupBuyId 對照出商品名稱顯示。
+const productNameByGroupBuyId = computed(() =>
+  Object.fromEntries(reviewList.value.map((gb) => [gb.groupBuyId, gb.productName]))
+)
+
+async function loadOrderList() {
+  orderLoading.value = true
+  orderError.value = ''
+  try {
+    orderList.value = await farmerGroupBuyApi.orderList()
+  } catch (e) {
+    orderError.value = e.message || '無法載入訂單清單，請稍後再試。'
+  } finally {
+    orderLoading.value = false
+  }
+}
+
+const shippingBusyIds = ref(new Set())
+function isShippingBusy(id) {
+  return shippingBusyIds.value.has(id)
+}
+async function markDelivered(order) {
+  const ok = await confirm({
+    title: '標記已送達',
+    message: `確定訂單 #${order.orderId} 已送達嗎？此動作無法復原。`,
+    confirmText: '標記已送達',
+  })
+  if (!ok) return
+
+  const next = new Set(shippingBusyIds.value)
+  next.add(order.orderId)
+  shippingBusyIds.value = next
+  try {
+    await farmerGroupBuyApi.shipOrder(order.orderId)
+    await loadOrderList()
+  } catch (e) {
+    orderError.value = e.message || '更新出貨狀態失敗，請稍後再試。'
+  } finally {
+    const done = new Set(shippingBusyIds.value)
+    done.delete(order.orderId)
+    shippingBusyIds.value = done
+  }
+}
+
+// ========== 詳細資料 / 進度彈窗（三種內容共用同一個彈窗殼） ==========
+const modal = ref({ open: false, type: '', title: '', loading: false, error: '', data: null })
+
+async function openModal(type, title, loader) {
+  modal.value = { open: true, type, title, loading: true, error: '', data: null }
+  try {
+    modal.value.data = await loader()
+  } catch (e) {
+    modal.value.error = e.message || '無法載入資料，請稍後再試。'
+  } finally {
+    modal.value.loading = false
+  }
+}
+function closeModal() {
+  modal.value.open = false
+}
+
+function openReviewDetail(gb) {
+  openModal('reviewDetail', `團購申請詳細資料｜${gb.productName}`, () => farmerGroupBuyApi.getOne(gb.groupBuyId))
+}
+function openProgress(gb) {
+  openModal('progress', `團購進度｜${gb.productName}`, () => farmerGroupBuyApi.progress(gb.groupBuyId))
+}
+function openOrderDetail(order) {
+  openModal('orderDetail', `訂單詳細資料｜#${order.orderId}`, () => farmerGroupBuyApi.getOrder(order.orderId))
+}
+
+onMounted(() => {
+  loadReviewList()
+  loadOrderList()
+})
 </script>
 
 <template>
   <main class="farmer-page">
     <header class="page-head">
       <h1>🛒 團購管理</h1>
+      <nav class="main-tabs">
+        <button
+          v-for="tab in MAIN_TABS"
+          :key="tab.key"
+          type="button"
+          class="main-tab-btn"
+          :class="{ 'main-tab-btn--active': mainTab === tab.key }"
+          @click="mainTab = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
     </header>
 
-    <section class="card">
-      <p v-if="loading" class="state">載入中…</p>
+    <!-- ========== 團購審核 ========== -->
+    <section v-if="mainTab === 'review'" class="card">
+      <nav class="sub-tabs">
+        <button
+          v-for="tab in REVIEW_TABS"
+          :key="tab.key"
+          type="button"
+          class="sub-tab-btn"
+          :class="{ 'sub-tab-btn--active': reviewSubTab === tab.key }"
+          @click="reviewSubTab = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
 
-      <div v-else-if="error" class="state state--error">
-        <p>😢 {{ error }}</p>
-        <button type="button" @click="loadList">重新載入</button>
+      <p v-if="reviewLoading" class="state">載入中…</p>
+      <div v-else-if="reviewError" class="state state--error">
+        <p>😢 {{ reviewError }}</p>
+        <button type="button" @click="loadReviewList">重新載入</button>
       </div>
-
-      <p v-else-if="list.length === 0" class="state">目前沒有團購申請或進行中的團購。</p>
+      <p v-else-if="filteredReviewList.length === 0" class="state">這個分類目前沒有資料。</p>
 
       <div v-else class="table-wrap">
         <table class="gb-table">
@@ -144,32 +281,35 @@ onMounted(loadList)
               <th>商品</th>
               <th>發起人</th>
               <th>團購價</th>
-              <th>目標數量</th>
+              <th>達標金額</th>
               <th>團購狀態</th>
-              <th>審核狀態</th>
               <th>申請時間</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            <template v-for="gb in list" :key="gb.groupBuyId">
+            <template v-for="gb in filteredReviewList" :key="gb.groupBuyId">
               <tr>
                 <td class="col-name">{{ gb.productName }}</td>
                 <td>{{ gb.hostUserName || '—' }}</td>
                 <td>{{ formatPrice(gb.groupPrice) }}</td>
-                <td>{{ gb.targetAmount ?? '—' }}</td>
+                <td>{{ formatPrice(gb.targetAmount) }}</td>
                 <td>
                   <span class="badge" :class="groupBuyStatusInfo(gb.status).className">
                     {{ groupBuyStatusInfo(gb.status).text }}
                   </span>
                 </td>
-                <td>
-                  <span class="badge" :class="requestStatusInfo(gb.requestStatus).className">
-                    {{ requestStatusInfo(gb.requestStatus).text }}
-                  </span>
-                </td>
                 <td>{{ formatDate(gb.requestDatetime) }}</td>
                 <td class="col-actions">
+                  <button type="button" class="btn btn--ghost" @click="openReviewDetail(gb)">詳細資料</button>
+                  <button
+                    v-if="gb.status === 'open'"
+                    type="button"
+                    class="btn btn--ghost"
+                    @click="openProgress(gb)"
+                  >
+                    進度
+                  </button>
                   <template v-if="gb.requestStatus === 'pending'">
                     <button
                       type="button"
@@ -191,11 +331,10 @@ onMounted(loadList)
                   <span v-else-if="gb.requestStatus === 'rejected' && gb.rejectReason" class="reject-reason">
                     原因：{{ gb.rejectReason }}
                   </span>
-                  <span v-else class="col-actions__none">—</span>
                 </td>
               </tr>
               <tr v-if="rejectingId === gb.groupBuyId" class="reject-row">
-                <td colspan="8">
+                <td colspan="7">
                   <div class="reject-box">
                     <input
                       v-model="rejectReasonText"
@@ -221,6 +360,134 @@ onMounted(loadList)
         </table>
       </div>
     </section>
+
+    <!-- ========== 團購訂單 ========== -->
+    <section v-else class="card">
+      <nav class="sub-tabs">
+        <button
+          v-for="tab in ORDER_TABS"
+          :key="tab.key"
+          type="button"
+          class="sub-tab-btn"
+          :class="{ 'sub-tab-btn--active': orderSubTab === tab.key }"
+          @click="orderSubTab = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+
+      <p v-if="orderLoading" class="state">載入中…</p>
+      <div v-else-if="orderError" class="state state--error">
+        <p>😢 {{ orderError }}</p>
+        <button type="button" @click="loadOrderList">重新載入</button>
+      </div>
+      <p v-else-if="filteredOrderList.length === 0" class="state">這個分類目前沒有訂單。</p>
+
+      <div v-else class="table-wrap">
+        <table class="gb-table">
+          <thead>
+            <tr>
+              <th>訂單編號</th>
+              <th>商品</th>
+              <th>數量</th>
+              <th>總金額</th>
+              <th>建立時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="o in filteredOrderList" :key="o.orderId">
+              <td class="col-name">#{{ o.orderId }}</td>
+              <td>{{ productNameByGroupBuyId[o.groupBuyId] || `團購 #${o.groupBuyId}` }}</td>
+              <td>{{ o.totalQuantity ?? '—' }}</td>
+              <td>{{ formatPrice(o.totalAmount) }}</td>
+              <td>{{ formatDate(o.createdAt) }}</td>
+              <td class="col-actions">
+                <button type="button" class="btn btn--ghost" @click="openOrderDetail(o)">詳細資料</button>
+                <button
+                  v-if="o.shippedStatus === 'pending'"
+                  type="button"
+                  class="btn btn--approve"
+                  :disabled="isShippingBusy(o.orderId)"
+                  @click="markDelivered(o)"
+                >
+                  標記已送達
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== 詳細資料 / 進度彈窗 ========== -->
+    <Teleport to="body">
+      <div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
+        <div class="modal-card">
+          <header class="modal-head">
+            <h3>{{ modal.title }}</h3>
+            <button type="button" class="modal-close" @click="closeModal">✕</button>
+          </header>
+          <div class="modal-body">
+            <p v-if="modal.loading" class="state">載入中…</p>
+            <p v-else-if="modal.error" class="state state--error">😢 {{ modal.error }}</p>
+
+            <!-- 團購申請詳細資料（/list/{groupBuyId}，跟 GroupBuyFarmerDTO 同形狀：扁平欄位，不是巢狀 entity） -->
+            <dl v-else-if="modal.type === 'reviewDetail' && modal.data" class="modal-meta">
+              <div class="modal-meta-row"><dt>團購編號</dt><dd>{{ modal.data.groupBuyId }}</dd></div>
+              <div class="modal-meta-row"><dt>商品名稱</dt><dd>{{ modal.data.productName ?? '—' }}</dd></div>
+              <div class="modal-meta-row"><dt>團購價</dt><dd>{{ formatPrice(modal.data.groupPrice) }}</dd></div>
+              <div class="modal-meta-row"><dt>達標金額</dt><dd>{{ formatPrice(modal.data.targetAmount) }}</dd></div>
+              <div class="modal-meta-row"><dt>發起人</dt><dd>{{ modal.data.hostUserName ?? '—' }}</dd></div>
+              <div class="modal-meta-row"><dt>團購狀態</dt><dd>{{ groupBuyStatusInfo(modal.data.status).text }}</dd></div>
+              <div class="modal-meta-row"><dt>審核狀態</dt><dd>{{ requestStatusInfo(modal.data.requestStatus).text }}</dd></div>
+              <div class="modal-meta-row"><dt>開團時間</dt><dd>{{ formatDate(modal.data.openDatetime) }}</dd></div>
+              <div class="modal-meta-row"><dt>截止時間</dt><dd>{{ formatDate(modal.data.ddlDatetime) }}</dd></div>
+              <div class="modal-meta-row"><dt>取貨地點</dt><dd>{{ modal.data.pickupAddress || '—' }}</dd></div>
+              <div class="modal-meta-row"><dt>申請時間</dt><dd>{{ formatDate(modal.data.requestDatetime) }}</dd></div>
+              <div class="modal-meta-row"><dt>審核回覆時間</dt><dd>{{ formatDate(modal.data.replyDatetime) }}</dd></div>
+              <div v-if="modal.data.rejectReason" class="modal-meta-row">
+                <dt>拒絕原因</dt><dd>{{ modal.data.rejectReason }}</dd>
+              </div>
+            </dl>
+
+            <!-- 團購進度（GroupBuyParticipationDTO） -->
+            <dl v-else-if="modal.type === 'progress' && modal.data" class="modal-meta">
+              <div class="modal-meta-row"><dt>團購編號</dt><dd>{{ modal.data.groupBuyId }}</dd></div>
+              <div class="modal-meta-row"><dt>發起人</dt><dd>{{ modal.data.hostName ?? '—' }}</dd></div>
+              <div class="modal-meta-row"><dt>取貨地點</dt><dd>{{ modal.data.pickupAddress || '—' }}</dd></div>
+              <div class="modal-meta-row"><dt>目前總數量</dt><dd>{{ modal.data.totalQuantity ?? 0 }}</dd></div>
+              <div class="modal-meta-row"><dt>目前總金額</dt><dd>{{ formatPrice(modal.data.totalAmount) }}</dd></div>
+            </dl>
+
+            <!-- 訂單詳細資料（GroupBuyOrderDTO） -->
+            <template v-else-if="modal.type === 'orderDetail' && modal.data">
+              <dl class="modal-meta">
+                <div class="modal-meta-row"><dt>訂單編號</dt><dd>#{{ modal.data.orderId }}</dd></div>
+                <div class="modal-meta-row"><dt>數量</dt><dd>{{ modal.data.totalQuantity ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>團購價</dt><dd>{{ formatPrice(modal.data.groupPrice) }}</dd></div>
+                <div class="modal-meta-row"><dt>總金額</dt><dd>{{ formatPrice(modal.data.totalAmount) }}</dd></div>
+                <div class="modal-meta-row"><dt>取貨地點</dt><dd>{{ modal.data.shippingAddress || '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>出貨狀態</dt><dd>{{ modal.data.shippedStatus ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>出貨時間</dt><dd>{{ formatDate(modal.data.shippedAt) }}</dd></div>
+                <div class="modal-meta-row"><dt>訂單狀態</dt><dd>{{ modal.data.orderStatus ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>撥款狀態</dt><dd>{{ modal.data.paidStatus ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>建立時間</dt><dd>{{ formatDate(modal.data.createdAt) }}</dd></div>
+                <div class="modal-meta-row"><dt>收貨時間</dt><dd>{{ formatDate(modal.data.receivedAt) }}</dd></div>
+                <div class="modal-meta-row"><dt>完成時間</dt><dd>{{ formatDate(modal.data.completedAt) }}</dd></div>
+              </dl>
+              <div class="host-contact">
+                <h4>團購主聯絡方式</h4>
+                <p>{{ modal.data.hostUserName || '—' }}</p>
+                <p>📞 {{ modal.data.hostUserPhone || '—' }}</p>
+                <p>✉️ {{ modal.data.hostUserEmail || '—' }}</p>
+                <p class="host-contact__note">配達確切時間請致電團購主</p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </main>
 </template>
 
@@ -228,11 +495,44 @@ onMounted(loadList)
 .farmer-page {
   padding: 32px 24px;
 }
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+}
 .page-head h1 {
-  margin: 0 0 20px;
+  margin: 0;
   font-size: 24px;
   color: var(--ink);
 }
+
+/* ---------- 主分頁（審核／訂單）---------- */
+.main-tabs {
+  display: flex;
+  gap: 8px;
+}
+.main-tab-btn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.main-tab-btn:hover {
+  border-color: var(--leaf);
+}
+.main-tab-btn--active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
 .card {
   background: #fff;
   border: 1px solid var(--line);
@@ -240,6 +540,32 @@ onMounted(loadList)
   box-shadow: var(--shadow);
   padding: 24px;
   border-top: 3px solid var(--leaf);
+}
+
+/* ---------- 子分頁 ---------- */
+.sub-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.sub-tab-btn {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.sub-tab-btn:hover {
+  border-color: var(--leaf);
+}
+.sub-tab-btn--active {
+  background: var(--leaf-soft);
+  border-color: var(--leaf);
+  color: var(--leaf-dark);
+  font-weight: 600;
 }
 
 .state {
@@ -287,9 +613,6 @@ onMounted(loadList)
   display: flex;
   gap: 8px;
   align-items: center;
-}
-.col-actions__none {
-  color: var(--muted);
 }
 
 /* ---------- 狀態標籤 ---------- */
@@ -372,5 +695,97 @@ onMounted(loadList)
 .reject-box__input:focus {
   outline: none;
   border-color: var(--leaf);
+}
+
+/* ---------- 詳細資料彈窗 ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(30, 30, 25, 0.45);
+}
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(30, 25, 15, 0.28);
+}
+.modal-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.modal-close:hover {
+  color: var(--ink);
+}
+.modal-body {
+  padding: 18px 20px;
+}
+.modal-meta {
+  margin: 0;
+}
+.modal-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 13px;
+}
+.modal-meta-row dt {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.modal-meta-row dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+}
+.host-contact {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--leaf-soft);
+  border-radius: 12px;
+}
+.host-contact h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--leaf-dark);
+}
+.host-contact p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.host-contact__note {
+  margin-top: 8px;
+  font-weight: 600;
+  color: #c2410c;
 }
 </style>
