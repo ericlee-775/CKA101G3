@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductInsertDTO;
-import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.service.ProductServiceImpl;
 
@@ -176,7 +176,7 @@ class ProductRepositoryTest {
 	public void testGetAllWishLists() {
 
 		productServiceImpl.addWishList(1, 1);
-		List<ProductSummeryDTO> existingWishList = productServiceImpl.getAllWishLists(1);
+		List<ProductSummaryDTO> existingWishList = productServiceImpl.getAllWishLists(1);
 		assertNotNull(existingWishList);
 		boolean wishList = existingWishList.stream().anyMatch(item -> item.getProductId().equals(1));
 		assertTrue(wishList);

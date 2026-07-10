@@ -2,6 +2,8 @@ package com.farmily.product.model;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,11 +11,12 @@ import org.springframework.data.repository.query.Param;
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductManageDTO;
-import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductSummaryDTO;
 
 public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
-	@Query("SELECT new com.farmily.product.dto.ProductSummeryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE")
-	List<ProductSummeryDTO> findAllProjectedToDto();
+	@Query(value="SELECT new com.farmily.product.dto.ProductSummaryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE",
+			countQuery = "SELECT count(p) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE")
+	Page<ProductSummaryDTO> findAllProjectedToDto(Pageable pageable);
 
 	@Query("SELECT new com.farmily.product.dto.ProductManageDTO(p.productId, p.productName, p.retailPrice, "
 			+ "p.groupPrice, p.unitPricingMeasure, p.status)" + " From ProductVO p" + " WHERE p.farmerId = :farmerId")

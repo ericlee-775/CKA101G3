@@ -9,10 +9,9 @@
     - 兩顆按鈕改成 router-link,接到實際路由
 */
 import { onMounted, onBeforeUnmount, ref } from 'vue'
-import heroImg from '@/assets/hero-farmhouse.png'
 
 const root = ref(null)    // section 根,理念文字進場觀察用
-const photo = ref(null)   // 照片 figure,滑鼠微傾斜用
+const photo = ref(null)   // 插畫面板 figure,滑鼠微傾斜用
 
 let rafId = null
 let onMove = null
@@ -105,15 +104,88 @@ onBeforeUnmount(() => {
             <text><textPath href="#ehSealPath">產地直送・當季採收・FARMILY・</textPath></text>
           </svg>
 
-          <figure class="hero__photo" ref="photo">
-            <img
-              :src="heroImg"
-              alt="夕陽下的麥田，兩位友人在田間相逢握手，遠處有農舍。畫面題有詩句「把酒話桑麻・相逢在田家」與「小農商城」印章"
-            />
+          <!-- 手繪稻田插畫(取代照片):日出、飛鳥、隨風搖的稻穗,沿用滑鼠微傾斜 -->
+          <figure
+            class="hero__photo hero__scene"
+            ref="photo"
+            role="img"
+            aria-label="手繪稻田插畫：日出、飛鳥與隨風輕搖的稻穗，題有詩句「把酒話桑麻・相逢在田家」與「小農商城」印章"
+          >
+            <svg class="scene-svg" viewBox="0 0 520 693" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+              <!-- 遠山:兩層淡墨 -->
+              <path d="M0 430 Q 90 380 180 420 T 380 415 T 520 430 L 520 693 L 0 693 Z" fill="#DCD6C0" />
+              <path d="M0 470 Q 120 425 240 462 T 520 468 L 520 693 L 0 693 Z" fill="#D2CBB2" />
+
+              <!-- 太陽:單線圓 + 淡金暈,載入時從地平線升起 -->
+              <g class="sun-disc">
+                <circle cx="170" cy="300" r="86" fill="none" stroke="#A98C4B" stroke-width="1.5" opacity="0.5" />
+                <circle cx="170" cy="300" r="58" fill="#E9DFC2" />
+                <circle cx="170" cy="300" r="58" fill="none" stroke="#A98C4B" stroke-width="1.5" />
+              </g>
+
+              <!-- 飛鳥:兩筆水墨,緩緩滑過天空 -->
+              <g class="bird" stroke="#55624F" stroke-width="2" fill="none" stroke-linecap="round">
+                <path d="M40 200 q 8 -9 16 0 q 8 -9 16 0" />
+              </g>
+              <g class="bird b2" stroke="#55624F" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.7">
+                <path d="M10 250 q 6 -7 12 0 q 6 -7 12 0" />
+              </g>
+
+              <!-- 田埂線條:一層層水田 -->
+              <g stroke="#2C3B2A" stroke-width="1.2" fill="none" opacity="0.55">
+                <path d="M0 520 Q 260 500 520 522" />
+                <path d="M0 560 Q 260 538 520 562" />
+                <path d="M0 604 Q 260 580 520 606" />
+              </g>
+
+              <!-- 前景稻穗:墨綠+秋金,輕輕搖曳 -->
+              <g fill="none" stroke-linecap="round">
+                <g class="stalk">
+                  <path d="M60 693 C 62 620 58 570 72 520" stroke="#2C3B2A" stroke-width="3" />
+                  <path d="M72 520 q -14 -8 -16 -26 M72 520 q 12 -10 10 -28 M72 526 q -18 0 -26 -14"
+                        stroke="#A98C4B" stroke-width="2.4" />
+                </g>
+                <g class="stalk">
+                  <path d="M130 693 C 128 610 136 560 124 505" stroke="#2C3B2A" stroke-width="3" />
+                  <path d="M124 505 q -13 -9 -13 -27 M124 505 q 13 -8 13 -26 M124 512 q 17 2 26 -11"
+                        stroke="#A98C4B" stroke-width="2.4" />
+                </g>
+                <g class="stalk">
+                  <path d="M205 693 C 208 600 198 555 214 495" stroke="#2C3B2A" stroke-width="3.2" />
+                  <path d="M214 495 q -15 -7 -17 -26 M214 495 q 12 -11 9 -29 M214 502 q -19 1 -28 -12"
+                        stroke="#A98C4B" stroke-width="2.6" />
+                </g>
+                <g class="stalk">
+                  <path d="M300 693 C 296 615 306 565 292 515" stroke="#2C3B2A" stroke-width="3" />
+                  <path d="M292 515 q -13 -9 -14 -27 M292 515 q 14 -8 14 -26 M292 522 q 18 1 27 -12"
+                        stroke="#A98C4B" stroke-width="2.4" />
+                </g>
+                <g class="stalk">
+                  <path d="M382 693 C 386 605 374 560 392 500" stroke="#2C3B2A" stroke-width="3.2" />
+                  <path d="M392 500 q -15 -8 -16 -27 M392 500 q 13 -10 11 -29 M392 508 q -19 0 -27 -13"
+                        stroke="#A98C4B" stroke-width="2.6" />
+                </g>
+                <g class="stalk">
+                  <path d="M455 693 C 452 625 462 575 448 530" stroke="#2C3B2A" stroke-width="2.8" />
+                  <path d="M448 530 q -12 -8 -13 -25 M448 530 q 12 -8 12 -25"
+                        stroke="#A98C4B" stroke-width="2.2" />
+                </g>
+              </g>
+            </svg>
+
+            <!-- 直排詩句 -->
+            <div class="verse" aria-hidden="true">
+              <span>把酒話桑麻</span>
+              <span>相逢在田家</span>
+              <span class="minor">跟著節氣採收・照顧土地與人</span>
+            </div>
+
+            <!-- 印章紅落款 -->
+            <div class="scene-seal" aria-hidden="true">小農商城</div>
           </figure>
           <!-- 圖說必須在 figure 之外(figure 有 overflow:hidden 會裁掉它),
                因此用 p 而非 figcaption(figcaption 依規範只能是 figure 的子元素) -->
-          <p class="hero__caption">攝於夏日黃昏，麥浪與歸人 — 07 / 2026</p>
+          <p class="hero__caption">手繪夏日田家・稻浪與飛鳥 — 07 / 2026</p>
         </div>
       </div>
     </main>
@@ -357,17 +429,120 @@ onBeforeUnmount(() => {
     translate: 0 -8px;
   }
 }
-.hero__photo img {
+/* --- 手繪稻田插畫面板(取代原本的照片,沿用揭幕/起伏/傾斜) --- */
+.hero__scene {
+  background: #e6e1cf; /* 深一階的紙色,做插畫底 */
+  border: 1px solid rgba(44, 59, 42, 0.25);
+}
+/* 紙張細框:內縮一圈,像裱起來的畫 */
+.hero__scene::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(44, 59, 42, 0.18);
+  pointer-events: none;
+  z-index: 2;
+}
+.scene-svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
-  scale: 1.12;
-  animation: eh-settle 2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
 }
-@keyframes eh-settle {
+
+/* 直排詩句 */
+.verse {
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 20px;
+  z-index: 1;
+}
+.verse span {
+  writing-mode: vertical-rl;
+  font-family: 'Noto Serif TC', 'PMingLiU', serif;
+  font-size: 24px;
+  letter-spacing: 0.45em;
+  color: var(--fh-ink);
+}
+.verse span.minor {
+  font-size: 12px;
+  color: var(--fh-moss);
+  letter-spacing: 0.4em;
+}
+
+/* 印章紅落款(全畫面唯一暖色點綴) */
+.scene-seal {
+  position: absolute;
+  right: 36px;
+  bottom: 44px;
+  width: 44px;
+  height: 44px;
+  background: #a5442a;
+  color: var(--fh-paper);
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+/* --- 插畫動態:日出 / 稻穗搖曳 / 飛鳥滑翔 --- */
+/* 太陽:載入時從地平線升起(延遲配合揭幕動畫) */
+.sun-disc {
+  transform-origin: center;
+  animation: eh-sunrise 2.4s ease-out 0.6s both;
+}
+@keyframes eh-sunrise {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
   to {
-    scale: 1.02;
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+/* 稻穗:以根部為軸輕搖;錯開每株的節奏,才不會像一起做體操 */
+.stalk {
+  transform-origin: bottom center;
+  animation: eh-sway 5s ease-in-out infinite alternate;
+}
+.stalk:nth-child(2n) {
+  animation-delay: -1.2s;
+  animation-duration: 6s;
+}
+.stalk:nth-child(3n) {
+  animation-delay: -2.6s;
+  animation-duration: 5.5s;
+}
+@keyframes eh-sway {
+  from {
+    transform: rotate(-1.6deg);
+  }
+  to {
+    transform: rotate(1.8deg);
+  }
+}
+/* 飛鳥:直線緩緩滑過整片天空,第二隻錯開一半 */
+.bird {
+  animation: eh-glide 14s linear infinite;
+}
+.bird.b2 {
+  animation-delay: -6s;
+}
+@keyframes eh-glide {
+  from {
+    transform: translate(-60px, 12px);
+  }
+  to {
+    transform: translate(560px, -26px);
   }
 }
 

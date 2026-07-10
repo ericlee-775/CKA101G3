@@ -1,34 +1,57 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 // 「暫無圖片」佔位圖（放在 src/assets，打包後 Vite 會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
-// 商品清單。一開始是空陣列，等 API 回來再填進去。
+const PAGE_SIZE = 12
+
+// 商品清單（無限捲動：一批一批往後累加，不覆蓋）。
 const products = ref([])
-// 載入狀態：true 時畫面顯示「載入中…」。
-const loading = ref(true)
-// 錯誤訊息：抓資料失敗時放錯誤內容，畫面就顯示錯誤區塊。
+const loading = ref(true) // 首次載入（第 0 頁）
+const loadingMore = ref(false) // 捲到底載下一批
 const error = ref('')
 
-// 跟後端要商品資料。
-// dev 模式下 /api 會被 Vite proxy 轉發到 http://localhost:8080（見 vite.config.js）。
-async function loadProducts() {
-  loading.value = true
+// 分頁狀態（無限捲動）。
+const nextPage = ref(0) // 下一個要載的頁碼（0 起算）
+const hasMore = ref(true) // 還有沒有更多可載
+
+// 載入「下一頁」。用 nextPage 決定載哪頁，載完往後推一頁。
+// loading / loadingMore / hasMore 當鎖，避免重複載入或載過頭。
+async function loadNext() {
+  // 用 loadingMore 當「載入中」鎖（哨兵要等第 0 頁載完才觀察，第 0 頁不會併發）。
+  // 注意：不要用 loading 當鎖 —— 它初始就是 true，會擋掉第一次載入。
+  if (loadingMore.value || !hasMore.value) return
+  const page = nextPage.value
+  if (page === 0) loading.value = true
+  else loadingMore.value = true
   error.value = ''
   try {
-    const res = await fetch('/api/products')
-    // fetch 不會因為 404/500 而 throw，要自己檢查 res.ok。
-    if (!res.ok) {
-      throw new Error(`伺服器回應 ${res.status}`)
-    }
-    products.value = await res.json()
-    // 商品清單拿到後，接著把每個商品的圖片也用 fetch 抓回來。
-    loadImages()
+    const res = await fetch(`/api/products?page=${page}&size=${PAGE_SIZE}`)
+    if (!res.ok) throw new Error(`伺服器回應 ${res.status}`)
+    const data = await res.json()
+    // 相容三種後端回傳：純陣列(List) / 舊版 Page(欄位在外層) / 新版 PagedModel(欄位在 page 裡)
+    const list = Array.isArray(data) ? data : (data.content ?? [])
+    const meta = data.page ?? data // 新版分頁資訊在 data.page，舊版在 data 本身
+    const totalPages = Array.isArray(data) ? 1 : (meta.totalPages ?? 1)
+
+    products.value.push(...list) // 往後接（首次時 products 本來就是空的）
+    nextPage.value = page + 1
+    hasMore.value = nextPage.value < totalPages
+    loadImagesFor(list) // 只抓這批新商品的圖
   } catch (e) {
     error.value = e.message || '無法載入商品，請稍後再試。'
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
+}
+
+// 重新載入（錯誤重試用）：清空、回到第一頁。
+function reload() {
+  products.value = []
+  nextPage.value = 0
+  hasMore.value = true
+  loadNext()
 }
 
 // 把 retailPrice 顯示成「NT$ 120」這種格式。
@@ -36,50 +59,57 @@ function formatPrice(price) {
   return `NT$ ${Number(price).toLocaleString('zh-TW')}`
 }
 
-// 後端該商品沒有圖（回 404）或抓圖失敗時用的「暫無圖片」佔位圖。
+// ---------- 圖片 ----------
 const FALLBACK_IMAGE = noImage
-
-// 每個商品的圖片網址，用 productId 當 key。
-// 值是 fetch 回來的圖片轉成的 blob 網址（URL.createObjectURL）。
 const imageUrls = ref({})
 
-// 用 fetch 把每個商品的圖片抓回來。
-// 後端用獨立端點以二進位回傳圖片：GET /api/products/{productId}/image。
-// dev 模式下 /api 會被 Vite proxy 轉到 http://localhost:8080；
-// 打包進 Spring Boot 後是同源（同一個服務），相對路徑 /api 一樣能用。
-function loadImages() {
-  for (const product of products.value) {
-    fetchImage(product.productId)
+// 只抓「這批新商品」且還沒抓過的圖，避免重複請求。
+function loadImagesFor(list) {
+  for (const product of list) {
+    if (!imageUrls.value[product.productId]) fetchImage(product.productId)
   }
 }
 
 async function fetchImage(id) {
   try {
     const res = await fetch(`/api/products/${id}/image`)
-    // 沒圖會回 404，res.ok 為 false，就讓畫面用預設圖。
     if (!res.ok) return
     const blob = await res.blob()
     imageUrls.value[id] = URL.createObjectURL(blob)
   } catch {
-    // 抓圖失敗就維持預設圖，不影響其他商品。
+    // 抓圖失敗維持預設圖，不影響其他商品。
   }
 }
 
-// 取得要顯示的圖片網址：有抓到就用 blob 網址，否則用預設圖。
 function productImage(product) {
   return imageUrls.value[product.productId] || FALLBACK_IMAGE
 }
 
-// 元件卸載時，把建立的 blob 網址釋放掉，避免記憶體洩漏。
 function revokeImageUrls() {
-  for (const url of Object.values(imageUrls.value)) {
-    URL.revokeObjectURL(url)
-  }
+  for (const url of Object.values(imageUrls.value)) URL.revokeObjectURL(url)
 }
-onUnmounted(revokeImageUrls)
 
-// 元件掛載到畫面後就去抓資料。
-onMounted(loadProducts)
+// ---------- 無限捲動：IntersectionObserver 盯住底部哨兵 ----------
+// 只觀察一次；使用者往下捲、哨兵進入視窗就載下一批（loadNext 內建鎖，不會重複）。
+const sentinel = ref(null)
+let observer = null
+
+onMounted(async () => {
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) loadNext()
+    },
+    { rootMargin: '200px' }, // 距底部 200px 就先載，捲動較順
+  )
+  await loadNext() // 先載第 0 頁
+  await nextTick() // 等哨兵渲染出來
+  if (sentinel.value) observer.observe(sentinel.value)
+})
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
+  revokeImageUrls()
+})
 </script>
 
 <template>
@@ -95,7 +125,7 @@ onMounted(loadProducts)
     <!-- 載入失敗：顯示錯誤訊息與重試按鈕 -->
     <div v-else-if="error" class="state state--error">
       <p>😢 {{ error }}</p>
-      <button type="button" @click="loadProducts">重新載入</button>
+      <button type="button" @click="reload">重新載入</button>
     </div>
 
     <!-- 成功但沒有資料 -->
@@ -127,13 +157,20 @@ onMounted(loadProducts)
         </div>
       </RouterLink>
     </section>
+
+    <!-- 無限捲動：底部提示 + 哨兵（哨兵滑進視窗就自動載下一批） -->
+    <div v-if="!loading && !error && products.length > 0" class="scroll-foot">
+      <p v-if="loadingMore" class="state">載入更多…</p>
+      <p v-else-if="!hasMore" class="state">已經到底囉 🌾</p>
+      <div ref="sentinel" class="sentinel" aria-hidden="true"></div>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .page {
   padding: 32px clamp(18px, 4vw, 56px);
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
@@ -158,6 +195,15 @@ onMounted(loadProducts)
   color: var(--muted);
   padding: 40px 0;
 }
+
+/* ---------- 無限捲動底部 ---------- */
+.scroll-foot {
+  padding: 8px 0 4px;
+}
+/* 哨兵：看不見的偵測點，滑到它就載下一批 */
+.sentinel {
+  height: 1px;
+}
 .state--error button {
   margin-top: 12px;
   padding: 8px 18px;
@@ -168,11 +214,27 @@ onMounted(loadProducts)
   cursor: pointer;
 }
 
-/* ---------- 商品格線 ---------- */
+/* ---------- 商品格線：一行 5 個 ---------- */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(5, 1fr); /* 固定一行 5 個 */
   gap: 22px;
+}
+/* 螢幕變窄時自動減少每行數量，避免卡片太擠 */
+@media (max-width: 1080px) {
+  .product-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 860px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ---------- 單張商品卡（整張是連結） ---------- */
