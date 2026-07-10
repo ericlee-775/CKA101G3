@@ -33,15 +33,13 @@ public class AdminGroupBuyController {
 	}
 	
 	//測試直接讓團購成團
-	@PostMapping("/checkExpired") 
-	public ResponseEntity<String> checkExpired() {
-	groupBuySvc.checkExpiredGroupBuys(); return ResponseEntity.ok("團購結算完成"); }
+	
 	
 	
 	//給管理員看的單筆訂單資料
 	@GetMapping("/order/{orderId}")
 	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer orderId){
-		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(orderId);
+		GroupBuyOrderDTO groupBuy=groupBuySvc.showOneOrder(orderId);
 		return ResponseEntity.ok(groupBuy);
 	}
 	
