@@ -14,7 +14,7 @@ import com.farmily.notification.service.NotificationService;
 import com.farmily.user.security.FarmerUserDetails;
 
 @RestController
-@RequestMapping("/api/famer/notifications")
+@RequestMapping("/api/farmer/notifications")
 public class FarmerNotificationController {
 	
 	@Autowired

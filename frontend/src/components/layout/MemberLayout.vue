@@ -22,6 +22,9 @@ const displayName = computed(() => {
 const menu = [
   { label: '個人資料', icon: '👤', to: '/member/me' },
   { label: '我的文章', icon: '✍️', to: '/member/blogs' },
+  { label: '我的商品', icon: '📦', to: '/member/products' },
+  { label: '我的團購', icon: '👥', to: '/member/group-buys' },
+  { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
   { label: '我的訂單', icon: '🧾', to: '/member/orders' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
   { label: '通知', icon: '🔔', to: '/member/notifications' },

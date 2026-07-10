@@ -26,8 +26,6 @@ public class GroupBuyOrderDTO {
 
 	private Timestamp shippedAt;
 
-	private String trackingNum;
-
 	private Timestamp createdAt;
 
 	private Timestamp receivedAt;
@@ -37,6 +35,34 @@ public class GroupBuyOrderDTO {
 	private PaidStatus paidStatus;
 
 	private Timestamp completedAt;
+	private String hostUserName;
+	private String hostUserPhone;
+	private String hostUserEmail;
+
+	
+	public String getHostUserName() {
+		return hostUserName;
+	}
+
+	public void setHostUserName(String hostUserName) {
+		this.hostUserName = hostUserName;
+	}
+
+	public String getHostUserPhone() {
+		return hostUserPhone;
+	}
+
+	public void setHostUserPhone(String hostUserPhone) {
+		this.hostUserPhone = hostUserPhone;
+	}
+
+	public String getHostUserEmail() {
+		return hostUserEmail;
+	}
+
+	public void setHostUserEmail(String hostUserEmail) {
+		this.hostUserEmail = hostUserEmail;
+	}
 
 	public Integer getOrderId() {
 		return orderId;
@@ -97,13 +123,6 @@ public class GroupBuyOrderDTO {
 		this.shippedAt = shippedAt;
 	}
 
-	public String getTrackingNum() {
-		return trackingNum;
-	}
-
-	public void setTrackingNum(String trackingNum) {
-		this.trackingNum = trackingNum;
-	}
 
 	public Timestamp getCreatedAt() {
 		return createdAt;
@@ -159,8 +178,8 @@ public class GroupBuyOrderDTO {
 
 	public GroupBuyOrderDTO(Integer orderId, Integer groupBuyId, Integer totalQuantity, Integer groupPrice,
 			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
-			String trackingNum, Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
-			PaidStatus paidStatus, Timestamp completedAt) {
+			 Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
+			PaidStatus paidStatus, Timestamp completedAt,String hostUserName,String hostUserPhone,String hostUserEmail) {
 		super();
 		this.orderId = orderId;
 		this.groupBuyId = groupBuyId;
@@ -170,12 +189,14 @@ public class GroupBuyOrderDTO {
 		this.shippingAddress = shippingAddress;
 		this.shippedStatus = shippedStatus;
 		this.shippedAt = shippedAt;
-		this.trackingNum = trackingNum;
 		this.createdAt = createdAt;
 		this.receivedAt = receivedAt;
 		this.orderStatus = orderStatus;
 		this.paidStatus = paidStatus;
 		this.completedAt = completedAt;
+		this.hostUserName=hostUserName;
+		this.hostUserPhone=hostUserPhone;
+		this.hostUserEmail=hostUserEmail;
 	}
 
 	

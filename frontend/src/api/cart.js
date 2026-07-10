@@ -11,16 +11,19 @@ export const cartApi = {
   // 回傳：[{ productId, productName, retailPrice, unitPricingMeasure, quantity }]
   getCart: () => http.get(BASE),
 
-  // 加入商品（同商品已存在會累加）；quantity 走 query string
+  // 加入商品（同商品已存在會累加）；quantity 放 request body
   add: (productId, quantity = 1) =>
-    http.post(`${BASE}/${productId}?quantity=${quantity}`),
+    http.post(`${BASE}/${productId}`,{quantity}),
 
   // 設定某商品的數量（絕對值，非累加）
   update: (productId, quantity) =>
-    http.put(`${BASE}/${productId}?quantity=${quantity}`),
+    http.put(`${BASE}/${productId}`,{quantity}),
 
   // 移除某商品
   remove: (productId) => http.del(`${BASE}/${productId}`),
+
+  // 清空整個購物車（對應後端無參數的 DELETE /api/shoppingcart）
+  clearAll: () => http.del(BASE),
 }
 
 export default cartApi

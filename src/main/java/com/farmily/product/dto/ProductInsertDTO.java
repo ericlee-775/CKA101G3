@@ -2,6 +2,10 @@
 
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 /**
  * 新增商品用的 DTO（白名單）。
  * 只放「該由前端填」的欄位；避免 @ModelAttribute 直接綁 ProductVO 造成 mass assignment。
@@ -16,11 +20,15 @@ public class ProductInsertDTO {
     // 無參數建構式(表單繫結會用到)
     public ProductInsertDTO() {
     }
-
+    @NotNull
     private Integer subCatClassId;        // 子分類(對應 ProductVO.subCategoryVO 的 sub_cat_class_id)
+    @NotBlank
     private String productName;           // 商品名稱
+    @NotNull
+    @Min(0)
     private Integer retailPrice;          // 零售價
     private Integer groupPrice;           // 團購價
+    @NotBlank
     private String unitPricingMeasure;    // 計價單位
     private Boolean isGroupBuy;           // 是否開團
     private String description;           // 商品描述

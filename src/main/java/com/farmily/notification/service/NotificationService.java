@@ -24,7 +24,7 @@ import com.farmily.notification.model.NotificationVO;
 @Service
 public class NotificationService {
 	
-	private static final int PAGE_SIZE = 10;
+	private static final int PAGE_SIZE = 5;
 	
 	@Autowired
 	NotificationRepository repository;
@@ -172,7 +172,7 @@ public class NotificationService {
 	@Transactional(readOnly = true)
 	public Page<NotificationResponseDTO> getNotifBytarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, int page){
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Order.desc("status"), Sort.Order.desc("createdAt")));
-		Page<NotificationVO> list = repository.findByRecipientAndTarget(recipientType, recipientId, targetType, pageable);
+		Page<NotificationVO> list = repository.findByRecipientTypeAndRecipientIdAndTargetType(recipientType, recipientId, targetType, pageable);
 		Page<NotificationResponseDTO> dtoList = list.map(this::toDTO);
 		return dtoList;
 	}
@@ -181,11 +181,12 @@ public class NotificationService {
 	// 把 Repository 查回來的 VO 轉成給 Controller 的 DTO
 	private NotificationResponseDTO toDTO(NotificationVO vo) {
 		NotificationResponseDTO dto = new NotificationResponseDTO();
+		dto.setNotificationId(vo.getNotificationId());
 		dto.setTargetType(vo.getTargetType());
 		dto.setTargetId(vo.getTargetId());
 		dto.setContent(vo.getContent());
 		dto.setCreatedAt(vo.getCreatedAt());
-		dto.setStatus(vo.getStatus().getDisplayName()); // 把 enum 轉成 String 中文文字顯示
+		dto.setStatus(vo.getStatus().name()); // 把 enum 轉成 String
 		
 		return dto;
 	}
@@ -219,7 +220,7 @@ public class NotificationService {
 		req.setTypeCode("gb_request_approved");			
 		req.setRecipientType(NotificationRecipientType.user);
 		req.setRecipientId(hostUserId);
-		req.setTargetType("GROUPBUY");
+		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
 		req.setVariables(Map.of("group_buy_id", groupBuyId.toString()));
 		sendOneNotif(req);
@@ -231,7 +232,7 @@ public class NotificationService {
 		req.setTypeCode("gb_request_rejected");			
 		req.setRecipientType(NotificationRecipientType.user);
 		req.setRecipientId(hostUserId);
-		req.setTargetType("GROUPBUY");
+		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
 		req.setVariables(Map.of("group_buy_id", groupBuyId.toString(), "reject_reason", rejectReason));
 		sendOneNotif(req);
