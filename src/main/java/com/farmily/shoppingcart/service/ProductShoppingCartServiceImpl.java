@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.farmily.product.model.ProductRepository;
 import com.farmily.shoppingcart.dto.ShoppingcartDTO;
 import com.farmily.shoppingcart.model.ProductShoppingCartRepository;
 import com.farmily.shoppingcart.model.ProductShoppingCartVO;
@@ -17,14 +18,19 @@ public class ProductShoppingCartServiceImpl implements ProductShoppingCartServic
 	@Autowired
 	private ProductShoppingCartRepository cartRepository;
 	
-	public List<ShoppingcartDTO> getcard(Integer userId){
+	@Autowired 
+	private ProductRepository productRepository;
+	
+	public List<ShoppingcartDTO> getcart(Integer userId){
 		return cartRepository.findCartItems(userId);
 	}
 
 	@Override
 	@Transactional
 	public void addToCart(Integer productId,Integer quantity,Integer userId) {
-		// 同一商品已在購物車 → 累加數量；否則新增一筆
+		if(!productRepository.existsById(productId)) {
+			throw new IllegalArgumentException("商品不存在");
+		}
 		cartRepository.findByUserIdAndProductId(userId, productId)
 			.ifPresentOrElse(
 				vo -> vo.setQuantity(vo.getQuantity() + quantity),
@@ -41,14 +47,22 @@ public class ProductShoppingCartServiceImpl implements ProductShoppingCartServic
 	@Transactional
 	public void updatedQuantity(Integer productId, Integer quantity, Integer userId) {
 		cartRepository.findByUserIdAndProductId(userId,productId)
-		.ifPresent(vo ->vo.setQuantity(quantity));
-		
+		.orElseThrow(()->new IllegalArgumentException("購物車中無此商品"))
+		.setQuantity(quantity);
 	}
 
 	@Override
 	@Transactional
 	public void deleteCart(Integer productId,Integer userId) {
 		cartRepository.deleteByUserIdAndProductId(userId,productId);		
+	}
+	//當訂單成立清空購物車
+	@Override
+	@Transactional
+	public void clearCart(Integer userId) {
+		cartRepository.deleteByUserId(userId);
 	}}
+
+	
 	
 	
