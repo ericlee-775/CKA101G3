@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.groupbuy.model.GroupBuyFarmerDTO;
 import com.farmily.groupbuy.model.GroupBuyOrderDTO;
+import com.farmily.groupbuy.model.GroupBuyParticipationDTO;
 import com.farmily.groupbuy.model.GroupBuyReviewDTO;
+import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.service.ProductService;
 import com.farmily.user.security.FarmerUserDetails;
@@ -39,12 +41,49 @@ public class FarmerGroupBuyController {
 		return ResponseEntity.ok(list);
 	}
 	
-	//小農前台顯示的單筆訂單詳細資料
-	@GetMapping("/order/{groupBuyId}")
-	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer groupBuyId){
-		GroupBuyOrderDTO groupBuy=groupBuySvc.showOrder(groupBuyId);
+	//小農前台顯示的單筆團購請求詳細內容
+	@GetMapping("/list/{groupBuyId}")
+	public ResponseEntity<GroupBuyVO>oneFarmerGroupBuy(@PathVariable Integer groupBuyId){
+		GroupBuyVO groupBuy=groupBuySvc.getOneGroupBuyId(groupBuyId);
 		return ResponseEntity.ok(groupBuy);
 	}
+	
+	//顯示訂單總覽
+	@GetMapping("/orderList")
+	public ResponseEntity<List<GroupBuyOrderDTO>>orderList(@AuthenticationPrincipal FarmerUserDetails me){
+		List<GroupBuyOrderDTO> groupBuyOrder=groupBuySvc.showOrderList(me.getFarmerId());
+		return ResponseEntity.ok(groupBuyOrder);
+	}
+	
+	
+	//小農看的單筆開團中的進度
+	@GetMapping("/progress/{groupBuyId}")
+	public ResponseEntity<GroupBuyParticipationDTO>showOneGroupBuyProgress
+	(		@PathVariable Integer groupBuyId,
+			@AuthenticationPrincipal FarmerUserDetails me){
+		GroupBuyParticipationDTO p=groupBuySvc.showGroupBuyProgress(groupBuyId, me.getFarmerId());
+		return ResponseEntity.ok(p);
+	}
+	
+	
+	
+	
+	//小農前台顯示的單筆訂單詳細資料
+	@GetMapping("/order/{orderId}")
+	public ResponseEntity<GroupBuyOrderDTO>geteach(@PathVariable Integer orderId){
+		GroupBuyOrderDTO order=groupBuySvc.showOneOrder(orderId);
+		return ResponseEntity.ok(order);
+	}
+	
+	//小農前台出貨狀態更新
+	@PostMapping("/orderShipped/{orderId}")
+	public ResponseEntity<String>shipped(
+			@PathVariable Integer orderId,
+			@RequestBody @Valid GroupBuyOrderDTO farmerRes,
+			@AuthenticationPrincipal FarmerUserDetails me){
+		groupBuySvc.ship(orderId,me.getFarmerId());
+		return ResponseEntity.ok("更新完成");
+	}	
 	
 	//小農前台的團購審核
 	@PostMapping("/farmerResponse/{groupBuyId}")
