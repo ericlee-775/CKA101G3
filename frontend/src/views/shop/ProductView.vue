@@ -84,13 +84,23 @@ const cartBtnText = computed(() => {
     case 'adding': return '加入中…'
     case 'done': return '已加入購物車 ✓'
     case 'error': return '加入失敗，再試一次'
-    default: return '🛒 加入購物車'
+    default: return '🥬 加入購物車'
   }
 })
+
+// 小烏龜把購物車載走的動畫開關:按下加入時播一次,1.5 秒後收工。
+const towing = ref(false)
+let towTimer = null
 
 async function addToCart() {
   if (!product.value || cartStatus.value === 'adding') return
   cartStatus.value = 'adding'
+  // 觸發小烏龜動畫(跟 API 無關,純視覺;連點時先清掉舊計時器)
+  towing.value = true
+  clearTimeout(towTimer)
+  towTimer = setTimeout(() => {
+    towing.value = false
+  }, 1500)
   try {
     // 登入時 addItem 會打後端 API（async），訪客則寫 localStorage，這裡統一 await。
     await cartStore.addItem(product.value, quantity.value)
@@ -273,11 +283,22 @@ watch(() => route.params.productId, loadProduct)
                 :class="{
                   'btn-cart--done': cartStatus === 'done',
                   'btn-cart--error': cartStatus === 'error',
+                  'btn-cart--towing': towing,
                 }"
                 :disabled="cartStatus === 'adding'"
                 @click="addToCart"
               >
-                {{ cartBtnText }}
+                <span class="btn-cart__label">{{ cartBtnText }}</span>
+                <!-- 小烏龜拉著木推車載蔬菜走(烏龜 emoji 面朝左,所以往左開) -->
+                <span v-if="towing" class="tow" aria-hidden="true">
+                  <span class="tow__turtle">🐢</span>
+                  <span class="tow__wagon">
+                    <span class="tow__veggies">🥬🥕🌽</span>
+                    <span class="tow__bed"></span>
+                    <span class="tow__wheel tow__wheel--front"></span>
+                    <span class="tow__wheel tow__wheel--back"></span>
+                  </span>
+                </span>
               </button>
               <button
                 v-if="cartStatus === 'done'"
@@ -571,6 +592,152 @@ watch(() => route.params.productId, loadProduct)
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(59, 138, 87, 0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  /* 小烏龜動畫需要:烏龜以按鈕為座標系、走出按鈕範圍就被裁掉 */
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- 小烏龜載走購物車動畫 ---------- */
+/* 播動畫時按鈕文字先淡出,讓舞台乾淨 */
+.btn-cart__label {
+  display: inline-block;
+  transition: opacity 0.2s ease;
+}
+.btn-cart--towing .btn-cart__label {
+  opacity: 0;
+}
+
+/* 車隊(烏龜+購物車):從按鈕右緣外開進來,一路開出左緣 */
+.tow {
+  position: absolute;
+  top: 50%;
+  left: 100%; /* 起點:藏在右邊界外 */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 20px;
+  line-height: 1;
+  pointer-events: none; /* 純裝飾,不擋按鈕點擊 */
+  animation: tow-across 1.5s linear forwards;
+}
+/* 烏龜:一邊走一邊左右搖(走路的感覺) */
+.tow__turtle {
+  animation: tow-waddle 0.35s ease-in-out infinite;
+}
+
+/* ----- 小木推車(CSS 手工畫:木斗 + 輪子 + 拉桿,上面載蔬菜) ----- */
+.tow__wagon {
+  position: relative;
+  width: 38px;
+  height: 26px;
+  animation: tow-bump 0.3s ease-in-out infinite alternate; /* 被拖著顛簸 */
+}
+/* 拉桿:從車頭斜斜接向前面的烏龜 */
+.tow__wagon::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  bottom: 10px;
+  width: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: #8a5a33;
+  transform: rotate(16deg);
+}
+/* 蔬菜:從車斗探出頭(letter-spacing 負值讓三顆擠在一起) */
+.tow__veggies {
+  position: absolute;
+  top: -9px;
+  left: 3px;
+  font-size: 12px;
+  letter-spacing: -4px;
+  line-height: 1;
+}
+/* 木製車斗:木頭色 + 直條木板紋 */
+.tow__bed {
+  position: absolute;
+  left: 0;
+  bottom: 5px;
+  width: 38px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 1.5px solid #6f4a26;
+  border-radius: 3px 3px 5px 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    #b07c46 0 7px,
+    #9a6a3a 7px 8px
+  ); /* 一條條的木板 */
+}
+/* 輪子:深木色圓 + 一根淺色輻條(有輻條,轉動才看得出來) */
+.tow__wheel {
+  position: absolute;
+  bottom: 0;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #4a3421;
+  border: 2px solid #2c1f12;
+  animation: tow-wheel-roll 0.45s linear infinite;
+}
+.tow__wheel::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  margin-top: -1px;
+  background: #d8b98c; /* 輻條 */
+}
+.tow__wheel--front {
+  left: 4px;
+}
+.tow__wheel--back {
+  right: 4px;
+}
+@keyframes tow-wheel-roll {
+  to {
+    transform: rotate(-360deg); /* 往左走 → 輪子逆時針滾 */
+  }
+}
+
+@keyframes tow-across {
+  from {
+    left: 100%;
+  }
+  to {
+    left: -90px; /* 終點:整隊開出左邊界外 */
+  }
+}
+@keyframes tow-waddle {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg) translateY(-2px);
+  }
+}
+@keyframes tow-bump {
+  from {
+    transform: translateY(0) rotate(2deg);
+  }
+  to {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+}
+
+/* 使用者系統設定「減少動態效果」時:不播動畫、文字照常顯示 */
+@media (prefers-reduced-motion: reduce) {
+  .tow {
+    display: none;
+  }
+  .btn-cart--towing .btn-cart__label {
+    opacity: 1;
+  }
 }
 .btn-cart:hover:not(:disabled) {
   transform: translateY(-2px);
