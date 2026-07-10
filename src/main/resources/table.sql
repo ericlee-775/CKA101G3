@@ -880,7 +880,7 @@ INSERT INTO GB_PARTICIPATION (participation_id, group_buy_id, user_id, is_host, 
 
 -- 4. 團購 - 團購訂單
 CREATE TABLE GB_ORDER (
-    order_id INT PRIMARY KEY,
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
     group_buy_id INT,
     total_quantity INT,
     group_price INT,

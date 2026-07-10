@@ -2,7 +2,8 @@
 // 會員中心「我的團購」：已成團的訂單清單（獨立元件，內容都寫在這裡）
 // 資料來源：GET /api/member/groupBuy/mySuccessOrders
 // 回傳欄位（GroupBuyOrderDTO）：orderId / groupBuyId / totalQuantity / groupPrice / totalAmount /
-//   shippingAddress / shippedStatus / shippedAt / trackingNum / createdAt / orderStatus / paidStatus …
+//   shippingAddress / shippedStatus / shippedAt / createdAt / orderStatus / paidStatus /
+//   hostUserName / hostUserPhone / hostUserEmail（團購主聯絡方式，配達確切時間請自行聯繫團購主）
 import { ref, onMounted } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 
@@ -108,15 +109,20 @@ onMounted(load)
           <dt>總金額</dt>
           <dd class="order-money">{{ formatMoney(order.totalAmount) }}</dd>
         </div>
-        <div v-if="order.trackingNum" class="order-cell">
-          <dt>物流編號</dt>
-          <dd>{{ order.trackingNum }}</dd>
-        </div>
         <div class="order-cell order-cell--wide">
           <dt>取貨地點</dt>
           <dd>📍 {{ order.shippingAddress || '—' }}</dd>
         </div>
       </dl>
+
+      <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
+      <div class="host-contact">
+        <h4>團購主聯絡方式</h4>
+        <p>{{ order.hostUserName || '—' }}</p>
+        <p>📞 {{ order.hostUserPhone || '—' }}</p>
+        <p>✉️ {{ order.hostUserEmail || '—' }}</p>
+        <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+      </div>
     </article>
   </div>
 </template>
@@ -211,6 +217,29 @@ onMounted(load)
   font-weight: 700;
   font-size: 15px;
   color: var(--leaf-dark);
+}
+
+/* ===== 團購主聯絡方式 ===== */
+.host-contact {
+  margin: 0 20px 16px;
+  padding: 14px 16px;
+  background: var(--leaf-soft);
+  border-radius: 12px;
+}
+.host-contact h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--leaf-dark);
+}
+.host-contact p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.host-contact__note {
+  margin-top: 8px;
+  font-weight: 600;
+  color: #c2410c;
 }
 
 @media (max-width: 560px) {

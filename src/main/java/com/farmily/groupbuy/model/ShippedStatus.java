@@ -1,8 +1,8 @@
 package com.farmily.groupbuy.model;
 
 public enum ShippedStatus {
-	pending("待出貨"),
-	delivered("已送達");
+	PENDING("待出貨"),
+	DELIVERED("已送達");
 	
 	private final String displayName;
 	
