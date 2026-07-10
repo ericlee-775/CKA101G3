@@ -12,8 +12,19 @@ public class GroupBuyDetailDTO {
 	    private Timestamp ddlDatetime;
 	    private String pickupAddress;
 	    private GroupBuyStatus status;
+	    private Integer retailPrice;
 
-	    public Integer getProductId() {
+	    
+	    
+	    public Integer getRetailPrice() {
+			return retailPrice;
+		}
+
+		public void setRetailPrice(Integer retailPrice) {
+			this.retailPrice = retailPrice;
+		}
+
+		public Integer getProductId() {
 			return productId;
 		}
 
@@ -27,7 +38,7 @@ public class GroupBuyDetailDTO {
 	    public GroupBuyDetailDTO(Integer productId,Integer groupBuyId,  String productName,
 	                             Integer groupPrice, Integer targetAmount,
 	                             Timestamp openDatetime, Timestamp ddlDatetime,
-	                             String pickupAddress, GroupBuyStatus status) {
+	                             String pickupAddress, GroupBuyStatus status,Integer retailPrice) {
 	       this.productId=productId;
 	    	this.groupBuyId = groupBuyId;
 	        this.productName = productName;
@@ -37,6 +48,7 @@ public class GroupBuyDetailDTO {
 	        this.ddlDatetime = ddlDatetime;
 	        this.pickupAddress = pickupAddress;
 	        this.status = status;
+	        this.retailPrice=retailPrice;
 	    }
 
 		public Integer getGroupBuyId() {

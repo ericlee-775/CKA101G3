@@ -20,6 +20,7 @@ public class GroupBuyFarmerDTO {
 	private String rejectReason;
 	
 	
+	
 	public GroupBuyFarmerDTO(Integer groupBuyId, Integer productId, String productName, Integer groupPrice,
 			String hostUserName, Integer targetAmount, Timestamp openDatetime, Timestamp ddlDatetime,
 			String pickupAddress, RequestStatus requestStatus, Timestamp requestDatetime, GroupBuyStatus status,
