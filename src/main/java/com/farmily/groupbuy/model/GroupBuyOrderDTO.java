@@ -38,8 +38,29 @@ public class GroupBuyOrderDTO {
 	private String hostUserName;
 	private String hostUserPhone;
 	private String hostUserEmail;
-
+	private Integer buyQty;
+	private Integer paidAmount;
 	
+	public void setPaidAmount(Integer paidAmount) {
+		this.paidAmount = paidAmount;
+	}
+
+	public Integer getBuyQty() {
+		return buyQty;
+	}
+
+	public void setBuyQty(Integer buyQty) {
+		this.buyQty = buyQty;
+	}
+
+	public Integer getPaidAmount() {
+		return paidAmount;
+	}
+
+	public void setCheckoutAmount(Integer paidAmount) {
+		this.paidAmount = paidAmount;
+	}
+
 	public String getHostUserName() {
 		return hostUserName;
 	}
@@ -179,7 +200,8 @@ public class GroupBuyOrderDTO {
 	public GroupBuyOrderDTO(Integer orderId, Integer groupBuyId, Integer totalQuantity, Integer groupPrice,
 			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
 			 Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
-			PaidStatus paidStatus, Timestamp completedAt,String hostUserName,String hostUserPhone,String hostUserEmail) {
+			PaidStatus paidStatus, Timestamp completedAt,String hostUserName,String hostUserPhone,String hostUserEmail,
+			Integer buyQty,Integer paidAmount) {
 		super();
 		this.orderId = orderId;
 		this.groupBuyId = groupBuyId;
@@ -197,6 +219,8 @@ public class GroupBuyOrderDTO {
 		this.hostUserName=hostUserName;
 		this.hostUserPhone=hostUserPhone;
 		this.hostUserEmail=hostUserEmail;
+		this.buyQty=buyQty;
+		this.paidAmount=paidAmount;
 	}
 
 	
