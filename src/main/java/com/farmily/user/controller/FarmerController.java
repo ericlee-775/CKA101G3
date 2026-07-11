@@ -3,7 +3,6 @@ package com.farmily.user.controller;
 import com.farmily.user.dto.*;
 import com.farmily.user.security.FarmerUserDetails;
 import com.farmily.user.security.service.FarmerUserDetailsService;
-import com.farmily.user.service.EmailService;
 import com.farmily.user.service.FarmerService;
 import com.farmily.user.service.SessionService;
 import com.farmily.user.util.SessionCookieSupport;
@@ -28,18 +27,15 @@ public class FarmerController {
     private final FarmerService farmerService;
     private final FarmerUserDetailsService farmerUserDetailsService;
     private final SessionService sessionService;
-    private final EmailService emailService;
     private final SessionCookieSupport sessionCookieSupport;
 
     public FarmerController(FarmerService farmerService,
                             FarmerUserDetailsService farmerUserDetailsService,
                             SessionService sessionService,
-                            EmailService emailService,
                             SessionCookieSupport sessionCookieSupport) {
         this.farmerService = farmerService;
         this.farmerUserDetailsService = farmerUserDetailsService;
         this.sessionService = sessionService;
-        this.emailService = emailService;
         this.sessionCookieSupport = sessionCookieSupport;
     }
 
@@ -108,22 +104,22 @@ public class FarmerController {
         return ResponseEntity.ok(response);
     }
 
-    // 修自己改密碼
+    // 修改自己密碼
     @PutMapping("/me/password")
     public ResponseEntity<String> changePassword(
             @AuthenticationPrincipal FarmerUserDetails me,
             @RequestBody @Valid ChangePasswordRequest pw,
             HttpServletRequest request) {
+        // 改密碼成功後由 service 寄出密碼變更通知信
         farmerService.changePassword(me.getFarmerId(), pw);
 
-        // 改密碼成功後：踢掉「其他裝置」的 session（保留自己這台），再寄一封通知信
+        // 踢掉「其他裝置」的 session（保留自己這台）
         HttpSession session = request.getSession(false);
         String currentSessionId = null;
         if (session != null) {
             currentSessionId = session.getId();
         }
         sessionService.expireSessions(me.getUsername(), currentSessionId);
-        emailService.sendPasswordChangedNotice(me.getUsername());
 
         return ResponseEntity.ok("密碼修改成功！其他裝置已登出");
     }
