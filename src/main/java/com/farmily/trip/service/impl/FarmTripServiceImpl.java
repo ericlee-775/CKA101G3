@@ -429,4 +429,10 @@ public class FarmTripServiceImpl implements FarmTripService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此活動"));
 		return trip.getFarmTripPic();
 	}
+	
+	// 管理後台：所有 PENDING（待審核）的活動
+		@Override
+		public List<FarmTrip> getPendingTrips() {
+			return farmTripRepository.findByTripStatus(TripStatus.PENDING);
+		}
 }

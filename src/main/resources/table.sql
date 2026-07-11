@@ -985,7 +985,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     farm_trip_audits_id INT AUTO_INCREMENT PRIMARY KEY,
     farm_trip_id INT NOT NULL,
     admin_id INT NOT NULL,
-    status ENUM('PENDING','APPROVED','REJECTED'),
+    audits_status ENUM('PENDING','APPROVED','REJECTED'),
     reason VARCHAR(255),
     created_at DATETIME,
     updated_at DATETIME,
@@ -993,7 +993,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, status, reason, created_at, updated_at) VALUES
+INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, audits_status, reason, created_at, updated_at) VALUES
 (7001, 5001, 1, 'APPROVED', '活動流程完整，場地資訊清楚。', '2026-03-05 14:00:00', '2026-03-05 14:00:00'),
 
 (7002, 5002, 2, 'APPROVED', '導覽內容及安全規劃符合要求。', '2026-03-10 10:00:00', '2026-03-10 11:00:00'),
