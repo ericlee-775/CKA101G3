@@ -1,5 +1,6 @@
 package com.farmily.blog.service.impl;
 
+import com.farmily.blog.constant.BlogStatus;
 import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
@@ -58,10 +59,11 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public BlogResponse getBlogDetail(Integer blogId) {
-       Blog blog = blogDao.getBlogById(blogId); //dao 撈entity
-       if(blog == null) {
-           throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
-       }
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null || blog.getBlogStatus() == BlogStatus.HIDDEN) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
+        }
+
         return BlogResponse.from(blog); //轉成 DTO回去
     }
 
@@ -331,7 +333,15 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Transactional
-    public void deleteComment(Integer commentId) {
+    public void deleteComment(Integer commentId, Integer userId) {
+        BlogComment comment = blogDao.getBlogCommentById(commentId);
+        if (comment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "留言不存在: " + commentId);
+        }
+        // 只有留言本人能刪自己的留言
+        if (!comment.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能刪除自己的留言");
+        }
         blogDao.deleteCommentReportsByCommentId(commentId);  // 先刪這則留言的檢舉
         blogDao.delteComment(commentId);
 

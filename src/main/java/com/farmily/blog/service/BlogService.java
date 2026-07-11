@@ -72,7 +72,7 @@ public interface BlogService {
 
     BlogComment getBlogCommentsById(Integer commentId);
 
-    void deleteComment(Integer commentId);
+    void deleteComment(Integer commentId, Integer userId);
 
     Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest);
 
