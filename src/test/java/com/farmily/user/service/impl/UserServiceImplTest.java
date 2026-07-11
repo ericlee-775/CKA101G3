@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -56,7 +57,7 @@ public class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
-    @DisplayName("測試會員重複註冊")
+    @DisplayName("單元測試-會員重複註冊")
     @Test
     void register() {
         UserRegisterRequest reg = new UserRegisterRequest();
@@ -79,7 +80,7 @@ public class UserServiceImplTest {
         verify(userRepository, never()).save(any());
     }
 
-    @DisplayName("測試 Google 帳號重複註冊")
+    @DisplayName("單元測試-Google 帳號重複註冊")
     @Test
     void registerGoogleAccountConflict() {
         UserRegisterRequest reg = new UserRegisterRequest();
@@ -106,7 +107,8 @@ public class UserServiceImplTest {
         verify(userRepository, never()).save(any());
     }
 
-    @DisplayName("測試全新 email 註冊成功：密碼雜湊、未驗證、寄驗證信")
+    // 測試全新 email 註冊成功：密碼雜湊、未驗證、寄驗證信
+    @DisplayName("單元測試-會員註冊成功")
     @Test
     void registerNewEmailSuccess() {
         UserRegisterRequest reg = new UserRegisterRequest();
@@ -116,7 +118,7 @@ public class UserServiceImplTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("test12345")).thenReturn("HASHED");
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));   // 把傳進來的參數原封不動回傳
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> inv.getArgument(0));   // 把傳進來的參數原封不動回傳
 
         userService.register(reg);
 
@@ -126,7 +128,7 @@ public class UserServiceImplTest {
         // ArgumentCaptor 參數捕獲器
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         // 驗證有寫入資料庫流程 + 側錄器:把準備傳進 save() 的那個 User 物件在半路攔截下來
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
         User saved = captor.getValue();                     // 拿出被攔截的物件
 
         assertEquals(saved.getPassword(),"HASHED");   // 斷言為加密過
@@ -135,6 +137,27 @@ public class UserServiceImplTest {
 
         // Mockito - 驗證有觸發寄信通知流程
         verify(emailVerificationService).sendVerification(eq("test@example.com"), any());
+    }
+
+    // 測試並發競態：saveAndFlush 撞 DB unique 約束拋自訂例外 EmailAlreadyExistsException
+    @DisplayName("單元測試-註冊並發競態邏輯正確")
+    @Test
+    void registerRaceConditionHitsDbConstraint() {
+        UserRegisterRequest reg = new UserRegisterRequest();
+        reg.setEmail("test@example.com");
+        reg.setPassword("test12345");
+        reg.setUserName("測試");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("test12345")).thenReturn("HASHED");
+
+        // 並發模擬 - 存入資料庫（saveAndFlush）瞬間，因別人先存，所以 DB 噴出 duplicate 錯誤
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate email"));
+
+        assertThrows(EmailAlreadyExistsException.class, () -> {
+            userService.register(reg);
+        });
     }
 
 
