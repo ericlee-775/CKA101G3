@@ -1,5 +1,6 @@
 package com.farmily.user.service;
 
+import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.User;
@@ -89,14 +90,14 @@ public class PasswordResetService {
         if (accountToken.getAccountType() == AccountToken.AccountType.MEMBER) {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) {
-                throw new IllegalArgumentException("查無此帳號");
+                throw new UserNotFoundException();
             }
             user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
         } else {
             Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
             if (farmer == null) {
-                throw new IllegalArgumentException("查無此帳號");
+                throw new UserNotFoundException();
             }
             farmer.setPassword(passwordEncoder.encode(newPassword));
             farmerRepository.save(farmer);
