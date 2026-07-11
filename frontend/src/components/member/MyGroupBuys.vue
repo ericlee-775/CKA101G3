@@ -3,22 +3,26 @@
 //
 // 這一頁只負責「外框」：標題、切換膠囊、轉場動畫（比照 MemberFavoritesView.vue 的作法）。
 // 內容一律寫在獨立元件裡：
-//   - 進行中（尚未成團）→ components/member/GroupBuyJoinedList.vue（GET /api/member/groupBuy/joinedGroupBuyList）
-//   - 訂單（已成團）    → components/member/GroupBuyOrderList.vue（GET /api/member/groupBuy/mySuccessOrders）
+//   - 進行中（尚未成團，不含已成團的）→ components/member/GroupBuyJoinedList.vue（GET /api/member/groupBuy/joinedGroupBuyList）
+//   - 訂單（已成團）                  → components/member/GroupBuyOrderList.vue（GET /api/member/groupBuy/mySuccessOrders）
+//   - 開團申請（自己發起過的團購）    → components/member/GroupBuyRequestList.vue（GET /api/member/groupBuy/myRequests）
+// 「開團申請」跟「進行中」資料來源不同、互不影響，同一筆團購自己發起又自己加入時兩邊都會各出現一筆，是預期行為。
 import { ref, computed } from 'vue'
 import GroupBuyJoinedList from '@/components/member/GroupBuyJoinedList.vue'
 import GroupBuyOrderList from '@/components/member/GroupBuyOrderList.vue'
+import GroupBuyRequestList from '@/components/member/GroupBuyRequestList.vue'
 
 const tabs = [
   { key: 'joined', label: '進行中', icon: '👥' },
   { key: 'orders', label: '訂單', icon: '🧾' },
+  { key: 'requests', label: '開團申請', icon: '📋' },
 ]
 
 const activeKey = ref('joined')
 const activeIndex = computed(() => tabs.findIndex((t) => t.key === activeKey.value))
 
 // 各分頁的筆數（子元件載入完會 emit('count') 回來），顯示成 tab 上的小數字
-const counts = ref({ joined: null, orders: null })
+const counts = ref({ joined: null, orders: null, requests: null })
 function setCount(key, n) {
   counts.value[key] = n
 }
@@ -62,7 +66,11 @@ function setCount(key, n) {
           v-if="activeKey === 'joined'"
           @count="(n) => setCount('joined', n)"
         />
-        <GroupBuyOrderList v-else @count="(n) => setCount('orders', n)" />
+        <GroupBuyOrderList
+          v-else-if="activeKey === 'orders'"
+          @count="(n) => setCount('orders', n)"
+        />
+        <GroupBuyRequestList v-else @count="(n) => setCount('requests', n)" />
       </KeepAlive>
     </Transition>
   </section>
@@ -92,7 +100,7 @@ function setCount(key, n) {
 .seg {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   padding: 4px;
   background: #fff;
   border: 1px solid var(--line);
@@ -106,7 +114,7 @@ function setCount(key, n) {
   top: 4px;
   bottom: 4px;
   left: 4px;
-  width: calc(50% - 4px);
+  width: calc(33.333% - 4px);
   border-radius: 999px;
   background: linear-gradient(135deg, var(--leaf), var(--leaf-dark));
   box-shadow: 0 3px 10px rgba(59, 138, 87, 0.35);

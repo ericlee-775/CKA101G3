@@ -10,6 +10,9 @@ export const memberGroupBuyApi = {
   // 我已成團的訂單
   mySuccessOrders: () => http.get(`${BASE}/mySuccessOrders`),
 
+  // 我發起過的團購申請（審核中/已通過/已拒絕）→ UnderReviewDTO[]
+  myRequests: () => http.get(`${BASE}/myRequests`),
+
   // 加入團購；join = { buyQty, productName, target, groupPrice, ddlDatetime, pickupAddress }
   joinGroupBuy: (groupBuyId, join) => http.post(`${BASE}/joinGroupBuy/${groupBuyId}`, join),
 

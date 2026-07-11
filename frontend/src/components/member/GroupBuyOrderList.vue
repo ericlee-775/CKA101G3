@@ -1,11 +1,17 @@
 <script setup>
 // 會員中心「我的團購」：已成團的訂單清單（獨立元件，內容都寫在這裡）
 // 資料來源：GET /api/member/groupBuy/mySuccessOrders
-// 回傳欄位（GroupBuyOrderDTO）：orderId / groupBuyId / totalQuantity / groupPrice / totalAmount /
-//   shippingAddress / shippedStatus / shippedAt / createdAt / orderStatus / paidStatus /
-//   hostUserName / hostUserPhone / hostUserEmail（團購主聯絡方式，配達確切時間請自行聯繫團購主）
+// 回傳欄位（GroupBuyOrderDTO）：orderId / groupBuyId / groupPrice / shippingAddress / shippedStatus /
+//   shippedAt / createdAt / orderStatus / paidStatus / hostUserName / hostUserPhone / hostUserEmail /
+//   buyQty（這位會員自己訂購的數量）/ paidAmount（這位會員自己已付的金額）—
+//   數量跟金額用 buyQty/paidAmount，不是 totalQuantity/totalAmount（那是整團的總數，這頁只看自己的消費紀錄）。
+//
+// 後端 ShippedStatus / OrderStatus / PaidStatus 三個 enum 用「全大寫」序列化
+//（跟 GroupBuyStatus / RequestStatus 的全小寫不同），對照表要對到大寫的代碼，
+// 不然畫面上會直接顯示英文代碼原文（例如以前這裡曾經對錯大小寫，畫面上會看到 "PENDING"）。
 import { ref, onMounted } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
+import { shippedStatusInfo, orderStatusInfo, paidStatusInfo } from '@/utils/orderStatus'
 
 // 通知父層（MemberGroupBuysView）目前有幾筆，顯示在 tab 的數字小徽章
 const emit = defineEmits(['count'])
@@ -14,17 +20,10 @@ const orders = ref([])
 const loading = ref(true)
 const error = ref('')
 
-// 後端三組 enum 都用英文代碼序列化，這裡對照中文與顏色（tone 對應 .badge--xxx）
-const SHIPPED_MAP = {
-  pending:   { label: '待出貨', tone: 'amber' },
-  shipped:   { label: '已出貨', tone: 'blue' },
-  delivered: { label: '已送達', tone: 'green' },
-}
-const ORDER_MAP = {
-  pending:   { label: '等待收貨', tone: 'amber' },
-  confirmed: { label: '確認收貨', tone: 'green' },
-}
-const badgeOf = (map, code) => map[code] || { label: code ?? '—', tone: 'gray' }
+// orderStatus.js 的 className 是共用團購狀態那套的 class 名稱，這裡另外對照一份 tone
+// （跟本檔案既有的 .badge--xxx 顏色系統一致），維持這個元件原本的視覺風格。
+const TONE_MAP = { 'status--pending': 'amber', 'status--success': 'green' }
+const toneOf = (info) => TONE_MAP[info.className] || 'gray'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -87,27 +86,33 @@ onMounted(load)
           <time class="order-date">{{ formatDate(order.createdAt) }}</time>
         </div>
         <div class="order-badges">
-          <span class="badge" :class="`badge--${badgeOf(SHIPPED_MAP, order.shippedStatus).tone}`">
-            {{ badgeOf(SHIPPED_MAP, order.shippedStatus).label }}
-          </span>
-          <span class="badge" :class="`badge--${badgeOf(ORDER_MAP, order.orderStatus).tone}`">
-            {{ badgeOf(ORDER_MAP, order.orderStatus).label }}
+          <!-- 只顯示出貨狀態（待出貨／已送達），訂單狀態改放進下面的欄位格，不再放兩個徽章擠在一起 -->
+          <span class="badge" :class="`badge--${toneOf(shippedStatusInfo(order.shippedStatus))}`">
+            {{ shippedStatusInfo(order.shippedStatus).text }}
           </span>
         </div>
       </header>
 
       <dl class="order-grid">
         <div class="order-cell">
-          <dt>數量</dt>
-          <dd>{{ order.totalQuantity ?? '—' }} 件</dd>
+          <dt>我訂購</dt>
+          <dd>{{ order.buyQty ?? '—' }} 件</dd>
         </div>
         <div class="order-cell">
           <dt>成團價</dt>
           <dd>{{ formatMoney(order.groupPrice) }}</dd>
         </div>
         <div class="order-cell">
-          <dt>總金額</dt>
-          <dd class="order-money">{{ formatMoney(order.totalAmount) }}</dd>
+          <dt>我付的金額</dt>
+          <dd class="order-money">{{ formatMoney(order.paidAmount) }}</dd>
+        </div>
+        <div class="order-cell">
+          <dt>款項狀態</dt>
+          <dd>{{ paidStatusInfo(order.paidStatus).text }}</dd>
+        </div>
+        <div class="order-cell">
+          <dt>訂單狀態</dt>
+          <dd>{{ orderStatusInfo(order.orderStatus).text }}</dd>
         </div>
         <div class="order-cell order-cell--wide">
           <dt>取貨地點</dt>
@@ -122,6 +127,18 @@ onMounted(load)
         <p>📞 {{ order.hostUserPhone || '—' }}</p>
         <p>✉️ {{ order.hostUserEmail || '—' }}</p>
         <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+      </div>
+
+      <!-- 確認收貨：先做畫面，目前不接任何 API -->
+      <div class="order-footer">
+        <button
+          v-if="order.orderStatus !== 'COMPLETED'"
+          type="button"
+          class="confirm-btn"
+        >
+          確認收貨
+        </button>
+        <span v-else class="confirmed-text">✓ 已確認收貨</span>
       </div>
     </article>
   </div>
@@ -240,6 +257,32 @@ onMounted(load)
   margin-top: 8px;
   font-weight: 600;
   color: #c2410c;
+}
+
+/* ===== 底部：確認收貨 ===== */
+.order-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 20px 18px;
+}
+.confirm-btn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--leaf);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.confirm-btn:hover {
+  background: var(--leaf-dark);
+}
+.confirmed-text {
+  font-size: 13px;
+  color: var(--leaf-dark);
+  font-weight: 600;
 }
 
 @media (max-width: 560px) {

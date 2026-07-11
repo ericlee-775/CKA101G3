@@ -3,6 +3,8 @@ package com.farmily.groupbuy.service;
 import java.sql.Timestamp;
 import java.util.List;
 
+import javax.management.RuntimeErrorException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -147,6 +149,27 @@ public class GroupBuyService {
 		order.setOrderStatus(OrderStatus.PENDING);
 
 		groupBuyOrderRepository.save(order);
+	}
+
+	// 團購主確認收貨用
+	public void confirmReceipt(Integer orderId, Integer userId) {
+		GroupBuyOrderVO orderVO = groupBuyOrderRepository.findByOrderIdAndGroupBuyId_HostUser_UserId(orderId, userId)
+				.orElseThrow(() -> new RuntimeException("查無此訂單，或你不是此團購的團購主"));
+		if (orderVO.getOrderStatus() == OrderStatus.COMPLETED) {
+			throw new RuntimeException("此訂單已經確認收貨");
+		}
+
+		if (orderVO.getShippedStatus() != ShippedStatus.PENDING) {
+			throw new RuntimeException("商品尚未出貨，無法確認收貨");
+		}
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+
+		orderVO.setOrderStatus(OrderStatus.COMPLETED);
+		orderVO.setPaidStatus(PaidStatus.PAID);
+		orderVO.setReceivedAt(now);
+		orderVO.setCompletedAt(now);
+
+		groupBuyOrderRepository.save(orderVO);
 	}
 
 	// 給小農審核團購申請用
