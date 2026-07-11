@@ -1,6 +1,8 @@
 package com.farmily.product.controller;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -61,7 +65,21 @@ public class FarmerProductController {
 	}
 	//寫入資料庫時撞到關聯限制
 	@ExceptionHandler(DataIntegrityViolationException.class)
-	public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+	public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e){
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("資料關聯有誤，請確認輸入的分類或商品是否存在");
 	}
+	
+	@ExceptionHandler(BindException.class)
+	public ResponseEntity<String> handleVaildation(BindException e){
+		 List<FieldError> errors = new ArrayList<>(e.getBindingResult().getFieldErrors());
+		 List<String> order = List.of ("subCatClassId","productName","retailPrice","groupPrice","unitPricingMeasure");
+		 errors.sort(Comparator.comparingInt(item -> order.indexOf(item.getField())));
+		 List<String> messages = new ArrayList<>();
+		 for (FieldError error : errors) {
+		     messages.add(error.getDefaultMessage());
+		 }
+		 String joined = String.join("、", messages);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(joined);
+	}
+	
 }
