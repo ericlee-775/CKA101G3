@@ -997,13 +997,13 @@ CREATE TABLE FARM_TRIP (
     farm_trip_intro VARCHAR(500),
     location VARCHAR(100),
     refer_price INT,
-    status ENUM('PENDING','REJECTED','ACTIVE','CLOSED'),
+    trip_status ENUM('PENDING','REJECTED','ACTIVE','CLOSED'),
     comment_numbers INT,
     star_numbers INT,
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP (farm_trip_id, farmer_id, farm_trip_type, farm_trip_title, farm_trip_pic, farm_trip_intro, location, refer_price, status, comment_numbers, star_numbers) VALUES
+INSERT INTO FARM_TRIP (farm_trip_id, farmer_id, farm_trip_type, farm_trip_title, farm_trip_pic, farm_trip_intro, location, refer_price, trip_status, comment_numbers, star_numbers) VALUES
 (5001, 1, 'FARM_EXPERIENCE','有機蔬菜採收體驗',NULL,'走進陽光農場認識有機蔬菜，親手完成採收與清洗。','臺北市中正區中正路500號',500, 'ACTIVE', 1, 5),
 
 (5002, 2, 'FIELD_VISIT','自然農法農場導覽',NULL,'由農友介紹自然農法、土壤照護及友善環境的栽培方式。','臺北市大同區大同街200號',300, 'ACTIVE', 1, 5),
@@ -1074,7 +1074,7 @@ CREATE TABLE FARM_TRIP_ORDER (
     user_id INT NOT NULL,
     farm_trip_order_booking_no VARCHAR(30),
     num_people INT NOT NULL,
-    status ENUM('CONFIRMED','CANCELLED','COMPLETED'),
+    order_status ENUM('CONFIRMED','CANCELLED','COMPLETED'),
     booked_at DATETIME NOT NULL,
     cancelled_at DATETIME,
     completed_at DATETIME,
@@ -1085,7 +1085,7 @@ CREATE TABLE FARM_TRIP_ORDER (
     FOREIGN KEY (user_id) REFERENCES USER(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_trip_order_booking_no, num_people, status, booked_at, cancelled_at, completed_at, user_name, user_phone_num, note) VALUES
+INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_trip_order_booking_no, num_people, order_status, booked_at, cancelled_at, completed_at, user_name, user_phone_num, note) VALUES
 (8001, 6001, 5, 'TRIP-20260410-001',2, 'COMPLETED','2026-03-15 10:00:00', NULL, '2026-04-10 15:10:00','黃雅婷', '0956789012','第一次參加農村體驗，希望有導覽說明。'),
 
 (8002, 6002, 1, 'TRIP-20260417-001', 2, 'COMPLETED', '2026-03-20 11:00:00', NULL, '2026-04-17 12:10:00', '陳小美', '0912345678', '希望了解自然農法與土壤照護。'),
