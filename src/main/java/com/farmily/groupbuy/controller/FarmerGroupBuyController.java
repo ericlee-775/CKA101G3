@@ -16,7 +16,6 @@ import com.farmily.groupbuy.model.GroupBuyFarmerDTO;
 import com.farmily.groupbuy.model.GroupBuyOrderDTO;
 import com.farmily.groupbuy.model.GroupBuyParticipationDTO;
 import com.farmily.groupbuy.model.GroupBuyReviewDTO;
-import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.service.GroupBuyService;
 import com.farmily.product.service.ProductService;
 import com.farmily.user.security.FarmerUserDetails;
@@ -43,11 +42,13 @@ public class FarmerGroupBuyController {
 	
 	//小農前台顯示的單筆團購請求詳細內容
 	@GetMapping("/list/{groupBuyId}")
-	public ResponseEntity<GroupBuyVO>oneFarmerGroupBuy(@PathVariable Integer groupBuyId){
-		GroupBuyVO groupBuy=groupBuySvc.getOneGroupBuyId(groupBuyId);
-		return ResponseEntity.ok(groupBuy);
+	public ResponseEntity<GroupBuyFarmerDTO> oneFarmerGroupBuy(
+	        @PathVariable Integer groupBuyId,
+	        @AuthenticationPrincipal FarmerUserDetails me) {
+	    GroupBuyFarmerDTO dto =
+	            groupBuySvc.getOneGroupBuyForFarmer(groupBuyId, me.getFarmerId());
+	    return ResponseEntity.ok(dto);
 	}
-	
 	//顯示訂單總覽
 	@GetMapping("/orderList")
 	public ResponseEntity<List<GroupBuyOrderDTO>>orderList(@AuthenticationPrincipal FarmerUserDetails me){

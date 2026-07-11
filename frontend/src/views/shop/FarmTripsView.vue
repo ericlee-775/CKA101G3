@@ -18,6 +18,7 @@ const sessions = ref([])
 const comments = ref([])
 const detailLoading = ref(false)
 const detailError = ref('')
+function hideImg(e) { e.target.style.display = 'none' }
 
 // ---- 報名表單 ----
 const bookingSessionId = ref(null)   // 正在報名哪個場次；null = 沒有展開表單
@@ -210,10 +211,6 @@ onMounted(loadTrips)
   <main class="page">
     <div class="topbar">
       <h1>🚜 農遊體驗</h1>
-      <label class="uid">
-        使用者 ID：
-        <input type="number" v-model.number="userId" min="1" />
-      </label>
     </div>
 
     <!-- ============ 活動列表 ============ -->
@@ -229,6 +226,7 @@ onMounted(loadTrips)
           class="card"
           @click="openDetail(t.farmTripId)"
         >
+          <img class="thumb" :src="`/api/farm-trips/${t.farmTripId}/image`" alt="" @error="hideImg" />
           <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
           <h3>{{ t.farmTripTitle }}</h3>
           <p class="muted">📍 {{ t.location }}</p>
@@ -265,6 +263,7 @@ onMounted(loadTrips)
       <template v-else-if="detail">
         <span class="badge">{{ typeLabel(detail.farmTripType) }}</span>
         <h2>{{ detail.farmTripTitle }}</h2>
+        <img class="detail-img" :src="`/api/farm-trips/${detail.farmTripId}/image`" alt="" @error="hideImg" />
         <p class="muted">📍 {{ detail.location }}</p>
         <p class="star">{{ stars(detail.starNumbers) }}（{{ detail.commentNumbers || 0 }} 則評論）</p>
         <p class="price">參考價 {{ formatPrice(detail.referPrice) }}</p>
@@ -341,6 +340,14 @@ h1 { color: var(--ink); }
 }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 .card h3 { margin: 8px 0 4px; color: var(--ink); }
+.thumb {
+  width: 100%; height: 140px; object-fit: cover;
+  border-radius: 10px; margin-bottom: 10px; display: block;
+}
+.detail-img {
+  width: 100%; max-width: 520px; max-height: 320px; object-fit: cover;
+  border-radius: 12px; margin: 12px 0; display: block;
+}
 
 .badge {
   display: inline-block; background: var(--leaf-soft); color: var(--leaf-dark);

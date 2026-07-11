@@ -46,4 +46,11 @@ public interface FarmTripService {
 	List<FarmTrip> getTripsByFarmer(Integer farmerId);
 
 	List<OrderResponse> getFarmerOrders(Integer farmerId);
+
+	byte[] getTripImage(Integer farmTripId);
+	
+	// 管理後台：列出待審核的活動
+		List<FarmTrip> getPendingTrips();
+
+
 }

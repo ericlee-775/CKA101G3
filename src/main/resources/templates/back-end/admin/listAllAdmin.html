@@ -1,75 +1,132 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
 <head>
-    <meta charset="UTF-8">
-    <title>管理員管理 - listAllAdmin.html</title>
-    <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+    <title>管理員管理</title>
+    <style>
+        /* 純 CSS 彈窗：靠 :target 控制顯示，不需額外 JS/函式庫 */
+        .admin-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1050; }
+        .admin-modal:target { display:flex; align-items:flex-start; justify-content:center; padding:5vh 1rem; overflow:auto; }
+        .admin-modal-box { background:#fff; border-radius:.5rem; width:100%; max-width:560px; max-height:90vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.25); }
+        .admin-modal-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid #eee; font-weight:700; }
+        .admin-modal-close { font-size:1.5rem; line-height:1; text-decoration:none; color:#888; }
+        .admin-modal-body { padding:1.25rem; }
+    </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
-    <a class="navbar-brand" th:href="@{/admin/dashboard}">← 回總覽</a>
-    <span class="navbar-text text-white">管理員管理 <span th:text="${success}"></span></span>
-</nav>
 
-<div class="container mt-3">
+<h1 class="page-title" layout:fragment="pagetitle">管理員管理</h1>
 
-    <!-- 新增管理員 -->
-    <div class="card mb-4">
-        <div class="card-header">新增管理員</div>
-        <div class="card-body">
-            <form method="post" th:action="@{/admin/admins}">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" class="form-control" required/>
-                </div>
-                <div class="form-group">
-                    <label>密碼</label>
-                    <input type="password" name="password" class="form-control" required/>
-                </div>
-                <div class="form-group">
-                    <label>姓名</label>
-                    <input type="text" name="name" class="form-control" required/>
-                </div>
-                <div class="form-group">
-                    <label>權限</label>
-                    <div th:each="perm : ${permissionListData}" class="form-check">
-                        <!-- 多個同名 checkbox 會自動綁成 List<String> permissionCodes -->
-                        <input type="checkbox" name="permissionCodes"
-                               th:value="${perm.code}" class="form-check-input"/>
-                        <label class="form-check-label"
-                               th:text="${perm.name} + '（' + ${perm.code} + '）'"></label>
+<div layout:fragment="content">
+
+    <!-- 新增管理員：收進彈窗，主頁只保留觸發按鈕 -->
+    <a href="#addAdminModal" class="btn btn-success mb-3">＋ 新增管理員</a>
+
+    <div id="addAdminModal" class="admin-modal">
+        <div class="admin-modal-box">
+            <div class="admin-modal-head">
+                <span>新增管理員</span>
+                <a href="#" class="admin-modal-close">&times;</a>
+            </div>
+            <div class="admin-modal-body">
+                <form method="post" th:action="@{/admin/admins}">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" required/>
                     </div>
-                </div>
-                <button type="submit" class="btn btn-success">新增</button>
-            </form>
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" required/>
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" aria-label="顯示密碼">
+                                    <!-- 眼睛圖示對齊前端 Vue 的 PasswordInput（Feather eye / eye-off）-->
+                                    <svg class="icon-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="icon-eye-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>姓名</label>
+                        <input type="text" name="name" class="form-control" required/>
+                    </div>
+                    <div class="form-group">
+                        <label>權限</label>
+                        <div>
+                            <!-- 多個同名 checkbox 會自動綁成 List<String> permissionCodes；橫向排列不直排 -->
+                            <div th:each="perm : ${permissionListData}" class="form-check form-check-inline">
+                                <input type="checkbox" name="permissionCodes"
+                                       th:value="${perm.code}" class="form-check-input"/>
+                                <label class="form-check-label"
+                                       th:text="${perm.name} + '（' + ${perm.code} + '）'"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">新增</button>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- 管理員清單 -->
-    <table class="table table-striped table-bordered">
-        <thead class="thead-light">
-        <tr><th>計數</th><th>編號</th><th>Email</th><th>姓名</th><th>狀態</th><th>權限</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="admin, stat : ${adminListData}">
-            <td th:text="${stat.count}"></td>
-            <td th:text="${admin.adminId}"></td>
-            <td th:text="${admin.adminEmail}"></td>
-            <td th:text="${admin.adminName}"></td>
-            <td th:text="${admin.adminStatus}"></td>
-            <td th:text="${#strings.listJoin(admin.permissionCodes, ', ')}"></td>
-            <td>
-                <a class="btn btn-sm btn-outline-primary"
-                   th:href="@{/admin/admins/{id}/edit(id=${admin.adminId})}">修改</a>
-                <form method="post" class="d-inline"
-                      th:action="@{/admin/admins/{id}/delete(id=${admin.adminId})}"
-                      onsubmit="return confirm('確定刪除這位管理員？');">
-                    <button class="btn btn-sm btn-outline-danger">刪除</button>
-                </form>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-card">
+        <table class="table table-striped table-bordered mb-0">
+            <thead class="thead-light">
+            <tr><th>編號</th><th>Email</th><th>姓名</th><th>狀態</th><th>權限</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="admin : ${adminListData}">
+                <td th:text="${admin.adminId}"></td>
+                <td th:text="${admin.adminEmail}"></td>
+                <td th:text="${admin.adminName}"></td>
+                <td>
+                    <span class="badge-status"
+                          th:classappend="${admin.adminStatus == 'ACTIVE'} ? 'st-active' : 'st-suspended'"
+                          th:text="${admin.adminStatus}"></span>
+                </td>
+                <td>
+                    <!-- 權限 3 項以內直接顯示；超過改為可展開摺疊 -->
+                    <span th:if="${admin.permissionCodes.size() <= 3}"
+                          th:text="${#strings.listJoin(admin.permissionCodes, ', ')}"></span>
+                    <details th:if="${admin.permissionCodes.size() > 3}">
+                        <summary th:text="${admin.permissionCodes.size()} + ' 項權限'"></summary>
+                        <span th:text="${#strings.listJoin(admin.permissionCodes, ', ')}"></span>
+                    </details>
+                </td>
+                <td>
+                    <!-- 超級管理員（含 ADMIN 權限）不可被他人修改/刪除，前端隱藏按鈕與後端同階保護一致 -->
+                    <span th:if="${admin.permissionCodes.contains('ADMIN')}" class="text-muted">超級管理員</span>
+                    <th:block th:unless="${admin.permissionCodes.contains('ADMIN')}">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/admins/{id}/edit(id=${admin.adminId})}">修改</a>
+                        <form method="post" class="d-inline"
+                              th:action="@{/admin/admins/{id}/delete(id=${admin.adminId})}"
+                              onsubmit="return confirm('確定刪除這位管理員？');">
+                            <button class="btn btn-sm btn-outline-danger">刪除</button>
+                        </form>
+                    </th:block>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
 </div>
+
+<th:block layout:fragment="extrascript">
+    <script>
+        // 切換密碼欄顯示/隱藏
+        function togglePwd(btn) {
+            var input = btn.closest('.input-group').querySelector('input');
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.querySelector('.icon-eye').style.display = show ? 'none' : '';
+            btn.querySelector('.icon-eye-off').style.display = show ? '' : 'none';
+            btn.setAttribute('aria-label', show ? '隱藏密碼' : '顯示密碼');
+        }
+    </script>
+</th:block>
 </body>
 </html>

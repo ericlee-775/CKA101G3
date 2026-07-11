@@ -1,8 +1,8 @@
 package com.farmily.groupbuy.model;
 
 public enum OrderStatus {
-	pending("等待中"),
-	confirmed("確認收貨");
+	PENDING("等待中"),
+	COMPLETED("確認收貨");
 	
 	private final String displayName;
 

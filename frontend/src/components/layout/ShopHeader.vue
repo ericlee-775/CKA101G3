@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, BaseTransition } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import cartStore from '@/stores/cart'
@@ -12,6 +12,22 @@ const router = useRouter()
 
 // 購物車總件數（給右上角小紅點用）；超過 99 顯示成 99+
 const cartCount = computed(() => cartStore.totalCount.value)
+
+// 數量「增加」的瞬間播一次動畫：購物車跳一下、紅點彈出來。
+// 連續加入時先關掉再下一幀重開，動畫才會重播（同一個 class 連續掛著不會重跑）。
+const cartBump = ref(false)
+let bumpTimer = null
+watch(cartCount, (newVal, oldVal) => {
+  if (newVal <= oldVal) return // 減少/歸零（移除商品）不慶祝
+  cartBump.value = false
+  requestAnimationFrame(() => {
+    cartBump.value = true
+  })
+  clearTimeout(bumpTimer)
+  bumpTimer = setTimeout(() => {
+    cartBump.value = false
+  }, 700)
+})
 
 // 控制手機版選單的開合：點 ☰ 切換 true/false，
 // 在 <nav> 上用 :class 綁定，true 時才把選單展開。
@@ -157,8 +173,14 @@ async function logout() {
       <!-- 右側使用者區：購物車 + (未登入顯示 登入/註冊；已登入顯示 個人中心 + 登出) -->
       <div class="user-zone">
         <!-- 購物車：任何身分都看得到，點了到購物車頁 -->
-        <router-link class="cart-btn" to="/cart" aria-label="購物車">
-          <span class="cart-icon">🛒</span>
+        <router-link class="cart-btn" :class="{ 'cart-btn--bump': cartBump }" to="/cart" aria-label="購物車">
+          <!-- 木推車圖示(CSS 手工畫,跟商品頁動畫同一台車) -->
+          <span class="cart-icon" aria-hidden="true">
+            <span class="wagon__veggies">🥬🥕</span>
+            <span class="wagon__bed"></span>
+            <span class="wagon__wheel wagon__wheel--front"></span>
+            <span class="wagon__wheel wagon__wheel--back"></span>
+          </span>
           <!-- 有東西才顯示小紅點；超過 99 顯示 99+ -->
           <span v-if="cartCount > 0" class="cart-badge">{{ cartCount > 99 ? '99+' : cartCount }}</span>
         </router-link>
@@ -346,9 +368,79 @@ async function logout() {
   background: var(--leaf-soft);
   border-color: var(--leaf);
 }
+/* ----- 木推車圖示(取代 🛒 emoji;零件:蔬菜/木斗/把手/輪子) ----- */
 .cart-icon {
-  font-size: 19px;
+  position: relative;
+  width: 26px;
+  height: 21px;
+}
+/* 蔬菜:從車斗探出頭 */
+.wagon__veggies {
+  position: absolute;
+  top: -6px;
+  left: 3px;
+  font-size: 10px;
+  letter-spacing: -3px;
   line-height: 1;
+}
+/* 木斗:木頭色 + 直條木板紋 */
+.wagon__bed {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  width: 26px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1.5px solid #6f4a26;
+  border-radius: 2px 2px 4px 4px;
+  background: repeating-linear-gradient(90deg, #b07c46 0 5px, #9a6a3a 5px 6px);
+}
+/* 把手:斜斜翹起在車尾 */
+.wagon__bed::after {
+  content: '';
+  position: absolute;
+  right: -7px;
+  top: -3px;
+  width: 9px;
+  height: 2px;
+  border-radius: 2px;
+  background: #8a5a33;
+  transform: rotate(-32deg);
+}
+/* 輪子:深木色圓 + 淺色輻條 */
+.wagon__wheel {
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #4a3421;
+  border: 2px solid #2c1f12;
+}
+.wagon__wheel::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #d8b98c;
+}
+.wagon__wheel--front {
+  left: 3px;
+}
+.wagon__wheel--back {
+  right: 3px;
+}
+/* 滑過購物車鈕:輪子轉起來,暗示「出發去購物車」 */
+.cart-btn:hover .wagon__wheel {
+  animation: wagon-roll 0.6s linear infinite;
+}
+@keyframes wagon-roll {
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* 數量小紅點 */
 .cart-badge {
@@ -368,6 +460,38 @@ async function logout() {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
+}
+
+/* ===== 加入購物車的提示動畫：圖示跳一下、紅點「啵」地彈出 ===== */
+.cart-icon {
+  display: inline-block; /* span 預設 inline 吃不到 transform，要改 inline-block */
+}
+/* 圖示：像購物車被丟了東西進來，跳起來晃兩下停穩 */
+.cart-btn--bump .cart-icon {
+  animation: cart-hop 0.6s cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+/* 紅點：從小彈大再回彈（overshoot），像氣泡冒出來 */
+.cart-btn--bump .cart-badge {
+  animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cart-hop {
+  0%   { transform: translateY(0) rotate(0); }
+  25%  { transform: translateY(-7px) rotate(-10deg); }
+  50%  { transform: translateY(0) rotate(7deg); }
+  70%  { transform: translateY(-3px) rotate(-4deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+@keyframes badge-pop {
+  0%   { transform: scale(0.3); }
+  60%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+/* 使用者系統設定「減少動態效果」時不播 */
+@media (prefers-reduced-motion: reduce) {
+  .cart-btn--bump .cart-icon,
+  .cart-btn--bump .cart-badge {
+    animation: none;
+  }
 }
 
 /* 登入：外框膠囊 / 註冊：實心膠囊。兩者都是 router-link（會渲染成 <a>） */

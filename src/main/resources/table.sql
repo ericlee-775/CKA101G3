@@ -514,18 +514,7 @@ CREATE TABLE MAINCATEGORY (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO MAINCATEGORY (product_main_cat_id, product_main_cat_name) VALUES
-    (1, '水果'),
-    (2, '葉菜類'),
-	(3, '根莖類'),
-	(4, '瓜果茄豆'),
-	(5, '穀物雜糧'),
-	(6, '豆類堅果'),
-	(7, '菇蕈類'),
-	(8, '香草辛香料'),
-	(9, '茶葉咖啡'),
-	(10, '蛋品'),
-	(11, '蜂蜜甜品'),
-	(12, '農產加工品');
+    (1, '水果');
 
 
 -- 3-6. 農場商品 - 優惠卷
@@ -725,45 +714,7 @@ CREATE TABLE SUBCATEGORY (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO SUBCATEGORY (sub_cat_class_id, product_main_cat_id, sub_cat_class_name) VALUES
--- 1 水果
-(1, 1, '香蕉'), (2, 1, '鳳梨'), (3, 1, '芒果'), (4, 1, '芭樂'), (5, 1, '蓮霧'),
-(6, 1, '木瓜'), (7, 1, '柑橘類'), (8, 1, '葡萄'), (9, 1, '草莓'), (10, 1, '西瓜'),
-(11, 1, '哈密瓜'), (12, 1, '梨'), (13, 1, '桃李'), (14, 1, '荔枝龍眼'), (15, 1, '釋迦'),
-(16, 1, '火龍果'), (17, 1, '酪梨'),
--- 2 葉菜類
-(18, 2, '高麗菜'), (19, 2, '大白菜'), (20, 2, '小白菜'), (21, 2, '青江菜'), (22, 2, '菠菜'),
-(23, 2, '空心菜'), (24, 2, '地瓜葉'), (25, 2, '萵苣生菜'), (26, 2, '芥藍'), (27, 2, '韭菜'),
-(28, 2, '蔥'),
--- 3 根莖類
-(29, 3, '蘿蔔'), (30, 3, '胡蘿蔔'), (31, 3, '馬鈴薯'), (32, 3, '地瓜'), (33, 3, '芋頭'),
-(34, 3, '山藥'), (35, 3, '洋蔥'), (36, 3, '蒜頭'), (37, 3, '薑'), (38, 3, '竹筍'),
-(39, 3, '蓮藕'),
--- 4 瓜果茄豆
-(40, 4, '番茄'), (41, 4, '小黃瓜'), (42, 4, '絲瓜'), (43, 4, '苦瓜'), (44, 4, '南瓜'),
-(45, 4, '櫛瓜'), (46, 4, '茄子'), (47, 4, '甜椒'), (48, 4, '辣椒'), (49, 4, '玉米'),
-(50, 4, '四季豆'), (51, 4, '秋葵'),
--- 5 穀物雜糧
-(52, 5, '白米'), (53, 5, '糙米'), (54, 5, '黑米紫米'), (55, 5, '小米'), (56, 5, '燕麥'),
-(57, 5, '麵粉'), (58, 5, '蕎麥'), (59, 5, '薏仁'), (60, 5, '藜麥'),
--- 6 豆類堅果
-(61, 6, '黃豆'), (62, 6, '黑豆'), (63, 6, '紅豆'), (64, 6, '綠豆'), (65, 6, '花生'),
-(66, 6, '芝麻'), (67, 6, '核桃'), (68, 6, '腰果'),
--- 7 菇蕈類
-(69, 7, '香菇'), (70, 7, '金針菇'), (71, 7, '杏鮑菇'), (72, 7, '鴻喜菇'), (73, 7, '木耳'),
-(74, 7, '洋菇'),
--- 8 香草辛香料
-(75, 8, '九層塔'), (76, 8, '香菜'), (77, 8, '薄荷'), (78, 8, '迷迭香'), (79, 8, '香茅'),
-(80, 8, '薑黃'), (81, 8, '胡椒'),
--- 9 茶葉咖啡
-(82, 9, '綠茶'), (83, 9, '烏龍茶'), (84, 9, '紅茶'), (85, 9, '高山茶'), (86, 9, '咖啡豆'),
-(87, 9, '花草茶'),
--- 10 蛋品
-(88, 10, '雞蛋'), (89, 10, '鴨蛋'), (90, 10, '鵪鶉蛋'), (91, 10, '皮蛋鹹蛋'),
--- 11 蜂蜜甜品
-(92, 11, '蜂蜜'), (93, 11, '蜂王乳'), (94, 11, '黑糖'), (95, 11, '麥芽糖'),
--- 12 農產加工品
-(96, 12, '果乾蜜餞'), (97, 12, '果醬'), (98, 12, '醬菜泡菜'), (99, 12, '豆製品'),
-(100, 12, '米麵製品'), (101, 12, '醬料'), (102, 12, '酒醋釀造');
+    (1, 1, '香蕉');
 
 
 -- 3-3. 農場商品 - 商城農場產品
@@ -901,8 +852,9 @@ CREATE TABLE GROUP_BUY (
 INSERT INTO GROUP_BUY (group_buy_id,product_id,host_user_id,target_amount,group_price,open_datetime,ddl_datetime,`status`,created_at,request_status,request_datetime,reply_datetime,reject_reason,pickup_address
 ) VALUES
 (1, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'open', '2026-03-04 18:00:00', 'approved', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'桃園市中壢區復興路46號9樓'),
-(2, 4, 5, 5000, 180, NULL, '2026-03-20 23:59:59', 'pending', '2026-03-10 09:00:00', 'pending', '2026-03-10 09:00:00', NULL, NULL,'桃園市蘆竹區南崁路一段10號'),
-(3, 5, 2, 2000, 350, NULL, '2026-03-18 23:59:59', 'cancelled', '2026-03-09 14:30:00', 'rejected', '2026-03-09 14:30:00', '2026-03-09 16:00:00', '商品庫存不足，無法開團','台北市中山區中正路66號');
+(2, 4, 5, 5000, 180, '2026-03-02 00:00:00', '2026-03-20 23:59:59', 'pending', '2026-03-10 09:00:00', 'pending', '2026-03-10 09:00:00', NULL, NULL,'桃園市蘆竹區南崁路一段10號'),
+(3, 5, 2, 2000, 350,'2026-03-04 00:00:00', '2026-03-18 23:59:59', 'cancelled', '2026-03-09 14:30:00', 'rejected', '2026-03-09 14:30:00', '2026-03-09 16:00:00', '商品庫存不足，無法開團','台北市中山區中正路66號'),
+(4, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'pending', '2026-03-02 18:00:00', 'pending', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'我是地址');
 
 
 -- 4. 團購 - 團購參與記錄表
@@ -928,26 +880,25 @@ INSERT INTO GB_PARTICIPATION (participation_id, group_buy_id, user_id, is_host, 
 
 -- 4. 團購 - 團購訂單
 CREATE TABLE GB_ORDER (
-    order_id INT PRIMARY KEY,
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
     group_buy_id INT,
     total_quantity INT,
     group_price INT,
     total_amount INT,
-    shipped_status ENUM('PENDING','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING',
+    shipped_status ENUM('PENDING','DELIVERED') DEFAULT 'PENDING',
     shipped_at DATETIME,
-    tracking_num VARCHAR(50),
     created_at DATETIME,
     received_at DATETIME,
-    order_status ENUM('PENDING', 'COMPLETED', 'CANCELED'),
-    paid_status ENUM('UNPAID', 'PAID', 'REFUNDED'),
+    order_status ENUM('PENDING', 'COMPLETED'),
+    paid_status ENUM('UNPAID', 'PAID'),
     completed_at DATETIME,
     FOREIGN KEY (group_buy_id) REFERENCES GROUP_BUY(group_buy_id)
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, tracking_num, created_at, received_at, order_status, paid_status, completed_at) VALUES
-(90001, 1, 15, 220, 3300, 'PENDING', NULL, NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
@@ -1034,7 +985,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     farm_trip_audits_id INT AUTO_INCREMENT PRIMARY KEY,
     farm_trip_id INT NOT NULL,
     admin_id INT NOT NULL,
-    status ENUM('PENDING','APPROVED','REJECTED'),
+    audits_status ENUM('PENDING','APPROVED','REJECTED'),
     reason VARCHAR(255),
     created_at DATETIME,
     updated_at DATETIME,
@@ -1042,7 +993,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, status, reason, created_at, updated_at) VALUES
+INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, audits_status, reason, created_at, updated_at) VALUES
 (7001, 5001, 1, 'APPROVED', '活動流程完整，場地資訊清楚。', '2026-03-05 14:00:00', '2026-03-05 14:00:00'),
 
 (7002, 5002, 2, 'APPROVED', '導覽內容及安全規劃符合要求。', '2026-03-10 10:00:00', '2026-03-10 11:00:00'),
@@ -1117,6 +1068,7 @@ CREATE TABLE BLOG (
     user_id INT,
     farmer_id INT,
     blog_type_id INT,
+    product_id INT NOT NULL,
     blog_content TEXT NOT NULL,
     blog_img LONGBLOB,
     blog_like_count INT NOT NULL,
@@ -1124,26 +1076,27 @@ CREATE TABLE BLOG (
     blog_status ENUM('VISIBLE','HIDDEN'),
     FOREIGN KEY (user_id) REFERENCES USER(user_id),
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id),
-    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id)
+    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id),
+    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id,  blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
+INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
 -- 一根香蕉
-(9001, '一根香蕉的產地旅程',NULL, 1, 1, '從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
+(9001, '一根香蕉的產地旅程',NULL, 1, 1, 1,'從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
 -- 產地日記
-(9002, '有機農場的一天',NULL, 1, 1, '農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
+(9002, '有機農場的一天',NULL, 1, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2, '挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', NULL, 2, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9004, '山間農場參訪記', 1, NULL, 3, '第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
+(9004, '山間農場參訪記', 1, NULL, 3, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9005, '海風農場體驗日', 2, NULL, 3,  '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
+(9005, '海風農場體驗日', 2, NULL, 3, 4, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
 
 -- 食譜分享
-(9006, '香蕉燕麥鬆餅', 5, NULL, 4,  '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
+(9006, '香蕉燕麥鬆餅', 5, NULL, 4, 5, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
 
 -- 6. 專欄部落格 - 按讚檢查
 CREATE TABLE BLOG_LIKE (

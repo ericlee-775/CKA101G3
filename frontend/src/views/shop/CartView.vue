@@ -90,7 +90,7 @@ onUnmounted(() => {
 <template>
   <main class="page">
     <section class="hero">
-      <h1>🛒 購物車</h1>
+      <h1>🥬 購物車</h1>
     </section>
 
     <!-- 空購物車 -->
