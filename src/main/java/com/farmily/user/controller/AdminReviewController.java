@@ -1,5 +1,11 @@
 package com.farmily.user.controller;
 
+/*
+   本 class 為當初與 Vue 前端串接用的 REST API（/api/admin/reviews）
+   管理後台已改用 controller/view 下的 AdminReviewViewController（Thymeleaf）
+   （含證明文件圖片端點 /admin/reviews/{id}/cert/{type} 也在該 view controller）
+   前端與模板皆不再呼叫這些 REST 端點
+
 import com.farmily.user.dto.FarmerReviewResponse;
 import com.farmily.user.dto.ReviewRejectRequest;
 import com.farmily.user.security.AdminUserDetails;
@@ -82,3 +88,4 @@ public class AdminReviewController {
     }
 
 }
+*/

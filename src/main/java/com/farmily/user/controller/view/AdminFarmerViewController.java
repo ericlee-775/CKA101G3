@@ -20,11 +20,18 @@ public class AdminFarmerViewController {
         this.adminFarmerService = adminFarmerService;
     }
 
-    // 小農清單
+    // 查所有小農
     @GetMapping
     public String listAll(ModelMap model) {
         model.addAttribute("farmerListData", adminFarmerService.listAll());
         return "back-end/admin/listAllFarmer";
+    }
+
+    // 查單一小農
+    @GetMapping("/{farmerId}")
+    public String detail(@PathVariable Integer farmerId, ModelMap model) {
+        model.addAttribute("farmer", adminFarmerService.getById(farmerId));
+        return "back-end/admin/farmerDetail";
     }
 
     // 停權（ACTIVE -> SUSPENDED）
