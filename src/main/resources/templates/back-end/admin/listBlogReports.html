@@ -1,123 +1,132 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>部落格檢舉審核 - listBlogReports.html</title>
-    <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+    <title>部落格檢舉審核</title>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
-    <a class="navbar-brand" th:href="@{/admin/dashboard}">← 回總覽</a>
-    <span class="navbar-text text-white">部落格檢舉審核</span>
-</nav>
 
-<div class="container-fluid mt-3">
+<h1 class="page-title" layout:fragment="pagetitle">部落格檢舉審核</h1>
+
+<div layout:fragment="content">
 
     <!-- 統計摘要 -->
-    <div class="mb-3" th:if="${summary != null}">
-        <span class="mr-3">待審核：<strong th:text="${summary['pending'] ?: 0}"></strong></span>
-        <span class="mr-3">維持顯示：<strong th:text="${summary['approvedVisible'] ?: 0}"></strong></span>
-        <span class="mr-3">已隱藏：<strong th:text="${summary['rejectedHidden'] ?: 0}"></strong></span>
+    <div class="table-card mb-4" th:if="${summary != null}">
+        <span class="mr-4">待審核　<strong th:text="${summary['pending'] ?: 0}">0</strong></span>
+        <span class="mr-4">維持顯示　<strong th:text="${summary['approvedVisible'] ?: 0}">0</strong></span>
+        <span class="mr-4">已隱藏　<strong th:text="${summary['rejectedHidden'] ?: 0}">0</strong></span>
     </div>
 
     <!-- ============ 文章檢舉 ============ -->
-    <h4>文章檢舉 · 待審核</h4>
-    <table class="table table-bordered">
-        <thead class="thead-light">
-        <tr><th>檢舉編號</th><th>文章ID</th><th>檢舉原因</th><th>檢舉時間</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="r : ${pendingBlogReports}">
-            <td th:text="${r.reportId}"></td>
-            <td><a th:href="@{/farmily-web/blogs/{id}(id=${r.blogId})}" target="_blank" th:text="${r.blogId}"></a></td>
-            <td th:text="${r.reportReason}"></td>
-            <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
-            <td>
-                <form method="post" class="d-inline"
-                      th:action="@{/admin/blog-reports/{id}/approve(id=${r.reportId})}">
-                    <button class="btn btn-success btn-sm">通過（維持顯示）</button>
-                </form>
-                <form method="post" class="d-inline ml-1"
-                      th:action="@{/admin/blog-reports/{id}/reject(id=${r.reportId})}">
-                    <button class="btn btn-danger btn-sm">駁回（隱藏文章）</button>
-                </form>
-            </td>
-        </tr>
-        <tr th:if="${pendingBlogReports == null or pendingBlogReports.isEmpty()}">
-            <td colspan="5" class="text-center text-muted">沒有待審核的文章檢舉</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-card mb-4">
+        <h5 class="mb-3">文章檢舉 · 待審核</h5>
+        <table class="table table-striped table-bordered" style="width:100%">
+            <thead class="thead-light">
+            <tr><th>檢舉編號</th><th>文章ID</th><th>檢舉原因</th><th>檢舉時間</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${pendingBlogReports}">
+                <td th:text="${r.reportId}"></td>
+                <td><a th:href="@{/farmily-web/blogs/{id}(id=${r.blogId})}" target="_blank" th:text="${r.blogId}"></a></td>
+                <td th:text="${r.reportReason}"></td>
+                <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
+                <td>
+                    <form method="post" class="d-inline"
+                          th:action="@{/admin/blog-reports/{id}/approve(id=${r.reportId})}">
+                        <button class="btn btn-success btn-sm">通過（維持顯示）</button>
+                    </form>
+                    <form method="post" class="d-inline ml-1"
+                          th:action="@{/admin/blog-reports/{id}/reject(id=${r.reportId})}">
+                        <button class="btn btn-danger btn-sm">駁回（隱藏文章）</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${pendingBlogReports == null or pendingBlogReports.isEmpty()}">
+                <td colspan="5" class="text-center text-muted">沒有待審核的文章檢舉</td>
+            </tr>
+            </tbody>
+        </table>
 
-    <h5 class="mt-4 text-muted">文章檢舉 · 已處理（歷史）</h5>
-    <table class="table table-bordered table-sm">
-        <thead class="thead-light">
-        <tr><th>檢舉編號</th><th>文章ID</th><th>檢舉原因</th><th>結果</th><th>檢舉時間</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="r : ${historyBlogReports}">
-            <td th:text="${r.reportId}"></td>
-            <td><a th:href="@{/farmily-web/blogs/{id}(id=${r.blogId})}" target="_blank" th:text="${r.blogId}"></a></td>
-            <td th:text="${r.reportReason}"></td>
-            <td th:text="${r.reportStatus.name() == 'APPROVED_VISIBLE' ? '通過（顯示）' : '駁回（已隱藏）'}"></td>
-            <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
-        </tr>
-        <tr th:if="${historyBlogReports == null or historyBlogReports.isEmpty()}">
-            <td colspan="5" class="text-center text-muted">尚無處理紀錄</td>
-        </tr>
-        </tbody>
-    </table>
+        <h6 class="mt-4 text-muted">已處理（歷史）</h6>
+        <table class="table table-bordered table-sm" style="width:100%">
+            <thead class="thead-light">
+            <tr><th>檢舉編號</th><th>文章ID</th><th>檢舉原因</th><th>結果</th><th>檢舉時間</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${historyBlogReports}">
+                <td th:text="${r.reportId}"></td>
+                <td><a th:href="@{/farmily-web/blogs/{id}(id=${r.blogId})}" target="_blank" th:text="${r.blogId}"></a></td>
+                <td th:text="${r.reportReason}"></td>
+                <td>
+                    <span class="badge-status"
+                          th:classappend="${r.reportStatus.name() == 'APPROVED_VISIBLE'} ? 'st-active' : 'st-suspended'"
+                          th:text="${r.reportStatus.name() == 'APPROVED_VISIBLE'} ? '通過（顯示）' : '駁回（已隱藏）'"></span>
+                </td>
+                <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
+            </tr>
+            <tr th:if="${historyBlogReports == null or historyBlogReports.isEmpty()}">
+                <td colspan="5" class="text-center text-muted">尚無處理紀錄</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
     <!-- ============ 留言檢舉 ============ -->
-    <h4 class="mt-5">留言檢舉 · 待審核</h4>
-    <table class="table table-bordered">
-        <thead class="thead-light">
-        <tr><th>檢舉編號</th><th>留言ID</th><th>文章ID</th><th>檢舉原因</th><th>檢舉時間</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="r : ${pendingCommentReports}">
-            <td th:text="${r.reportId}"></td>
-            <td th:text="${r.commentId}"></td>
-            <td th:text="${r.blogId}"></td>
-            <td th:text="${r.reportReason}"></td>
-            <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
-            <td>
-                <form method="post" class="d-inline"
-                      th:action="@{/admin/comment-reports/{id}/approve(id=${r.reportId})}">
-                    <button class="btn btn-success btn-sm">通過</button>
-                </form>
-                <form method="post" class="d-inline ml-1"
-                      th:action="@{/admin/comment-reports/{id}/reject(id=${r.reportId})}">
-                    <button class="btn btn-danger btn-sm">駁回</button>
-                </form>
-            </td>
-        </tr>
-        <tr th:if="${pendingCommentReports == null or pendingCommentReports.isEmpty()}">
-            <td colspan="6" class="text-center text-muted">沒有待審核的留言檢舉</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-card">
+        <h5 class="mb-3">留言檢舉 · 待審核</h5>
+        <table class="table table-striped table-bordered" style="width:100%">
+            <thead class="thead-light">
+            <tr><th>檢舉編號</th><th>留言ID</th><th>文章ID</th><th>檢舉原因</th><th>檢舉時間</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${pendingCommentReports}">
+                <td th:text="${r.reportId}"></td>
+                <td th:text="${r.commentId}"></td>
+                <td th:text="${r.blogId}"></td>
+                <td th:text="${r.reportReason}"></td>
+                <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
+                <td>
+                    <form method="post" class="d-inline"
+                          th:action="@{/admin/comment-reports/{id}/approve(id=${r.reportId})}">
+                        <button class="btn btn-success btn-sm">通過</button>
+                    </form>
+                    <form method="post" class="d-inline ml-1"
+                          th:action="@{/admin/comment-reports/{id}/reject(id=${r.reportId})}">
+                        <button class="btn btn-danger btn-sm">駁回</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${pendingCommentReports == null or pendingCommentReports.isEmpty()}">
+                <td colspan="6" class="text-center text-muted">沒有待審核的留言檢舉</td>
+            </tr>
+            </tbody>
+        </table>
 
-    <h5 class="mt-4 text-muted">留言檢舉 · 已處理（歷史）</h5>
-    <table class="table table-bordered table-sm">
-        <thead class="thead-light">
-        <tr><th>檢舉編號</th><th>留言ID</th><th>文章ID</th><th>檢舉原因</th><th>結果</th><th>檢舉時間</th></tr>
-        </thead>
-        <tbody>
-        <tr th:each="r : ${historyCommentReports}">
-            <td th:text="${r.reportId}"></td>
-            <td th:text="${r.commentId}"></td>
-            <td th:text="${r.blogId}"></td>
-            <td th:text="${r.reportReason}"></td>
-            <td th:text="${r.reportStatus.name() == 'APPROVED_VISIBLE' ? '通過' : '駁回（已隱藏）'}"></td>
-            <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
-        </tr>
-        <tr th:if="${historyCommentReports == null or historyCommentReports.isEmpty()}">
-            <td colspan="6" class="text-center text-muted">尚無處理紀錄</td>
-        </tr>
-        </tbody>
-    </table>
+        <h6 class="mt-4 text-muted">已處理（歷史）</h6>
+        <table class="table table-bordered table-sm" style="width:100%">
+            <thead class="thead-light">
+            <tr><th>檢舉編號</th><th>留言ID</th><th>文章ID</th><th>檢舉原因</th><th>結果</th><th>檢舉時間</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${historyCommentReports}">
+                <td th:text="${r.reportId}"></td>
+                <td th:text="${r.commentId}"></td>
+                <td th:text="${r.blogId}"></td>
+                <td th:text="${r.reportReason}"></td>
+                <td>
+                    <span class="badge-status"
+                          th:classappend="${r.reportStatus.name() == 'APPROVED_VISIBLE'} ? 'st-active' : 'st-suspended'"
+                          th:text="${r.reportStatus.name() == 'APPROVED_VISIBLE'} ? '通過' : '駁回（已隱藏）'"></span>
+                </td>
+                <td th:text="${r.reportTime != null ? #dates.format(r.reportTime,'yyyy-MM-dd HH:mm') : '—'}"></td>
+            </tr>
+            <tr th:if="${historyCommentReports == null or historyCommentReports.isEmpty()}">
+                <td colspan="6" class="text-center text-muted">尚無處理紀錄</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
 </div>
 </body>

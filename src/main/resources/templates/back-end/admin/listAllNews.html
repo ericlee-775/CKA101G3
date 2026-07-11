@@ -1,173 +1,177 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
 <head>
-  <meta charset="UTF-8">
-  <title>最新消息管理</title>
-  <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
-  <style>
-    .news-content-cell {
-      max-width: 360px;
-      white-space: pre-line;
-    }
+    <title>最新消息管理</title>
+    <style>
+        .news-content-cell { max-width: 360px; white-space: pre-line; }
+        .edit-row td { background: #f8fbf8; }
+        .news-cover { width: 100px; height: 70px; object-fit: cover; border-radius: 6px; }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 編輯列的發布時間，把 DB 格式 "yyyy-MM-dd HH:mm:ss" 轉成 datetime-local 需要的 "yyyy-MM-ddTHH:mm"
+            document.querySelectorAll('[data-publish-time]').forEach(function (input) {
+                const value = input.dataset.publishTime;
+                if (!value) return;
+                input.value = value.replace(' ', 'T').slice(0, 16);
+            });
 
-    .edit-row td {
-      background: #f8fbf8;
-    }
-  </style>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('[data-publish-time]').forEach(function (input) {
-        const value = input.dataset.publishTime;
-        if (!value) return;
-        input.value = value.replace(' ', 'T').slice(0, 16);
-      });
+            // 「修改」按鈕：展開/收合該筆的編輯列
+            document.querySelectorAll('[data-toggle-edit]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const newsId = button.dataset.newsId;
+                    const row = document.querySelector('[data-edit-row="' + newsId + '"]');
+                    if (!row) return;
+                    row.classList.toggle('d-none');
+                });
+            });
 
-      document.querySelectorAll('[data-toggle-edit]').forEach(function (button) {
-        button.addEventListener('click', function () {
-          const newsId = button.dataset.newsId;
-          const row = document.querySelector('[data-edit-row="' + newsId + '"]');
-          if (!row) return;
-          row.classList.toggle('d-none');
+            // 「取消」按鈕：收合編輯列
+            document.querySelectorAll('[data-cancel-edit]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const row = button.closest('[data-edit-row]');
+                    if (row) row.classList.add('d-none');
+                });
+            });
         });
-      });
-
-      document.querySelectorAll('[data-cancel-edit]').forEach(function (button) {
-        button.addEventListener('click', function () {
-          const row = button.closest('[data-edit-row]');
-          if (row) row.classList.add('d-none');
-        });
-      });
-
-    });
-  </script>
+    </script>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
-  <a class="navbar-brand" th:href="@{/admin/dashboard}">← 回總覽</a>
-  <span class="navbar-text text-white">
-    最新消息管理
-    <span th:text="${success}"></span>
-    <span class="text-warning ml-2" th:text="${error}"></span>
-  </span>
-</nav>
 
-<div class="container mt-3">
-  <div class="card mb-4">
-    <div class="card-header">新增最新消息</div>
-    <div class="card-body">
-      <form method="post" th:action="@{/admin/news}" enctype="multipart/form-data">
-        <div class="form-group">
-          <label>標題</label>
-          <input type="text" name="title" class="form-control" required>
-        </div>
+<h1 class="page-title" layout:fragment="pagetitle">最新消息管理</h1>
 
-        <div class="form-group">
-          <label>內容</label>
-          <textarea name="content" class="form-control" rows="4" required></textarea>
-        </div>
+<div layout:fragment="content">
 
-        <div class="form-group">
-          <label>發布時間</label>
-          <input type="datetime-local" name="publishTime" class="form-control">
-        </div>
+    <!-- 新增最新消息 -->
+    <div class="table-card mb-4">
+        <h5 class="mb-3">新增最新消息</h5>
+        <form method="post" th:action="@{/admin/news}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>標題</label>
+                <input type="text" name="title" class="form-control" required>
+            </div>
 
-        <div class="form-group">
-          <label>封面圖片</label>
-          <input type="file" name="coverImg" class="form-control-file" accept="image/*">
-        </div>
+            <div class="form-group">
+                <label>內容</label>
+                <textarea name="content" class="form-control" rows="4" required></textarea>
+            </div>
 
-        <button type="submit" class="btn btn-success">新增</button>
-      </form>
+            <div class="form-group">
+                <label>發布時間</label>
+                <input type="datetime-local" name="publishTime" class="form-control">
+                <small class="form-text text-muted">
+                    留空＝存為草稿、不會自動上架；填時間＝時間到後系統每分鐘檢查並自動上架。
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>封面圖片</label>
+                <input type="file" name="coverImg" class="form-control-file" accept="image/*">
+            </div>
+
+            <button type="submit" class="btn btn-success">新增</button>
+        </form>
     </div>
-  </div>
 
-  <table class="table table-striped table-bordered">
-    <thead class="thead-light">
-    <tr>
-      <th>編號</th>
-      <th>封面</th>
-      <th>標題</th>
-      <th>內容</th>
-      <th>發布時間</th>
-      <th>狀態</th>
-      <th>操作</th>
-    </tr>
-    </thead>
-    <tbody>
-    <th:block th:each="news : ${newsListData}">
-    <tr>
-      <td th:text="${news.newsId}"></td>
-      <td>
-        <img th:src="@{/api/news/{id}/image(id=${news.newsId})}"
-             style="width:100px;height:70px;object-fit:cover;"
-             onerror="this.style.display='none'">
-      </td>
-      <td th:text="${news.title}"></td>
-      <td class="news-content-cell" th:text="${news.content}"></td>
-      <td th:text="${news.publishTime}"></td>
-      <td th:text="${news.newsStatus}"></td>
-      <td>
-        <button type="button"
-                class="btn btn-sm btn-outline-primary"
-                th:attr="data-news-id=${news.newsId}"
-                data-toggle-edit>修改</button>
+    <!-- 消息列表 -->
+    <div class="table-card">
+        <table class="table table-striped table-bordered" style="width:100%">
+            <thead class="thead-light">
+            <tr>
+                <th>編號</th>
+                <th>封面</th>
+                <th>標題</th>
+                <th>內容</th>
+                <th>發布時間</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <th:block th:each="news : ${newsListData}">
+                <tr>
+                    <td th:text="${news.newsId}"></td>
+                    <td>
+                        <img th:src="@{/api/news/{id}/image(id=${news.newsId})}"
+                             class="news-cover" onerror="this.style.display='none'" alt="封面">
+                    </td>
+                    <td th:text="${news.title}"></td>
+                    <td class="news-content-cell" th:text="${news.content}"></td>
+                    <td th:text="${news.publishTime}"></td>
+                    <td>
+                        <!-- 上架=綠、草稿=灰(還沒上)、下架=紅 -->
+                        <span class="badge-status"
+                              th:classappend="${news.newsStatus.name() == 'VISIBLE'} ? 'st-active'
+                                            : (${news.newsStatus.name() == 'DRAFT'} ? 'st-neutral' : 'st-suspended')"
+                              th:text="${news.newsStatus.name() == 'VISIBLE'} ? '上架'
+                                     : (${news.newsStatus.name() == 'DRAFT'} ? '草稿（未上架）' : '下架')"></span>
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                th:attr="data-news-id=${news.newsId}"
+                                data-toggle-edit>修改</button>
 
-        <form method="post" class="d-inline"
-              th:action="@{/admin/news/{id}/status(id=${news.newsId})}">
-          <input type="hidden" name="publish" value="true">
-          <button type="submit" class="btn btn-sm btn-outline-success">上架</button>
-        </form>
+                        <form method="post" class="d-inline"
+                              th:action="@{/admin/news/{id}/status(id=${news.newsId})}">
+                            <input type="hidden" name="publish" value="true">
+                            <button type="submit" class="btn btn-sm btn-outline-success">上架</button>
+                        </form>
 
-        <form method="post" class="d-inline"
-              th:action="@{/admin/news/{id}/status(id=${news.newsId})}">
-          <input type="hidden" name="publish" value="false">
-          <button type="submit" class="btn btn-sm btn-outline-secondary">下架</button>
-        </form>
+                        <form method="post" class="d-inline"
+                              th:action="@{/admin/news/{id}/status(id=${news.newsId})}">
+                            <input type="hidden" name="publish" value="false">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">下架</button>
+                        </form>
 
-        <form method="post" class="d-inline"
-              th:action="@{/admin/news/{id}/delete(id=${news.newsId})}"
-              onsubmit="return confirm('確定刪除這筆最新消息？');">
-          <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
-        </form>
-      </td>
-    </tr>
-    <tr class="edit-row d-none" th:attr="data-edit-row=${news.newsId}">
-      <td colspan="7">
-        <form method="post" enctype="multipart/form-data"
-              th:action="@{/admin/news/{id}/update(id=${news.newsId})}">
-          <div class="form-row">
-            <div class="form-group col-md-4">
-              <label>標題</label>
-              <input type="text" name="title" class="form-control"
-                     th:value="${news.title}" required>
-            </div>
+                        <form method="post" class="d-inline"
+                              th:action="@{/admin/news/{id}/delete(id=${news.newsId})}"
+                              onsubmit="return confirm('確定刪除這筆最新消息？');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr class="edit-row d-none" th:attr="data-edit-row=${news.newsId}">
+                    <td colspan="7">
+                        <form method="post" enctype="multipart/form-data"
+                              th:action="@{/admin/news/{id}/update(id=${news.newsId})}">
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label>標題</label>
+                                    <input type="text" name="title" class="form-control"
+                                           th:value="${news.title}" required>
+                                </div>
 
-            <div class="form-group col-md-4">
-              <label>發布時間</label>
-              <input type="datetime-local" name="publishTime" class="form-control"
-                     th:attr="data-publish-time=${news.publishTime}">
-            </div>
+                                <div class="form-group col-md-4">
+                                    <label>發布時間</label>
+                                    <input type="datetime-local" name="publishTime" class="form-control"
+                                           th:attr="data-publish-time=${news.publishTime}">
+                                </div>
 
-            <div class="form-group col-md-4">
-              <label>更換封面圖片</label>
-              <input type="file" name="coverImg" class="form-control-file" accept="image/*">
-            </div>
-          </div>
+                                <div class="form-group col-md-4">
+                                    <label>更換封面圖片</label>
+                                    <input type="file" name="coverImg" class="form-control-file" accept="image/*">
+                                </div>
+                            </div>
 
-          <div class="form-group">
-            <label>內容</label>
-            <textarea name="content" class="form-control" rows="4"
-                      th:text="${news.content}" required></textarea>
-          </div>
+                            <div class="form-group">
+                                <label>內容</label>
+                                <textarea name="content" class="form-control" rows="4"
+                                          th:text="${news.content}" required></textarea>
+                            </div>
 
-          <button type="submit" class="btn btn-sm btn-success">儲存修改</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-cancel-edit>取消</button>
-        </form>
-      </td>
-    </tr>
-    </th:block>
-    </tbody>
-  </table>
+                            <button type="submit" class="btn btn-sm btn-success">儲存修改</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-cancel-edit>取消</button>
+                        </form>
+                    </td>
+                </tr>
+            </th:block>
+            </tbody>
+        </table>
+    </div>
+
 </div>
 </body>
 </html>
