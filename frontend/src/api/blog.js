@@ -1,13 +1,12 @@
 // 部落格 API。小農(/api/farmer/blogs) 與 會員(/api/member/blogs) 共用同一套邏輯，
 // 只差 base 路徑與「分類規則」：小農固定產地日記(1)、會員自己選分類。
-import http from './http'
+import http, { extractError } from './http'
 
 // 共用：送 FormData、統一錯誤處理
 async function sendForm(url, method, fd) {
   const res = await fetch(url, { method, body: fd, credentials: 'include' })
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    const err = new Error(text || `發生錯誤 (${res.status})`)
+    const err = new Error(await extractError(res))   // 清成人話，不把原始 JSON 丟給使用者
     err.status = res.status
     throw err
   }
@@ -54,8 +53,15 @@ function createBlogApi(base, fixedBlogTypeId) {
 export const listBlogTypes = () => http.get('/api/blogs/types')
 
 // ===== 公開（商城前台，任何人可讀）=====
-export const listPublicBlogs = (offset = 0, limit = 5) =>
-  http.get(`/api/blogs?offset=${offset}&limit=${limit}`)
+// params 可選：{ blogTypeId, search, orderBy, sort }；有值才帶，維持與舊呼叫相容
+export const listPublicBlogs = (offset = 0, limit = 5, params = {}) => {
+  const q = new URLSearchParams({ offset, limit })
+  if (params.blogTypeId) q.set('blogTypeId', params.blogTypeId)
+  if (params.search) q.set('search', params.search)
+  if (params.orderBy) q.set('orderBy', params.orderBy)
+  if (params.sort) q.set('sort', params.sort)
+  return http.get(`/api/blogs?${q.toString()}`)
+}
 export const getPublicBlog = (blogId) => http.get(`/api/blogs/${blogId}`)
 export const publicBlogPhotos = (blogId) => http.get(`/api/blogs/${blogId}/photos`)
 export const publicBlogComments = (blogId) => http.get(`/api/blogs/${blogId}/comments`)
@@ -63,6 +69,9 @@ export const publicBlogComments = (blogId) => http.get(`/api/blogs/${blogId}/com
 // 需登入會員（userId 由後端 session 取，前端不用傳）
 export const addBlogComment = (blogId, commentPost) =>
   http.post(`/api/blogs/${blogId}/comments`, { commentPost })
+// 刪自己的留言（後端驗證只能刪本人的）
+export const deleteBlogComment = (commentId) =>
+  http.del(`/api/blogs/comments/${commentId}`)
 export const likeBlog = (blogId) =>
   http.post(`/api/blogs/${blogId}/like`)
 // 進頁面查目前會員按過沒（未登入回 liked:false）
