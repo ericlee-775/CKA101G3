@@ -1,7 +1,9 @@
 package com.farmily.user.controller.view;
 
+import com.farmily.user.dto.FarmerReviewResponse;
 import com.farmily.user.security.AdminUserDetails;
 import com.farmily.user.service.AdminReviewService;
+import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,13 +22,27 @@ public class AdminReviewViewController {
         this.adminReviewService = adminReviewService;
     }
 
-    // 審核頁：同時列出「待審」與「審核中」
+    // 查所有「待審 PENDING」與「審核中 Reviewing」案件清單
     @GetMapping
     public String list(ModelMap model) {
-        return backToList(model, null);
+        return backToList(model, null);     // 自定義方法
     }
 
-    // 開始審核（PENDING -> REVIEWING）
+    // 查某小農所有審核紀錄
+    @GetMapping("/farmer/{farmerId}")
+    public String historyByFarmer(@PathVariable Integer farmerId, ModelMap model) {
+        List<FarmerReviewResponse> reviews = adminReviewService.listByFarmer(farmerId);
+
+        model.addAttribute("reviews", reviews);
+        model.addAttribute("farmerId", farmerId);
+        if (!reviews.isEmpty()) {
+            model.addAttribute("farmName", reviews.get(0).getFarmName());
+            model.addAttribute("farmerEmail", reviews.get(0).getFarmerEmail());
+        }
+        return "back-end/admin/reviewHistory";
+    }
+
+    // 修改: 開始審核（PENDING -> REVIEWING）
     @PostMapping("/{reviewId}/start")
     public String start(@PathVariable Integer reviewId,
                         @AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
@@ -34,7 +50,7 @@ public class AdminReviewViewController {
         return backToList(model, "（已開始審核）");
     }
 
-    // 核准（APPROVED）
+    // 修改: 核准（APPROVED）
     @PostMapping("/{reviewId}/approve")
     public String approve(@PathVariable Integer reviewId,
                           @AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
@@ -42,7 +58,7 @@ public class AdminReviewViewController {
         return backToList(model, "（已核准）");
     }
 
-    // 退件（REJECTED，需填理由）
+    // 修改: 退件（REJECTED，需填理由）
     @PostMapping("/{reviewId}/reject")
     public String reject(@PathVariable Integer reviewId,
                          @RequestParam("rejectReason") String rejectReason,
@@ -59,7 +75,7 @@ public class AdminReviewViewController {
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
     }
 
-    // 私有小工具：重新查「待審 + 審核中」兩份清單，回審核頁
+    // 私有小工具：合併查「待審 + 審核中」兩份清單，回審核頁
     private String backToList(ModelMap model, String success) {
         model.addAttribute("pendingData", adminReviewService.listPending());
         model.addAttribute("reviewingData", adminReviewService.listReviewing());

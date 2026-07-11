@@ -1,5 +1,10 @@
 package com.farmily.user.controller;
 
+/*
+   本 class 為當初與 Vue 前端串接用的 REST API（/api/admin：login / me / admins / permissions）
+   管理後台已全面改用 controller/view 下的 Thymeleaf 版本（AdminViewController、AdminAccountViewController），
+   前端與模板皆不再呼叫這些端點
+
 import com.farmily.user.dto.*;
 import com.farmily.user.security.AdminUserDetails;
 import com.farmily.user.security.service.AdminUserDetailsService;
@@ -114,3 +119,5 @@ public class AdminController {
 
 
 }
+
+*/
