@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,9 +46,19 @@ public class MemberGroupBuyController {
 	public ResponseEntity<List<GroupBuyOrderDTO>> mySuccessOrders(@AuthenticationPrincipal MemberUserDetails me) {
 		return ResponseEntity.ok(groupBuySvc.showMySuccessGroupBuyOrders(me.getUserId()));
 	}
-
+	
+	//給團購主使用的確認收貨按鈕
+	@PatchMapping("/orders/{orderId}/confirm-receipt")
+	public ResponseEntity<String> confirmReceipt(
+	        @AuthenticationPrincipal MemberUserDetails me,
+	        @PathVariable Integer orderId) {
+	    groupBuySvc.confirmReceipt(orderId, me.getUserId());
+	    return ResponseEntity.ok("確認收貨完成");
+	}
+	
+	
+	
 	// 給團購主看的團購請求
-
 	@GetMapping("/myRequests")
 	public ResponseEntity<List<UnderReviewDTO>> showMyRequests(@AuthenticationPrincipal MemberUserDetails me) {
 
