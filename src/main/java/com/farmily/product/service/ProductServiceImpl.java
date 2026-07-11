@@ -40,7 +40,17 @@ public class ProductServiceImpl implements ProductService {
 	public Page<ProductSummaryDTO> getAllProducts(Pageable pageable) {
 		return productRepository.findAllProjectedToDto(pageable);
 	}
-	@Override 
+	@Override
+	@Transactional(readOnly = true)
+	public Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
+			Integer minPrice, Integer maxPrice, Pageable pageable) {
+		if (keyword != null && keyword.isBlank()) {
+			keyword = null;
+		}
+		return productRepository.searchProducts(keyword, subCatClassId, minPrice, maxPrice, pageable);
+	}
+
+	@Override
 	@Transactional(readOnly = true)
 	public List<ProductManageDTO> getMyProducts(Integer farmerId){
 		return productRepository.findMyProducts(farmerId);

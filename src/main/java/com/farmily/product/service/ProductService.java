@@ -21,6 +21,9 @@ public interface ProductService {
 	boolean updateProduct(Integer productId, ProductUpdatedDTO dto, Integer farmerId);
 
 	Page<ProductSummaryDTO> getAllProducts(Pageable pageable);
+
+	Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
+			Integer minPrice, Integer maxPrice, Pageable pageable);
 	
 	List<ProductManageDTO> getMyProducts(Integer farmerId);
 	
