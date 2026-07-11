@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.CityDistrict;
 import com.farmily.user.model.User;
@@ -127,13 +128,13 @@ public class UserServiceImpl implements UserService {
 
         if (user.getUserStatus() == User.UserStatus.SUSPENDED
                 || user.getUserStatus() == User.UserStatus.DELETED) {
-            throw new IllegalStateException("此帳號已遭停權或終止，有任何疑問請聯繫客服");
+            throw new AccountSuspendedException();
         }
 
         // 本地帳號必須先完成 Email 驗證（點驗證信連結）才能登入；Google OAuth 除外
         if (user.getAuthProvider() == User.AuthProvider.LOCAL
                 && (user.getEmailVerified() == null || !user.getEmailVerified())) {
-            throw new IllegalStateException("請先完成 Email 驗證後再登入，可至信箱點擊驗證連結");
+            throw new EmailNotVerifiedException();
         }
         return UserProfileResponse.from(user);
     }
@@ -203,7 +204,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(Integer userId) {
         if (!userRepository.existsById(userId)) {
-            throw new IllegalStateException("查無此用戶");
+            throw new UserNotFoundException();
         }
         userRepository.deleteById(userId);
     }
@@ -246,7 +247,7 @@ public class UserServiceImpl implements UserService {
         // step4. 限制被停權、註銷帳號不能登入
         if (user.getUserStatus() == User.UserStatus.SUSPENDED
                 || user.getUserStatus() == User.UserStatus.DELETED) {
-            throw new IllegalStateException("此帳號已遭停權或終止，有任何疑問請聯繫客服");
+            throw new AccountSuspendedException();
         }
 
         // 包裝會員資料成 dto 給 Controller
