@@ -112,7 +112,7 @@ public class GroupBuyService {
 			dto.setTotalQuantity(vo.getTotalQuantity());
 			dto.setGroupPrice(vo.getGroupPrice());
 			dto.setTotalAmount(vo.getTotalAmount());
-			dto.setShippingAddress(vo.getShippingAddress());
+			dto.setShippingAddress(vo.getGroupBuyId().getPickupAddress());
 			dto.setShippedStatus(vo.getShippedStatus());
 			dto.setShippedAt(vo.getShippedAt());
 			dto.setCreatedAt(vo.getCreatedAt());
@@ -133,13 +133,13 @@ public class GroupBuyService {
 
 	    Timestamp now = new Timestamp(System.currentTimeMillis());
 
-	    if (order.getShippedStatus() == ShippedStatus.delivered) {
+	    if (order.getShippedStatus() == ShippedStatus.DELIVERED) {
 	        throw new RuntimeException("請勿重複更改出貨狀態");
 	    }
 
-	    order.setShippedStatus(ShippedStatus.delivered);
+	    order.setShippedStatus(ShippedStatus.DELIVERED);
 	    order.setShippedAt(now);
-	    order.setOrderStatus(OrderStatus.pending);
+	    order.setOrderStatus(OrderStatus.PENDING);
 
 	    groupBuyOrderRepository.save(order);
 	}
@@ -211,7 +211,7 @@ public class GroupBuyService {
 			dto.setTotalQuantity(order.getTotalQuantity());
 			dto.setGroupPrice(order.getGroupPrice());
 			dto.setTotalAmount(order.getTotalAmount());
-			dto.setShippingAddress(order.getShippingAddress());
+			dto.setShippingAddress(order.getGroupBuyId().getPickupAddress());
 			dto.setShippedStatus(order.getShippedStatus());
 			return dto;
 
@@ -261,7 +261,7 @@ public class GroupBuyService {
 		dto.setTotalQuantity(vo.getTotalQuantity());
 		dto.setGroupPrice(vo.getGroupPrice());
 		dto.setTotalAmount(vo.getTotalAmount());
-		dto.setShippingAddress(vo.getShippingAddress());
+		dto.setShippingAddress(vo.getGroupBuyId().getPickupAddress());
 		dto.setShippedStatus(vo.getShippedStatus());
 		dto.setShippedAt(vo.getShippedAt());
 		dto.setCreatedAt(vo.getCreatedAt());
@@ -278,9 +278,30 @@ public class GroupBuyService {
 	public List<GroupBuyVO> getOpenGroupBuys() {
 		return repository.findByRequestStatusAndStatus(RequestStatus.approved, GroupBuyStatus.open);
 	}
+	
+	
+	//給小農看的單一團購資料
+	@Transactional(readOnly = true)
+	public GroupBuyFarmerDTO getOneGroupBuyForFarmer(Integer groupBuyId, Integer farmerId) {
+	    GroupBuyVO gb = repository.findByGroupBuyIdAndProduct_FarmerId(groupBuyId, farmerId)
+	            .orElseThrow(() -> new RuntimeException("查無此團購或你沒有權限"));
 
-	public GroupBuyVO getOneGroupBuyId(Integer groupBuyId) {
-		return repository.findById(groupBuyId).orElse(null);
+	    return new GroupBuyFarmerDTO(
+	            gb.getGroupBuyId(),
+	            gb.getProduct().getProductId(),
+	            gb.getProduct().getProductName(),
+	            gb.getGroupPrice(),
+	            gb.getHostUser() != null ? gb.getHostUser().getUserName() : null,
+	            gb.getTargetAmount(),
+	            gb.getOpenDatetime(),
+	            gb.getDdlDatetime(),
+	            gb.getPickupAddress(),
+	            gb.getRequestStatus(),
+	            gb.getRequestDatetime(),
+	            gb.getStatus(),
+	            gb.getReplyDatetime(),
+	            gb.getRejectReason()
+	    );
 	}
 
 	public GroupBuyParticipationVO getGroupBuyId(Integer groupBuyId) {
@@ -334,14 +355,12 @@ public class GroupBuyService {
 				order.setGroupPrice(groupBuy.getGroupPrice());
 				order.setTotalAmount(totalAmount);
 				order.setTotalQuantity(totalQuantity);
-				order.setShippingAddress(groupBuy.getPickupAddress());
-				order.setShippedStatus(ShippedStatus.pending);
+				order.setShippedStatus(ShippedStatus.PENDING);
 				order.setShippedAt(null);
-				order.setTrackingNum(null);
 				order.setCreatedAt(now);
 				order.setReceivedAt(null);
-				order.setOrderStatus(OrderStatus.pending);
-				order.setPaidStatus(PaidStatus.unpaid);
+				order.setOrderStatus(OrderStatus.PENDING);
+				order.setPaidStatus(PaidStatus.UNPAID);
 				order.setCompletedAt(null);
 				groupBuyOrderRepository.save(order);
 			} else {

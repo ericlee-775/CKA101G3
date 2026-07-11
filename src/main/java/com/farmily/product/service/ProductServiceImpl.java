@@ -3,6 +3,8 @@ package com.farmily.product.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +13,7 @@ import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductInsertDTO;
 import com.farmily.product.dto.ProductManageDTO;
-import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
@@ -35,8 +37,8 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductSummeryDTO> getAllProducts() {
-		return productRepository.findAllProjectedToDto();
+	public Page<ProductSummaryDTO> getAllProducts(Pageable pageable) {
+		return productRepository.findAllProjectedToDto(pageable);
 	}
 	@Override 
 	@Transactional(readOnly = true)
@@ -180,7 +182,7 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductSummeryDTO> getAllWishLists(Integer userId) {
+	public List<ProductSummaryDTO> getAllWishLists(Integer userId) {
 
 		return wishListRepository.findWishListByUserId(userId);
 	}

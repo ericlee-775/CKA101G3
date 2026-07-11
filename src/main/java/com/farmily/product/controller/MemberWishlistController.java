@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.service.ProductService;
 import com.farmily.user.security.MemberUserDetails;
 
@@ -43,9 +43,9 @@ public class MemberWishlistController {
 	}
 	//查詢全部收藏
 	@GetMapping
-	public ResponseEntity<List<ProductSummeryDTO>> getWishLists(@AuthenticationPrincipal MemberUserDetails me) {
+	public ResponseEntity<List<ProductSummaryDTO>> getWishLists(@AuthenticationPrincipal MemberUserDetails me) {
 
-		List<ProductSummeryDTO> wishlist = productService.getAllWishLists(me.getUserId());
+		List<ProductSummaryDTO> wishlist = productService.getAllWishLists(me.getUserId());
 		return ResponseEntity.ok(wishlist);
 	}
 

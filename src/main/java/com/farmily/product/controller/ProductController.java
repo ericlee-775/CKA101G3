@@ -6,6 +6,9 @@ import java.net.URLConnection;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductDetailDTO;
-import com.farmily.product.dto.ProductSummeryDTO;
+import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.SubCategoryOptionDTO;
 import com.farmily.product.model.SubCategoryRepository;
 import com.farmily.product.service.ProductService;
@@ -30,8 +33,8 @@ public class ProductController {
 
 	// 查詢所有商品（統一回傳 DTO，對應前端 Vue 串接）
 	@GetMapping
-	public ResponseEntity<List<ProductSummeryDTO>> getAllProducts() {
-		List<ProductSummeryDTO> products = productService.getAllProducts();
+	public ResponseEntity<Page<ProductSummaryDTO>> getAllProducts(@PageableDefault(size=10) Pageable pageable){
+		Page<ProductSummaryDTO> products = productService.getAllProducts(pageable);
 		return ResponseEntity.ok(products);
 	}
 
