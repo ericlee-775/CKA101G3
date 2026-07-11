@@ -1,13 +1,14 @@
 <script setup>
 // 公開部落格單篇詳情頁 — GET /api/blogs/{id} + 照片集，任何人可讀
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import {
   getPublicBlog, publicBlogPhotos, listBlogTypes,
-  publicBlogComments, addBlogComment, likeBlog, blogLikeStatus,
+  publicBlogComments, addBlogComment, deleteBlogComment, likeBlog, blogLikeStatus,
   reportBlog, reportComment,
 } from '@/api/blog'
+import { confirm } from '@/composables/useConfirm'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +19,12 @@ const photos = ref([])
 const typeName = ref('')
 const loadState = ref('loading') // loading | ready | error
 const errorMsg = ref('')
-const lightboxSrc = ref('')       // 點相簿放大用；空字串=關閉
+// 相簿放大：存「目前第幾張」的 index(-1=關閉)，才能左右切換
+const lightboxIndex = ref(-1)
+const lightboxSrc = computed(() => {
+  const p = photos.value[lightboxIndex.value]
+  return p ? `/api/photos/${p.blogPhotoId}/image` : ''
+})
 
 // 留言 / 按讚
 const comments = ref([])
@@ -28,12 +34,25 @@ const liking = ref(false)
 const liked = ref(false)   // 目前會員按過沒（決定畫實心♥還空心♡）
 // 只有登入的「會員」能留言/按讚（後端用 userId）
 const canInteract = computed(() => authStore.isLoggedIn && authStore.isMember)
+// 目前登入會員的 userId，用來判斷「這則留言是不是我的」
+const myUserId = computed(() => authStore.state.user?.userId ?? null)
 
-function openLightbox(photoId) {
-  lightboxSrc.value = `/api/photos/${photoId}/image`
+function openLightbox(idx) { lightboxIndex.value = idx }
+function closeLightbox() { lightboxIndex.value = -1 }
+function nextPhoto() {
+  if (!photos.value.length) return
+  lightboxIndex.value = (lightboxIndex.value + 1) % photos.value.length
 }
-function closeLightbox() {
-  lightboxSrc.value = ''
+function prevPhoto() {
+  if (!photos.value.length) return
+  lightboxIndex.value = (lightboxIndex.value - 1 + photos.value.length) % photos.value.length
+}
+// 鍵盤：← → 切換、Esc 關閉（只在燈箱開著時作用）
+function onLightboxKey(e) {
+  if (lightboxIndex.value < 0) return
+  if (e.key === 'ArrowRight') nextPhoto()
+  else if (e.key === 'ArrowLeft') prevPhoto()
+  else if (e.key === 'Escape') closeLightbox()
 }
 
 async function loadComments() {
@@ -78,6 +97,23 @@ async function submitComment() {
     alert('留言失敗：' + e.message)
   } finally {
     commenting.value = false
+  }
+}
+
+// 刪除自己的留言（後端會再驗一次只能刪本人的）
+async function removeComment(commentId) {
+  const ok = await confirm({
+    title: '刪除留言',
+    message: '確定要刪除這則留言嗎？此動作無法復原。',
+    confirmText: '刪除',
+    danger: true,
+  })
+  if (!ok) return
+  try {
+    await deleteBlogComment(commentId)
+    await loadComments()
+  } catch (e) {
+    alert('刪除失敗：' + e.message)
   }
 }
 
@@ -155,7 +191,13 @@ function goBack() {
   router.push('/blogs')
 }
 
-onMounted(load)
+onMounted(() => {
+  // 以後端 session 為準重新確認身分，避免 localStorage 舊 role 讓非會員誤以為能互動
+  authStore.hydrate()
+  load()
+  window.addEventListener('keydown', onLightboxKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
 </script>
 
 <template>
@@ -174,18 +216,19 @@ onMounted(load)
       <h1 class="title">{{ blog.blogTitle }}</h1>
       <div class="meta">
         {{ fmt(blog.blogTime) }} ｜
-        <button class="like-btn" :class="{ liked }" :disabled="liking"
-                @click="toggleLike" :title="liked ? '取消讚' : '按讚'">
+        <button class="like-btn" :class="{ liked }" :disabled="liking || !canInteract"
+                @click="toggleLike"
+                :title="canInteract ? (liked ? '取消讚' : '按讚') : '登入會員後可按讚'">
           {{ liked ? '♥' : '♡' }} {{ blog.blogLikeCount || 0 }}
         </button>
-        <button class="report-link" @click="openReportBlog" title="檢舉文章">⚑ 檢舉</button>
+        <button v-if="canInteract" class="report-link" @click="openReportBlog" title="檢舉文章">⚑ 檢舉</button>
       </div>
       <div class="content" v-html="blog.blogContent"></div>
 
       <div v-if="photos.length" class="gallery">
-        <img v-for="p in photos" :key="p.blogPhotoId"
+        <img v-for="(p, idx) in photos" :key="p.blogPhotoId"
              :src="`/api/photos/${p.blogPhotoId}/image`"
-             @click="openLightbox(p.blogPhotoId)"
+             @click="openLightbox(idx)"
              @error="$event.target.style.display = 'none'" alt="" />
       </div>
 
@@ -205,7 +248,10 @@ onMounted(load)
           <li v-for="c in comments" :key="c.commentId">
             <div class="c-head">
               會員 · {{ fmt(c.commentTime) }}
-              <button class="report-link" @click="openReportComment(c.commentId)" title="檢舉留言">⚑ 檢舉</button>
+              <button v-if="myUserId && c.userId === myUserId" class="report-link"
+                      @click="removeComment(c.commentId)" title="刪除留言">🗑 刪除</button>
+              <button v-else-if="canInteract" class="report-link"
+                      @click="openReportComment(c.commentId)" title="檢舉留言">⚑ 檢舉</button>
             </div>
             <div class="c-body">{{ c.commentPost }}</div>
           </li>
@@ -214,10 +260,13 @@ onMounted(load)
       </section>
     </article>
 
-    <!-- 放大檢視：點背景或圖片關閉 -->
-    <div v-if="lightboxSrc" class="lightbox" @click="closeLightbox">
-      <img :src="lightboxSrc" alt="" />
+    <!-- 放大檢視：點背景關閉、點圖片或 ‹ › 切換、鍵盤 ← → Esc -->
+    <div v-if="lightboxIndex >= 0" class="lightbox" @click="closeLightbox">
+      <button v-if="photos.length > 1" class="lb-nav lb-prev" @click.stop="prevPhoto" aria-label="上一張">‹</button>
+      <img :src="lightboxSrc" alt="" @click.stop="nextPhoto" />
+      <button v-if="photos.length > 1" class="lb-nav lb-next" @click.stop="nextPhoto" aria-label="下一張">›</button>
       <button class="lightbox-x" @click.stop="closeLightbox">✕</button>
+      <div v-if="photos.length > 1" class="lb-count">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
     </div>
 
     <!-- 檢舉 modal -->
@@ -283,6 +332,7 @@ onMounted(load)
 }
 .lightbox img {
   max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px;
+  cursor: pointer;   /* 點圖=下一張 */
 }
 .lightbox-x {
   position: fixed; top: 18px; right: 22px;
@@ -290,6 +340,19 @@ onMounted(load)
   background: #fff2; color: #fff; font-size: 20px; cursor: pointer;
 }
 .lightbox-x:hover { background: #fff4; }
+.lb-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 52px; height: 52px; border: none; border-radius: 50%;
+  background: #fff2; color: #fff; font-size: 30px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.lb-nav:hover { background: #fff4; }
+.lb-prev { left: 22px; }
+.lb-next { right: 22px; }
+.lb-count {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  color: #fff; background: #0006; padding: 4px 12px; border-radius: 999px; font-size: 13px;
+}
 
 .btn-ghost {
   padding: 8px 16px; border: 1px solid var(--line); border-radius: 9px;

@@ -1,6 +1,6 @@
 <script setup>
 // 小農後台：產地日記 詳情頁（整頁閱讀版型）
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import blogApi from '@/api/blog'
 import { confirm } from '@/composables/useConfirm'
@@ -15,9 +15,28 @@ const loadState = ref('loading') // loading | ready | error
 const errorMsg = ref('')
 const coverVer = ref(Date.now())
 const coverUrl = computed(() => `/api/blogs/${blogId.value}/image?v=${coverVer.value}`)
-const lightboxSrc = ref('')       // 點相簿放大用；空=關閉
-function openLightbox(photoId) { lightboxSrc.value = blogApi.photoImgUrl(photoId) }
-function closeLightbox() { lightboxSrc.value = '' }
+// 相簿放大：存目前第幾張(index)，-1=關閉，才能左右切換
+const lightboxIndex = ref(-1)
+const lightboxSrc = computed(() => {
+  const p = photos.value[lightboxIndex.value]
+  return p ? blogApi.photoImgUrl(p.blogPhotoId) : ''
+})
+function openLightbox(idx) { lightboxIndex.value = idx }
+function closeLightbox() { lightboxIndex.value = -1 }
+function nextPhoto() {
+  if (!photos.value.length) return
+  lightboxIndex.value = (lightboxIndex.value + 1) % photos.value.length
+}
+function prevPhoto() {
+  if (!photos.value.length) return
+  lightboxIndex.value = (lightboxIndex.value - 1 + photos.value.length) % photos.value.length
+}
+function onLightboxKey(e) {
+  if (lightboxIndex.value < 0) return
+  if (e.key === 'ArrowRight') nextPhoto()
+  else if (e.key === 'ArrowLeft') prevPhoto()
+  else if (e.key === 'Escape') closeLightbox()
+}
 
 async function load() {
   loadState.value = 'loading'
@@ -60,7 +79,11 @@ async function remove() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  window.addEventListener('keydown', onLightboxKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
 </script>
 
 <template>
@@ -86,16 +109,19 @@ onMounted(load)
 
       <!-- 相簿 -->
       <div v-if="photos.length" class="gallery">
-        <img v-for="p in photos" :key="p.blogPhotoId"
+        <img v-for="(p, idx) in photos" :key="p.blogPhotoId"
              :src="blogApi.photoImgUrl(p.blogPhotoId)"
-             @click="openLightbox(p.blogPhotoId)"
+             @click="openLightbox(idx)"
              @error="$event.target.style.display = 'none'" alt="" />
       </div>
     </article>
 
-    <div v-if="lightboxSrc" class="lightbox" @click="closeLightbox">
-      <img :src="lightboxSrc" alt="" />
+    <div v-if="lightboxIndex >= 0" class="lightbox" @click="closeLightbox">
+      <button v-if="photos.length > 1" class="lb-nav lb-prev" @click.stop="prevPhoto" aria-label="上一張">‹</button>
+      <img :src="lightboxSrc" alt="" @click.stop="nextPhoto" />
+      <button v-if="photos.length > 1" class="lb-nav lb-next" @click.stop="nextPhoto" aria-label="下一張">›</button>
       <button class="lightbox-x" @click.stop="closeLightbox">✕</button>
+      <div v-if="photos.length > 1" class="lb-count">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
     </div>
   </main>
 </template>
@@ -154,13 +180,26 @@ onMounted(load)
   position: fixed; inset: 0; z-index: 100;
   background: #000d; display: grid; place-items: center; padding: 24px; cursor: zoom-out;
 }
-.lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px; }
+.lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px; cursor: pointer; }
 .lightbox-x {
   position: fixed; top: 18px; right: 22px;
   width: 40px; height: 40px; border: none; border-radius: 50%;
   background: #fff2; color: #fff; font-size: 20px; cursor: pointer;
 }
 .lightbox-x:hover { background: #fff4; }
+.lb-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  width: 52px; height: 52px; border: none; border-radius: 50%;
+  background: #fff2; color: #fff; font-size: 30px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.lb-nav:hover { background: #fff4; }
+.lb-prev { left: 22px; }
+.lb-next { right: 22px; }
+.lb-count {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  color: #fff; background: #0006; padding: 4px 12px; border-radius: 999px; font-size: 13px;
+}
 
 .btn-ghost {
   padding: 8px 16px; border: 1px solid var(--line); border-radius: 9px;
