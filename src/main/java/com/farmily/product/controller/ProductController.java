@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductDetailDTO;
@@ -36,6 +37,19 @@ public class ProductController {
 	public ResponseEntity<Page<ProductSummaryDTO>> getAllProducts(@PageableDefault(size=10) Pageable pageable){
 		Page<ProductSummaryDTO> products = productService.getAllProducts(pageable);
 		return ResponseEntity.ok(products);
+	}
+
+	// 複合查詢
+	@GetMapping("/search")
+	public ResponseEntity<Page<ProductSummaryDTO>> searchProducts(
+			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) Integer subCatClassId,
+			@RequestParam(required = false) Integer minPrice,
+			@RequestParam(required = false) Integer maxPrice,
+			@PageableDefault(size = 10) Pageable pageable) {
+		Page<ProductSummaryDTO> result =
+				productService.searchProducts(keyword, subCatClassId, minPrice, maxPrice, pageable);
+		return ResponseEntity.ok(result);
 	}
 
 	// 查詢單一商品詳情（給商品詳情頁）；查無回 404

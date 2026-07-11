@@ -5,6 +5,7 @@ import java.io.Serializable;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.farmily.user.model.Farmer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,8 +34,13 @@ public class ProductVO implements Serializable{
 	private SubCategoryVO subCategoryVO;
 	
 	@Column(name="farmer_id")
-	private Integer farmerId;
-	
+	private Integer farmerId;                       // 寫入用（新增商品時設這個）
+
+	// 唯讀關聯：只給查詢 join / 讀 farmerStatus 用；同一欄已被 farmerId 佔用，故 insertable/updatable=false
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="farmer_id", referencedColumnName = "farmer_id", insertable = false, updatable = false)
+	private Farmer farmer;
+
 	@Column(name="retail_price")
 	private Integer retailPrice;
 	
@@ -84,6 +90,12 @@ public class ProductVO implements Serializable{
 	public void setFarmerId(Integer farmerId) {
 		this.farmerId = farmerId;
 	}
+
+	public Farmer getFarmer() {
+		return farmer;
+	}
+
+	// farmer 為唯讀關聯，不提供 setter（寫入請用 setFarmerId）
 
 	public Integer getRetailPrice() {
 		return retailPrice;

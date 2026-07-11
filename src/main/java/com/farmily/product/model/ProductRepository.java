@@ -14,26 +14,64 @@ import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 
 public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
-	@Query(value="SELECT new com.farmily.product.dto.ProductSummaryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE",
-			countQuery = "SELECT count(p) FROM ProductVO p WHERE p.status = com.farmily.product.model.Status.ACTIVE")
+
+	// 全部商品
+	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "FROM ProductVO p JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE",
+		countQuery = "SELECT count(p) FROM ProductVO p JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE")
 	Page<ProductSummaryDTO> findAllProjectedToDto(Pageable pageable);
 
+	// 複合查詢
+	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND (:keyword IS NULL OR p.productName LIKE CONCAT('%', :keyword, '%')) "
+			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
+			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
+			+ "AND (:maxPrice IS NULL OR p.retailPrice <= :maxPrice) "
+			+ "AND f.farmerStatus = ACTIVE",
+		countQuery = "SELECT count(p) FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND (:keyword IS NULL OR p.productName LIKE CONCAT('%', :keyword, '%')) "
+			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
+			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
+			+ "AND (:maxPrice IS NULL OR p.retailPrice <= :maxPrice) "
+			+ "AND f.farmerStatus = ACTIVE")
+	Page<ProductSummaryDTO> searchProducts(@Param("keyword") String keyword,
+			@Param("subCatClassId") Integer subCatClassId,
+			@Param("minPrice") Integer minPrice,
+			@Param("maxPrice") Integer maxPrice,
+			Pageable pageable);
+
+	// 農夫管理自己商品（小農端）
+	// 這裡不過濾 farmerStatus
 	@Query("SELECT new com.farmily.product.dto.ProductManageDTO(p.productId, p.productName, p.retailPrice, "
-			+ "p.groupPrice, p.unitPricingMeasure, p.status)" + " From ProductVO p" + " WHERE p.farmerId = :farmerId")
+			+ "p.groupPrice, p.unitPricingMeasure, p.status) "
+			+ "FROM ProductVO p WHERE p.farmerId = :farmerId")
 	List<ProductManageDTO> findMyProducts(@Param("farmerId") Integer farmerId);
 
-	// 商品詳情：建構式投影一次撈齊，LEFT JOIN 帶分類名稱、不載入圖片 BLOB
+	// 商品詳情（買家端）：建構式投影一次撈齊，不載入圖片 BLOB
+	// 小農停權 → 查不到（回 null，controller 轉 404）
 	@Query("SELECT new com.farmily.product.dto.ProductDetailDTO("
 			+ "p.productId, p.productName, p.retailPrice, p.groupPrice, "
-			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, " + "s.subCatClassId, s.subCatClassName) "
-			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s "
-			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.Status.ACTIVE")
+			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, s.subCatClassId, s.subCatClassName) "
+			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s JOIN p.farmer f "
+			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
-	// [暫時停用] ProductGroupBuyDTO 缺少對應此查詢 7 個參數的建構子，會導致 App 啟動失敗。
-	// 待 product 組補上 (Integer,String,Integer,String,String,Integer,String) 建構子後再啟用。
-	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice,p.unitPricingMeasure, p.description,s.subCatClassId, s.subCatClassName)"
-			+ " from ProductVO p LEFT JOIN p.subCategoryVO s WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+	// 團購清單（買家端）：商品上架 + 小農未停權 + 有開團購
+	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice, "
+			+ "p.unitPricingMeasure, p.description, s.subCatClassId, s.subCatClassName) "
+			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE "
 			+ "AND p.isGroupBuy = true")
 	List<ProductGroupBuyDTO> findGroupBuyProducts();
 
