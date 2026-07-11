@@ -1,6 +1,6 @@
 package com.farmily.coupon.model;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,10 +18,10 @@ public class CouponVO {
 	private String couponInfo;
 
 	@Column(name="issue_start_date")
-	private Timestamp issueStartDate;
+	private LocalDateTime issueStartDate;
 
 	@Column(name="issue_end_date")
-	private Timestamp issueEndDate;
+	private LocalDateTime issueEndDate;
 
 	@Column(name="amount")
 	private Integer amount;
@@ -43,16 +43,16 @@ public class CouponVO {
 	public void setCouponInfo(String couponInfo) {
 		this.couponInfo = couponInfo;
 	}
-	public Timestamp getIssueStartDate() {
+	public LocalDateTime getIssueStartDate() {
 		return issueStartDate;
 	}
-	public void setIssueStartDate(Timestamp issueStartDate) {
+	public void setIssueStartDate(LocalDateTime issueStartDate) {
 		this.issueStartDate = issueStartDate;
 	}
-	public Timestamp getIssueEndDate() {
+	public LocalDateTime getIssueEndDate() {
 		return issueEndDate;
 	}
-	public void setIssueEndDate(Timestamp issueEndDate) {
+	public void setIssueEndDate(LocalDateTime issueEndDate) {
 		this.issueEndDate = issueEndDate;
 	}
 	public Integer getAmount() {

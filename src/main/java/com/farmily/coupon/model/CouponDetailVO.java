@@ -23,7 +23,7 @@ public class CouponDetailVO {
 	
 	@Enumerated(EnumType.STRING)
 	@Column(name="status")
-	private Status status;
+	private CouponStatus status;
 
 	public Integer getUserId() {
 		return userId;
@@ -41,11 +41,11 @@ public class CouponDetailVO {
 		this.couponId = couponId;
 	}
 
-	public Status getStatus() {
+	public CouponStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(Status status) {
+	public void setStatus(CouponStatus status) {
 		this.status = status;
 	}
 	
