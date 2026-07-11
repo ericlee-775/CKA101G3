@@ -13,6 +13,7 @@ import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -97,8 +98,19 @@ public class UserServiceImpl implements UserService {
         newUser.setMonthlySpending(0);
         newUser.setUserStatus(User.UserStatus.ACTIVE);
 
-        // 存進 DB
-        User savedUser = userRepository.save(newUser);
+        /*
+        存進 DB (注意需用 saveAndFlush，不是 save)
+        一般 save()，INSERT 不會馬上送到 DB，而是等「交易 commit」才送
+        commit 發生在 register() 回傳之後，例外會在方法外面才爆 - 接不到
+        */
+        User savedUser;
+        try {
+            savedUser = userRepository.saveAndFlush(newUser);   // 強迫立即送到 DB，萬一撞 unique 約束，例外當場丟出來，還可以接住
+        } catch (DataIntegrityViolationException e) {
+            // 能進到這裡 = 另一個並發請求在「我查完」到「我存下去」之間搶先註冊了同一 email
+            // 被 DB 的 unique 約束擋下，轉成自訂業務例外 - 回 409
+            throw new EmailAlreadyExistsException();
+        }
 
         // 寄出 Email 驗證信，啟用才能登入 (存取 Redis)
         emailVerificationService.sendVerification(

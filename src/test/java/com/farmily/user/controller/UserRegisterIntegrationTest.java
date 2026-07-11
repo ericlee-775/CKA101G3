@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest                 // 啟動「整個」Spring context (真 bean、真 DB、真 Redis)
@@ -35,12 +36,17 @@ public class UserRegisterIntegrationTest {
     @MockitoBean
     JavaMailSender mailSender;      // mock 掉，不要真的寄信
 
+    // 整合測試：POST /api/member/register 真的把會員存進 DB，且密碼經 BCrypt 雜湊
     @Test
-    @DisplayName("整合測試：POST /api/member/register 真的把會員存進 DB，且密碼經 BCrypt 雜湊")
+    @DisplayName("整合測試-會員註冊成功")
     void registerIntegration() throws Exception {
-        String json = "{ \"email\": \"integration@example.com\","
-                + " \"password\": \"test12345\","
-                + " \"userName\": \"整合測試\" }";
+        String json = """
+        {
+            "email": "integration@example.com",
+            "password": "test12345",
+            "userName": "整合測試"
+        }
+        """;
 
         // 打真的 API，預期回 201 Created
         mockMvc.perform(post("/api/member/register")
@@ -53,5 +59,32 @@ public class UserRegisterIntegrationTest {
         assertThat(saved.getPassword()).isNotEqualTo("test12345");                               // 斷言不是明碼
         assertThat(passwordEncoder.matches("test12345", saved.getPassword())).isTrue();     // 斷言密碼有加密
         assertThat(saved.getEmailVerified()).isFalse();                                               // 斷言信箱未驗證
+    }
+
+    // 整合測試：重複 email 註冊，第二次撞 DB unique 約束回 409
+    @Test
+    @DisplayName("整合測試-會員重複註冊")
+    void registerDuplicateEmailReturns409() throws Exception {
+        String json = """
+        {
+            "email": "dup@example.com",
+            "password": "test12345",
+            "userName": "重複"
+        }
+        """;
+
+        // 第一次：成功 201
+        mockMvc.perform(post("/api/member/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andDo(print())
+                .andExpect(status().isCreated());
+
+        // 第二次：同 email，應被擋回 409
+        mockMvc.perform(post("/api/member/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andDo(print())
+                .andExpect(status().isConflict());     // 409
     }
 }
