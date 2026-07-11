@@ -151,11 +151,17 @@ public class UserSecurityConfig {
 				// 團購
 				.requestMatchers(HttpMethod.GET, "/api/groupBuy/**").permitAll()
 
+                        //體驗活動（公開：活動列表/詳情/場次/評論/圖片）
+                        .requestMatchers(HttpMethod.GET, "/api/farm-trips/**").permitAll()
+
                         //產地地圖（公開：查全部農場 / 單一農場）
                         .requestMatchers(HttpMethod.GET, "/api/farms", "/api/farms/**").permitAll()
 
                         //Blog （列表/詳情/封面/留言/照片）
                         .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
+
+                        //最新消息（公開：列表/詳情/封面圖）
+                        .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用
