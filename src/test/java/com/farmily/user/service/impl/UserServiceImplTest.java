@@ -2,6 +2,7 @@ package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.UserRegisterRequest;
 import com.farmily.user.exception.EmailAlreadyExistsException;
+import com.farmily.user.exception.OAuthAccountConflictException;
 import com.farmily.user.model.User;
 import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.SpendingTierRepository;
@@ -12,74 +13,129 @@ import com.farmily.user.service.EmailVerificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)          // 啟用 Mockito
-class UserServiceImplTest {
+public class UserServiceImplTest {
 
     @Mock
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Mock
-    CityDistrictRepository cityDistrictRepository;
+    private CityDistrictRepository cityDistrictRepository;
 
     @Mock
-    PasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
     @Mock
-    EmailUniquenessChecker emailUniquenessChecker;
+    private EmailUniquenessChecker emailUniquenessChecker;
 
     @Mock
-    SpendingTierRepository spendingTierRepository;
+    private SpendingTierRepository spendingTierRepository;
 
     @Mock
-    EmailVerificationService emailVerificationService;
+    private EmailVerificationService emailVerificationService;
 
     @Mock
-    EmailService emailService;
+    private EmailService emailService;
 
     // 把 7 個假替身塞進 UserServiceImpl
     @InjectMocks
-    UserServiceImpl userService;
+    private UserServiceImpl userService;
 
-    // 共用測試資料：一個合法註冊請求
-    private UserRegisterRequest sampleRequest() {
+    @DisplayName("測試會員重複註冊")
+    @Test
+    void register() {
         UserRegisterRequest reg = new UserRegisterRequest();
         reg.setEmail("test@example.com");
         reg.setPassword("test12345");
         reg.setUserName("測試");
-        return reg;
-    }
 
-    @DisplayName("測試會員重複註冊")
-    @Transactional
-    @Test
-    void register() {
-        // Arrange（安排）：假裝這個 email 已經有一個「有本地密碼」的帳號
+        // 模擬這個 email 已經有一個「有本地密碼」的帳號
         User existingUser = new User();
         existingUser.setPassword("hashed");
-        when(userRepository.findByEmail("test@example.com"))
-                .thenReturn(Optional.of(existingUser));
 
-        // assertThrows：第一個參數=預期的例外型別，第二個=會丟例外的那段程式
+        // Mockito - 當使用 findByEmail 方法，請回答 existingUser 物件
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
+
         assertThrows(EmailAlreadyExistsException.class, () -> {
-            userService.register(sampleRequest());
+            userService.register(reg);
         });
 
-        // 驗證 userRepository 的 save 從來沒被呼叫過
+        // Mockito - 驗證 userRepository 的 save 從來沒被呼叫過 (重複註冊)
         verify(userRepository, never()).save(any());
     }
+
+    @DisplayName("測試 Google 帳號重複註冊")
+    @Test
+    void registerGoogleAccountConflict() {
+        UserRegisterRequest reg = new UserRegisterRequest();
+        reg.setEmail("test@example.com");
+        reg.setPassword("test12345");
+        reg.setUserName("測試");
+
+        // ====== 劇本 ======
+        // 模擬這個 email 是 Google 帳號（沒有本地密碼）
+        User googleUser = new User();
+        googleUser.setPassword(null);
+        googleUser.setAuthProvider(User.AuthProvider.GOOGLE);
+
+        // Mockito - 當使用 findByEmail 方法，就固定返回 googleUser 物件
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(googleUser));
+
+        // ====== 演戲 ======
+        assertThrows(OAuthAccountConflictException.class, () -> {
+            userService.register(reg);
+        });
+
+        // ====== 假做 ======
+        // Mockito - 驗證不該去存 DB (重複註冊)
+        verify(userRepository, never()).save(any());
+    }
+
+    @DisplayName("測試全新 email 註冊成功：密碼雜湊、未驗證、寄驗證信")
+    @Test
+    void registerNewEmailSuccess() {
+        UserRegisterRequest reg = new UserRegisterRequest();
+        reg.setEmail("test@example.com");
+        reg.setPassword("test12345");
+        reg.setUserName("測試");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("test12345")).thenReturn("HASHED");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));   // 把傳進來的參數原封不動回傳
+
+        userService.register(reg);
+
+        // Mockito - 驗證有呼叫密碼加密流程
+        verify(passwordEncoder).encode("test12345");
+
+        // ArgumentCaptor 參數捕獲器
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        // 驗證有寫入資料庫流程 + 側錄器:把準備傳進 save() 的那個 User 物件在半路攔截下來
+        verify(userRepository).save(captor.capture());
+        User saved = captor.getValue();                     // 拿出被攔截的物件
+
+        assertEquals(saved.getPassword(),"HASHED");   // 斷言為加密過
+        assertFalse(saved.getEmailVerified());              // 斷言信箱未驗證
+        assertEquals(saved.getAuthProvider(), User.AuthProvider.LOCAL); // 斷言是本地註冊
+
+        // Mockito - 驗證有觸發寄信通知流程
+        verify(emailVerificationService).sendVerification(eq("test@example.com"), any());
+    }
+
+
 }
