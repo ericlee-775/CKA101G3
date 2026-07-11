@@ -6,6 +6,7 @@ import com.farmily.user.model.AdminRole;
 import com.farmily.user.repository.AdminRepository;
 import com.farmily.user.repository.AdminRoleRepository;
 import com.farmily.user.service.AdminService;
+import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,13 +28,16 @@ public class AdminServiceImpl implements AdminService {
     private final AdminRoleRepository adminRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
+    private final EmailService emailService;
 
     public AdminServiceImpl(AdminRepository adminRepository, AdminRoleRepository adminRoleRepository,
-                            PasswordEncoder passwordEncoder, EmailUniquenessChecker emailUniquenessChecker) {
+                            PasswordEncoder passwordEncoder, EmailUniquenessChecker emailUniquenessChecker,
+                            EmailService emailService) {
         this.adminRepository = adminRepository;
         this.adminRoleRepository = adminRoleRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
+        this.emailService = emailService;
     }
 
     // 管理員登入
@@ -83,6 +87,25 @@ public class AdminServiceImpl implements AdminService {
         List<String> codes = adminRepository.findPermissionCodesByAdminId(adminId);
 
         return AdminProfileResponse.from(admin, codes);
+    }
+
+    // 管理員修改自己的密碼
+    @Override
+    public void changeMyPassword(Integer adminId, ChangePasswordRequest pw) {
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+
+        if (pw.getOldPassword() == null
+                || !passwordEncoder.matches(pw.getOldPassword(), admin.getAdminPassword())) {
+            throw new BadCredentialsException("舊密碼錯誤");
+        }
+
+        admin.setAdminPassword(passwordEncoder.encode(pw.getNewPassword()));
+        admin.setUpdatedAt(LocalDateTime.now());
+        adminRepository.save(admin);
+
+        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
+        emailService.sendPasswordChangedNoticeToAdmin(admin.getAdminEmail());
     }
 
     // ================================= 管理員對其他管理員 CRUD =================================

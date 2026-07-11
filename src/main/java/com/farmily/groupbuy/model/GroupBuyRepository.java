@@ -15,4 +15,5 @@ public interface GroupBuyRepository extends JpaRepository<GroupBuyVO, Integer> {
 	Optional<GroupBuyVO> findByGroupBuyIdAndProduct_FarmerId(Integer groupBuyId, Integer farmerId);
 	List<GroupBuyVO> findByRequestStatusAndStatusIn(RequestStatus requestStatus,List<GroupBuyStatus> statuses);
 	List<GroupBuyVO> findByStatusAndDdlDatetimeBefore(GroupBuyStatus status,Timestamp now);
+	List<GroupBuyVO> findByHostUser_UserId(Integer userId);
 }

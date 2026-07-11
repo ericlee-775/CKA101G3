@@ -1,6 +1,7 @@
 package com.farmily.groupbuy.model;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -31,4 +32,11 @@ public interface GroupBuyParticipationRepository extends JpaRepository<GroupBuyP
 		Integer sumtotalQuantityByGroupBuy(
 		        @Param("groupBuy") GroupBuyVO groupBuy,
 		        @Param("joinStatus") JoinStatus joinStatus);
+	
+	
+	Optional<GroupBuyParticipationVO>
+	findByGroupBuyId_GroupBuyIdAndUserId_UserId(
+	        Integer groupBuyId,
+	        Integer userId
+	);
 }

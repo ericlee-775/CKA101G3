@@ -50,6 +50,17 @@
             </a>
         </div>
 
+        <!-- 活動審核（體驗活動）-->
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+            <a class="card stat-card h-100" th:href="@{/admin/farm-trips}">
+                <span class="stat-ico">🎪</span>
+                <span>
+                    <span class="stat-label d-block">體驗活動</span>
+                    <span class="stat-link">活動審核 →</span>
+                </span>
+            </a>
+        </div>
+
         <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
             <a class="card stat-card h-100" th:href="@{/admin/news}">
                 <span class="stat-ico">📰</span>

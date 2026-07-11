@@ -34,7 +34,6 @@
         <table id="memberTable" class="table table-striped table-bordered" style="width:100%">
             <thead class="thead-light">
             <tr>
-                <th>計數</th>
                 <th>編號</th>
                 <th>Email</th>
                 <th>姓名</th>
@@ -46,11 +45,11 @@
                 <th>Email驗證</th>
                 <th>狀態</th>
                 <th>變更狀態</th>
+                <th>詳情</th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="member, stat : ${memberListData}">
-                <td th:text="${stat.count}"></td>
+            <tr th:each="member : ${memberListData}">
                 <td th:text="${member.userId}"></td>
                 <td th:text="${member.email}"></td>
                 <td th:text="${member.userName}"></td>
@@ -81,6 +80,10 @@
                         </select>
                         <button type="submit" class="btn btn-sm btn-outline-primary">更新</button>
                     </form>
+                </td>
+                <td>
+                    <a class="btn btn-sm btn-outline-primary"
+                       th:href="@{/admin/members/{id}(id=${member.userId})}">詳情</a>
                 </td>
             </tr>
             </tbody>

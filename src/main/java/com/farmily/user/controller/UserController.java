@@ -4,7 +4,6 @@ import com.farmily.user.dto.*;
 import com.farmily.user.security.GoogleTokenVerifier;
 import com.farmily.user.security.MemberUserDetails;
 import com.farmily.user.security.service.MemberUserDetailsService;
-import com.farmily.user.service.EmailService;
 import com.farmily.user.service.SessionService;
 import com.farmily.user.service.UserService;
 import com.farmily.user.util.SessionCookieSupport;
@@ -29,15 +28,13 @@ public class UserController {
     private final MemberUserDetailsService memberUserDetailsService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final SessionService sessionService;
-    private final EmailService emailService;
     private final SessionCookieSupport sessionCookieSupport;
 
-    public UserController(UserService userService, MemberUserDetailsService memberUserDetailsService, GoogleTokenVerifier googleTokenVerifier, SessionService sessionService, EmailService emailService, SessionCookieSupport sessionCookieSupport) {
+    public UserController(UserService userService, MemberUserDetailsService memberUserDetailsService, GoogleTokenVerifier googleTokenVerifier, SessionService sessionService, SessionCookieSupport sessionCookieSupport) {
         this.userService = userService;
         this.memberUserDetailsService = memberUserDetailsService;
         this.googleTokenVerifier = googleTokenVerifier;
         this.sessionService = sessionService;
-        this.emailService = emailService;
         this.sessionCookieSupport = sessionCookieSupport;
     }
 
@@ -102,16 +99,16 @@ public class UserController {
             @AuthenticationPrincipal MemberUserDetails me,
             @RequestBody @Valid ChangePasswordRequest pw,
             HttpServletRequest request) {
+        // 改密碼成功後由 service 寄出密碼變更通知信
         userService.changePassword(me.getUserId(), pw);
 
-        // 改密碼成功後：踢掉「其他裝置」的 session（保留自己這台），再寄一封通知信
-        HttpSession session = request.getSession(false);
+        // 踢掉「其他裝置」的 session（保留自己這台）
+        HttpSession session = request.getSession(false);        // 若有 session 回傳，沒有回傳 null (不建立)
         String currentSessionId = null;
         if (session != null) {
             currentSessionId = session.getId();
         }
         sessionService.expireSessions(me.getUsername(), currentSessionId);
-        emailService.sendPasswordChangedNotice(me.getUsername());
 
         return ResponseEntity.ok("密碼修改成功！");
     }
