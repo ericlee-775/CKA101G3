@@ -17,7 +17,7 @@ import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
-import com.farmily.product.model.Status;
+import com.farmily.product.model.ProductStatus;
 import com.farmily.product.model.SubCategoryRepository;
 import com.farmily.product.model.SubCategoryVO;
 import com.farmily.product.model.WishListId;
@@ -88,7 +88,7 @@ public class ProductServiceImpl implements ProductService {
 		}
 
 		productVO.setFarmerId(farmerId);
-		productVO.setStatus(Status.ACTIVE);
+		productVO.setStatus(ProductStatus.ACTIVE);
 
 		productRepository.save(productVO);
 

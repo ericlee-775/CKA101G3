@@ -62,7 +62,7 @@ public class ProductVO implements Serializable{
 	
 	@Column(name="status")
 	@Enumerated(EnumType.STRING)
-	private Status status;
+	private ProductStatus status;
 	
 	@Column(name="product_name")
 	private String productName;
@@ -154,11 +154,11 @@ public class ProductVO implements Serializable{
 		this.description = description;
 	}
 
-	public Status getStatus() {
+	public ProductStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(Status status) {
+	public void setStatus(ProductStatus status) {
 		this.status = status;
 	}
 

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>優惠券管理</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css"/>
+    <script>
+        $(document).ready(function () {
+            $('#couponTable').DataTable({
+                "lengthMenu": [10, 20, 50, 100],
+                "order": [],
+                "language": {
+                    "search": "搜尋:", "lengthMenu": "顯示 _MENU_ 筆",
+                    "info": "第 _START_ 至 _END_ 筆，共 _TOTAL_ 筆", "zeroRecords": "沒有符合的資料",
+                    "paginate": { "first": "第一頁", "previous": "上一頁", "next": "下一頁", "last": "最後一頁" }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+
+
+<h1 layout:fragment="pagetitle">🎟️ 優惠券管理</h1>
+
+
+<div layout:fragment="content">
+
+    <!-- ===== 發券表單 ===== -->
+    <div class="card mb-4">
+        <div class="card-header">發券（新增優惠券）</div>
+        <div class="card-body">
+            <!-- th:action 會讓 Spring Security 自動塞 CSRF token（後台 CSRF 是開的） -->
+            <form method="post" th:action="@{/admin/coupons}" class="form-row">
+                <div class="form-group col-md-3">
+                    <label>券代碼</label>
+                    <input type="text" name="couponId" class="form-control" required placeholder="WELCOME100">
+                </div>
+                <div class="form-group col-md-3">
+                    <label>券說明</label>
+                    <input type="text" name="couponInfo" class="form-control" required placeholder="新戶折 100">
+                </div>
+                <div class="form-group col-md-2">
+                    <label>折抵金額</label>
+                    <input type="number" name="amount" class="form-control" min="1" required>
+                </div>
+                <div class="form-group col-md-2">
+                    <label>滿額門檻</label>
+                    <input type="number" name="minSpending" class="form-control" min="0" required>
+                </div>
+                <div class="form-group col-md-3">
+                    <label>發放開始</label>
+                    <input type="datetime-local" name="issueStartDate" class="form-control">
+                </div>
+                <div class="form-group col-md-3">
+                    <label>發放結束</label>
+                    <input type="datetime-local" name="issueEndDate" class="form-control">
+                </div>
+                <div class="form-group col-12">
+                    <button type="submit" class="btn btn-success">發券</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== 券清單 ===== -->
+    <table id="couponTable" class="table table-striped table-bordered">
+        <thead class="thead-light">
+        <tr>
+            <th>券代碼</th>
+            <th>說明</th>
+            <th>折抵</th>
+            <th>門檻</th>
+            <th>發放開始</th>
+            <th>發放結束</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${couponListData}">
+            <td th:text="${c.couponId}"></td>
+            <td th:text="${c.couponInfo}"></td>
+            <td th:text="'折 $' + ${c.amount}"></td>
+            <td th:text="'滿 $' + ${c.minSpending}"></td>
+            <!-- LocalDateTime 可能為 null，先判斷再格式化，否則 #temporals.format 會報錯 -->
+            <td th:text="${c.issueStartDate != null ? #temporals.format(c.issueStartDate, 'yyyy-MM-dd HH:mm') : '—'}"></td>
+            <td th:text="${c.issueEndDate != null ? #temporals.format(c.issueEndDate, 'yyyy-MM-dd HH:mm') : '—'}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

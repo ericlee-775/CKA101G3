@@ -36,6 +36,9 @@
             <a class="nav-link" data-path="/admin/reviews"
                sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/reviews}">
                 <span class="ico">📋</span> 小農審核</a>
+             <a class="nav-link" data-path="/admin/coupons"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN')" th:href="@{/admin/coupons}">
+                <span class="ico">???</span> 優惠卷管理</a>
 
             <a class="nav-link" data-path="/admin/news"
                sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')" th:href="@{/admin/news}">

@@ -1,6 +1,6 @@
 package com.farmily.product.dto;
 
-import com.farmily.product.model.Status;
+import com.farmily.product.model.ProductStatus;
 
 public class ProductManageDTO {
 
@@ -9,7 +9,7 @@ public class ProductManageDTO {
 	}
 
 	public ProductManageDTO(Integer productId, String productName, Integer retailPrice, Integer groupPrice,
-			String unitPricingMeasure, Status status) {
+			String unitPricingMeasure, ProductStatus status) {
 
 		this.productId = productId;
 		this.productName = productName;
@@ -25,7 +25,7 @@ public class ProductManageDTO {
 	private Integer retailPrice;
 	private Integer groupPrice;
 	private String unitPricingMeasure;
-	private Status status;
+	private ProductStatus status;
 
 	public Integer getProductId() {
 		return productId;
@@ -67,11 +67,11 @@ public class ProductManageDTO {
 		this.unitPricingMeasure = unitPricingMeasure;
 	}
 
-	public Status getStatus() {
+	public ProductStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(Status status) {
+	public void setStatus(ProductStatus status) {
 		this.status = status;
 	}
 
