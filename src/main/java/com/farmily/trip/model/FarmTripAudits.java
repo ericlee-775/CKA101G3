@@ -37,7 +37,7 @@ public class FarmTripAudits {
     @Column(name = "created_at")
     private Timestamp createdAt;
 
-    @Column(name = "upadted_at")
+    @Column(name = "updated_at")
     private Timestamp updatedAt;
 
 	public Integer getFarmTripAuditsId() {

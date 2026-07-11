@@ -532,16 +532,6 @@ VALUES
 ('WELCOME100', '新會員首購滿500折100元', '2026-01-01 00:00:00', '2026-12-31 23:59:59', 100, 500);
 
 
--- 7. 通知 - 通知類型定義表
-CREATE TABLE NOTIFICATION_TYPE (
-                                   type_code VARCHAR(40) PRIMARY KEY,
-                                   template_zh VARCHAR(255)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 參數
-INSERT INTO NOTIFICATION_TYPE (type_code, template_zh) VALUES
-    ('payment_held', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。');
-
-
 -- 6. 專欄部落格 - 部落格類別
 CREATE TABLE BLOG_TYPE (
                            blog_type_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -698,22 +688,6 @@ VALUES
     (1, '系統維護通知',         '平台將於 2024/04/10 凌晨 2:00 – 4:00 進行系統維護，期間暫停服務。',           NULL, '2024-04-08 12:00:00', 'VISIBLE', '2024-04-08 10:00:00'),
     (3, '小農申請流程更新說明', '即日起小農申請流程新增第二階段審核，請備妥相關證明文件再行送件。',               NULL, '2024-05-20 10:00:00', 'HIDDEN',  '2024-05-19 16:00:00'),
     (2, '端午節限定農產品上架', '多款端午節限定農產品即將上架，敬請期待！',                                       NULL, '2024-06-05 09:00:00', 'VISIBLE', '2024-06-04 15:00:00');
-
--- 7. 通知 - 通知
-CREATE TABLE NOTIFICATION (
-                              notification_id INT AUTO_INCREMENT PRIMARY KEY,
-                              user_id INT,
-                              farmer_id INT,
-                              created_at DATETIME,
-                              content VARCHAR(500),
-                              status ENUM('UNREAD', 'READ'),
-
-                              FOREIGN KEY (user_id) REFERENCES USER(user_id),
-                              FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 參數
-INSERT INTO NOTIFICATION (notification_id, user_id, farmer_id, created_at, content, status) VALUES
-    (1, 1, 1, '2026-02-15 09:00:00', '付款成功，款項暫時凍結，待確認收貨後撥款給小農。', 'UNREAD');
 
 
 -- 3-7. 農場商品 - 優惠卷明細
@@ -878,8 +852,9 @@ CREATE TABLE GROUP_BUY (
 INSERT INTO GROUP_BUY (group_buy_id,product_id,host_user_id,target_amount,group_price,open_datetime,ddl_datetime,`status`,created_at,request_status,request_datetime,reply_datetime,reject_reason,pickup_address
 ) VALUES
 (1, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'open', '2026-03-04 18:00:00', 'approved', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'桃園市中壢區復興路46號9樓'),
-(2, 4, 5, 5000, 180, NULL, '2026-03-20 23:59:59', 'pending', '2026-03-10 09:00:00', 'pending', '2026-03-10 09:00:00', NULL, NULL,'桃園市蘆竹區南崁路一段10號'),
-(3, 5, 2, 2000, 350, NULL, '2026-03-18 23:59:59', 'cancelled', '2026-03-09 14:30:00', 'rejected', '2026-03-09 14:30:00', '2026-03-09 16:00:00', '商品庫存不足，無法開團','台北市中山區中正路66號');
+(2, 4, 5, 5000, 180, '2026-03-02 00:00:00', '2026-03-20 23:59:59', 'pending', '2026-03-10 09:00:00', 'pending', '2026-03-10 09:00:00', NULL, NULL,'桃園市蘆竹區南崁路一段10號'),
+(3, 5, 2, 2000, 350,'2026-03-04 00:00:00', '2026-03-18 23:59:59', 'cancelled', '2026-03-09 14:30:00', 'rejected', '2026-03-09 14:30:00', '2026-03-09 16:00:00', '商品庫存不足，無法開團','台北市中山區中正路66號'),
+(4, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'pending', '2026-03-02 18:00:00', 'pending', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'我是地址');
 
 
 -- 4. 團購 - 團購參與記錄表
@@ -910,21 +885,20 @@ CREATE TABLE GB_ORDER (
     total_quantity INT,
     group_price INT,
     total_amount INT,
-    shipped_status ENUM('PENDING','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING',
+    shipped_status ENUM('PENDING','DELIVERED') DEFAULT 'PENDING',
     shipped_at DATETIME,
-    tracking_num VARCHAR(50),
     created_at DATETIME,
     received_at DATETIME,
-    order_status ENUM('PENDING', 'COMPLETED', 'CANCELED'),
-    paid_status ENUM('UNPAID', 'PAID', 'REFUNDED'),
+    order_status ENUM('PENDING', 'COMPLETED'),
+    paid_status ENUM('UNPAID', 'PAID'),
     completed_at DATETIME,
     FOREIGN KEY (group_buy_id) REFERENCES GROUP_BUY(group_buy_id)
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, tracking_num, created_at, received_at, order_status, paid_status, completed_at) VALUES
-(90001, 1, 15, 220, 3300, 'PENDING', NULL, NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
@@ -1011,7 +985,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     farm_trip_audits_id INT AUTO_INCREMENT PRIMARY KEY,
     farm_trip_id INT NOT NULL,
     admin_id INT NOT NULL,
-    status ENUM('PENDING','APPROVED','REJECTED'),
+    audits_status ENUM('PENDING','APPROVED','REJECTED'),
     reason VARCHAR(255),
     created_at DATETIME,
     updated_at DATETIME,
@@ -1019,7 +993,7 @@ CREATE TABLE FARM_TRIP_AUDITS (
     FOREIGN KEY (admin_id) REFERENCES ADMIN(admin_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, status, reason, created_at, updated_at) VALUES
+INSERT INTO FARM_TRIP_AUDITS (farm_trip_audits_id, farm_trip_id, admin_id, audits_status, reason, created_at, updated_at) VALUES
 (7001, 5001, 1, 'APPROVED', '活動流程完整，場地資訊清楚。', '2026-03-05 14:00:00', '2026-03-05 14:00:00'),
 
 (7002, 5002, 2, 'APPROVED', '導覽內容及安全規劃符合要求。', '2026-03-10 10:00:00', '2026-03-10 11:00:00'),
@@ -1094,6 +1068,7 @@ CREATE TABLE BLOG (
     user_id INT,
     farmer_id INT,
     blog_type_id INT,
+    product_id INT NOT NULL,
     blog_content TEXT NOT NULL,
     blog_img LONGBLOB,
     blog_like_count INT NOT NULL,
@@ -1101,26 +1076,27 @@ CREATE TABLE BLOG (
     blog_status ENUM('VISIBLE','HIDDEN'),
     FOREIGN KEY (user_id) REFERENCES USER(user_id),
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id),
-    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id)
+    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id),
+    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id,  blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
+INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
 -- 一根香蕉
-(9001, '一根香蕉的產地旅程',NULL, 1, 1, '從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
+(9001, '一根香蕉的產地旅程',NULL, 1, 1, 1,'從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
 -- 產地日記
-(9002, '有機農場的一天',NULL, 1, 1, '農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
+(9002, '有機農場的一天',NULL, 1, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2, '挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', NULL, 2, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9004, '山間農場參訪記', 1, NULL, 3, '第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
+(9004, '山間農場參訪記', 1, NULL, 3, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9005, '海風農場體驗日', 2, NULL, 3,  '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
+(9005, '海風農場體驗日', 2, NULL, 3, 4, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
 
 -- 食譜分享
-(9006, '香蕉燕麥鬆餅', 5, NULL, 4,  '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
+(9006, '香蕉燕麥鬆餅', 5, NULL, 4, 5, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
 
 -- 6. 專欄部落格 - 按讚檢查
 CREATE TABLE BLOG_LIKE (
@@ -1220,3 +1196,81 @@ CREATE TABLE BLOG_COMMENT_REPORT (
 -- 參數
 INSERT INTO BLOG_COMMENT_REPORT (report_comment_id,comment_id, blog_id, user_id, admin_id, report_time, report_reason, report_status) VALUES
 (13001, 10001, 9001, 3, NULL, '2026-02-22 19:00:00', '留言內容可能涉及不當評論。', 'PENDING');
+
+
+-- 7. 通知 - 通知
+DROP TABLE IF EXISTS notification;
+CREATE TABLE IF NOT EXISTS notification (
+notification_id INT NOT NULL AUTO_INCREMENT, 
+recipient_type ENUM('user', 'farmer', 'admin') NOT NULL,
+recipient_id INT NOT NULL, 
+type_code VARCHAR(40),
+target_type VARCHAR(40),
+target_id INT,
+content VARCHAR(500) NOT NULL, 
+status ENUM('unread', 'read') NOT NULL DEFAULT 'unread', 
+created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+CONSTRAINT PK_NOTIFICATION_NID PRIMARY KEY (notification_id)
+)
+AUTO_INCREMENT = 7001;
+
+CREATE INDEX idx_notif_recipient_status 
+ON notification (recipient_type, recipient_id, status);
+
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '1', '團購編號 1 已成團，訂單編號 90001，將盡速為您安排出貨。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('farmer', 1, 'order_farmer_new', 'order', 1, '您有一筆新商品訂單 1，請盡速出貨。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 12001 , '專欄文章 9001 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
+
+
+-- 7. 通知 - 通知類型文字模板
+DROP TABLE IF EXISTS notification_template;
+DROP TABLE IF EXISTS notification_type;
+CREATE TABLE IF NOT EXISTS notification_template (
+type_code VARCHAR(40) NOT NULL, 
+template_zh VARCHAR(255) NOT NULL, 
+CONSTRAINT PK_NOTIFYTYPE_CODE PRIMARY KEY (type_code)
+);
+
+INSERT INTO notification_template VALUES ('gb_request_approved', '團購編號 {group_buy_id} 的開團申請已通過，快邀請親朋好友一起參加!');
+INSERT INTO notification_template VALUES ('gb_request_rejected', '團購編號 {group_buy_id} 的開團申請未通過，原因：{reject_reason}。');
+INSERT INTO notification_template VALUES ('gb_success', '團購編號 {group_buy_id} 已成團，訂單編號 {order_id}，將盡速為您安排出貨。');
+INSERT INTO notification_template VALUES ('gb_failed', '團購編號 {group_buy_id} 未達標，活動已取消，款項將全額退還，期待您再次參與。');
+INSERT INTO notification_template VALUES ('gb_cancelled', '團購編號 {group_buy_id} 已取消，款項將全額退還。');
+INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 配達，感謝您的參與，快聯繫團員取貨吧!');
+INSERT INTO notification_template VALUES ('gb_request_created', '您收到 {product_name} 的新團購申請，請儘速審核回覆。');
+INSERT INTO notification_template VALUES ('gb_order_created', '團購訂單 {group_buy_id} 已成團，請準備出貨。');
+INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT${total_amount} 已撥款，請查收。');
+
+INSERT INTO notification_template VALUES ('order_created', '已收到您的商品訂單 {order_id}，將盡速為您安排出貨');
+INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipping_date} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('order_completed', '商品訂單編號 {order_id} 已於 {receipt_datetime} 配達，感謝您的購買。');
+INSERT INTO notification_template VALUES ('order_farmer_new', '您有一筆新商品訂單 {order_id}，請盡速出貨。');
+INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款 NT${total_mount} 已撥款，請查收。');
+
+INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_id} 已通過審核並開放報名，快邀請親朋好友一起參加!');
+INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_id} 審核未通過，原因：{reason}。');
+INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的體驗活動預約 {farm_trip_order_id}，期待您的到來！');
+INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_order_id} 的預約，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_cancelled', '很抱歉您預約的體驗活動 {farm_session_id} 已取消，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_review_invite', '感謝您參加體驗活動 {farm_session_id}！歡迎留下您的評分與心得，給小農鼓勵。');
+INSERT INTO notification_template VALUES ('trip_comment', '體驗活動 {farm_trip_id} 收到一則新評論。');
+
+INSERT INTO notification_template VALUES ('blog_report_pending', '專欄文章 {blog_id} 遭檢舉，目前審核中，請留意後續通知。');
+INSERT INTO notification_template VALUES ('blog_report_visible', '專欄文章 {blog_id} 經審核後維持顯示，感謝您的配合。');
+INSERT INTO notification_template VALUES ('blog_report_hidden', '專欄文章 {blog_id} 經審核後違反規範已被隱藏，原因：{report_reason}。');
+INSERT INTO notification_template VALUES ('blog_comment', '您的文章 {blog_id} 收到一則新留言。');
+INSERT INTO notification_template VALUES ('blog_comment_report', '您在 {blog_id} 的留言遭檢舉，目前審核中，請留意後續通知。');
+INSERT INTO notification_template VALUES ('blog_comment_report_visible', '您在 {blog_id} 的留言經審核後維持顯示，感謝您的配合。');
+INSERT INTO notification_template VALUES ('blog_comment_report_hidden', '您在 {blog_id} 的留言經審核後違反規範已被隱藏，原因：{report_reason}。');
+
+INSERT INTO notification_template VALUES ('account_welcome', '歡迎加入你儂我農 Farmily！快來逛逛新鮮直送的小農好物吧。');
+INSERT INTO notification_template VALUES ('account_tier', '您本月的會員等級已更新為 {tier_name}');
+
+INSERT INTO notification_template VALUES ('farmer_review', '小農申請編號 {review_id}，請盡速審核。');
+INSERT INTO notification_template VALUES ('blog_report_new', '專欄文章 {blog_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+INSERT INTO notification_template VALUES ('blog_comment_report_new', '專欄文章 {blog_id} 留言 {comment_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+
+
+

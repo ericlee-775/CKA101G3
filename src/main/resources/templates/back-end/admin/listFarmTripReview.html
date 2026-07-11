@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>活動審核 - listFarmTripReview.html</title>
+    <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-success">
+    <a class="navbar-brand" th:href="@{/admin/dashboard}">← 回總覽</a>
+    <span class="navbar-text text-white">活動審核</span>
+</nav>
+
+<div class="container-fluid mt-3">
+<div th:if="${alertMsg}" class="alert mt-2" th:classappend="'alert-' + ${alertType}"
+         role="alert" th:text="${alertMsg}">
+</div>
+
+    <h4>待審核活動（PENDING）</h4>
+
+    <div th:each="t : ${pendingTrips}" class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">
+                #<span th:text="${t.farmTripId}"></span>　
+                <span th:text="${t.farmTripTitle}"></span>
+                （<span th:text="${t.farmTripType != null ? (t.farmTripType.name() == 'FARM_EXPERIENCE' ? '農場體驗營' : '產地參訪') : ''}"></span>）
+            </h5>
+            <p class="mb-1">
+                地點：<span th:text="${t.location}"></span>
+                ｜參考價：<span th:text="${t.referPrice}"></span> 元
+            </p>
+            <p class="mb-2" th:text="${t.farmTripIntro}"></p>
+
+            <!-- 活動圖片：沒圖就自動隱藏 -->
+            <div class="mb-2">
+                <img width="200" class="border"
+                     th:src="@{/admin/farm-trips/{id}/image(id=${t.farmTripId})}"
+                     onerror="this.style.display='none'"/>
+            </div>
+
+            <!-- 核准上架 -->
+            <form method="post" class="d-inline"
+                  th:action="@{/admin/farm-trips/{id}/approve(id=${t.farmTripId})}">
+                <button class="btn btn-success btn-sm">核准上架</button>
+            </form>
+
+            <!-- 退回（需填理由）-->
+            <form method="post" class="form-inline d-inline ml-2"
+                  th:action="@{/admin/farm-trips/{id}/reject(id=${t.farmTripId})}">
+                <input type="text" name="rejectReason" class="form-control form-control-sm mr-1"
+                       placeholder="退回理由" required/>
+                <button class="btn btn-danger btn-sm">退回</button>
+            </form>
+        </div>
+    </div>
+
+    <p th:if="${pendingTrips.isEmpty()}" class="text-muted">目前沒有待審核的活動</p>
+
+</div>
+</body>
+</html>
