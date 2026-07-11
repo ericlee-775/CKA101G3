@@ -89,10 +89,11 @@ public class UserSecurityConfig {
 			throws Exception {
 		return http.securityMatcher("/admin/**").authenticationProvider(adminAuthenticationProvider)
 				.authorizeHttpRequests(
-						req -> req.requestMatchers("/admin/login").permitAll().requestMatchers("/admin/admins/**")
-								.hasAuthority("PERM_ADMIN").requestMatchers("/admin/farmers/**", "/admin/reviews/**")
-								.hasAnyAuthority("PERM_ADMIN", "PERM_FARMER").requestMatchers("/admin/members/**")
-								.hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+						req -> req
+								.requestMatchers("/admin/login").permitAll()
+								.requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
+								.requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
+								.requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
 
 								.anyRequest().hasRole("ADMIN"))
 

@@ -7,6 +7,7 @@ import com.farmily.user.model.FarmerReview;
 import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.FarmerReviewRepository;
+import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.FarmerService;
@@ -30,17 +31,20 @@ public class FarmerServiceImpl implements FarmerService {
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final EmailService emailService;
 
 
     public FarmerServiceImpl(FarmerRepository farmerRepository, FarmerReviewRepository farmerReviewRepository,
                              CityDistrictRepository cityDistrictRepository, EmailUniquenessChecker emailUniquenessChecker,
-                             PasswordEncoder passwordEncoder, EmailVerificationService emailVerificationService) {
+                             PasswordEncoder passwordEncoder, EmailVerificationService emailVerificationService,
+                             EmailService emailService) {
         this.farmerRepository = farmerRepository;
         this.farmerReviewRepository = farmerReviewRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationService = emailVerificationService;
+        this.emailService = emailService;
     }
 
     // 小農註冊申請
@@ -121,14 +125,14 @@ public class FarmerServiceImpl implements FarmerService {
         return toResponse(farmer);
     }
 
-    // 查資料
+    // 查自己資料
     @Override
     @Transactional(readOnly = true)
     public FarmerProfileResponse getMyProfile(Integer farmerId) {
         return toResponse(findFarmer(farmerId));
     }
 
-    // 修改資料 (非重審)
+    // 修改自己資料 (非重審)
     @Override
     public FarmerProfileResponse updateContactInfo(Integer farmerId, FarmerProfileUpdateRequest req) {
         Farmer farmer = findFarmer(farmerId);
@@ -141,7 +145,7 @@ public class FarmerServiceImpl implements FarmerService {
         return toResponse(farmerRepository.save(farmer));
     }
 
-    // 修改資料 (需重審)
+    // 修改自己資料 (需重審)
     @Override
     public FarmerProfileResponse updateReviewRequiredInfo(Integer farmerId, FarmerResubmitRequest req) {
         // 撈出小農和審核物件
@@ -181,7 +185,7 @@ public class FarmerServiceImpl implements FarmerService {
         return FarmerProfileResponse.from(farmer, savedReview);
     }
 
-    // 修改密碼
+    // 修改自己密碼
     @Override
     public void changePassword(Integer farmerId, ChangePasswordRequest pw) {
         Farmer farmer = findFarmer(farmerId);
@@ -195,6 +199,9 @@ public class FarmerServiceImpl implements FarmerService {
         }
         farmer.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         farmerRepository.save(farmer);
+
+        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
+        emailService.sendPasswordChangedNotice(farmer.getEmail());
     }
 
 

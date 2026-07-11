@@ -8,6 +8,7 @@ import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.SpendingTierRepository;
 import com.farmily.user.repository.UserRepository;
 
+import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
@@ -28,19 +29,22 @@ public class UserServiceImpl implements UserService {
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final SpendingTierRepository spendingTierRepository;
     private final EmailVerificationService emailVerificationService;
+    private final EmailService emailService;
 
     public UserServiceImpl(UserRepository userRepository,
                            CityDistrictRepository cityDistrictRepository,
                            PasswordEncoder passwordEncoder,
                            EmailUniquenessChecker emailUniquenessChecker,
                            SpendingTierRepository spendingTierRepository,
-                           EmailVerificationService emailVerificationService) {
+                           EmailVerificationService emailVerificationService,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.spendingTierRepository = spendingTierRepository;
         this.emailVerificationService = emailVerificationService;
+        this.emailService = emailService;
     }
 
     // 本地註冊流程
@@ -190,6 +194,9 @@ public class UserServiceImpl implements UserService {
         // Google 帳號首次設定本地密碼和本地帳號新密碼一樣：本來就沒有 oldPassword，直接 hash 新密碼存入
         user.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         userRepository.save(user);
+
+        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
+        emailService.sendPasswordChangedNotice(user.getEmail());
     }
 
     // 刪除資料

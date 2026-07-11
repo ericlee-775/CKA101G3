@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 // 管理後台－小農審核頁（Thymeleaf）
 @Controller
@@ -24,8 +25,11 @@ public class AdminReviewViewController {
 
     // 查所有「待審 PENDING」與「審核中 Reviewing」案件清單
     @GetMapping
-    public String list(ModelMap model) {
-        return backToList(model, null);     // 自定義方法
+    public String list(@AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
+        model.addAttribute("pendingData", adminReviewService.listPending());
+        model.addAttribute("reviewingData", adminReviewService.listReviewing());
+        model.addAttribute("currentAdminId", me.getAdminId());
+        return "back-end/admin/listReview";
     }
 
     // 查某小農所有審核紀錄
@@ -45,26 +49,29 @@ public class AdminReviewViewController {
     // 修改: 開始審核（PENDING -> REVIEWING）
     @PostMapping("/{reviewId}/start")
     public String start(@PathVariable Integer reviewId,
-                        @AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
+                        @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
         adminReviewService.reviewing(reviewId, me.getAdminId());
-        return backToList(model, "（已開始審核）");
+        ra.addFlashAttribute("success", "（已認領審核）");
+        return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
 
     // 修改: 核准（APPROVED）
     @PostMapping("/{reviewId}/approve")
     public String approve(@PathVariable Integer reviewId,
-                          @AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
+                          @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
         adminReviewService.approve(reviewId, me.getAdminId());
-        return backToList(model, "（已核准）");
+        ra.addFlashAttribute("success", "（已核准）");
+        return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
 
     // 修改: 退件（REJECTED，需填理由）
     @PostMapping("/{reviewId}/reject")
     public String reject(@PathVariable Integer reviewId,
                          @RequestParam("rejectReason") String rejectReason,
-                         @AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
+                         @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
         adminReviewService.reject(reviewId, me.getAdminId(), rejectReason);
-        return backToList(model, "（已退件）");
+        ra.addFlashAttribute("success", "（已退件）");
+        return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
 
     // 證明文件圖片（type = land | product | identity）；回圖片位元組，讓 <img> 直接內嵌
@@ -73,15 +80,5 @@ public class AdminReviewViewController {
     public ResponseEntity<byte[]> cert(@PathVariable Integer reviewId, @PathVariable String type) {
         byte[] bytes = adminReviewService.getCertFile(reviewId, type);
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
-    }
-
-    // 私有小工具：合併查「待審 + 審核中」兩份清單，回審核頁
-    private String backToList(ModelMap model, String success) {
-        model.addAttribute("pendingData", adminReviewService.listPending());
-        model.addAttribute("reviewingData", adminReviewService.listReviewing());
-        if (success != null) {
-            model.addAttribute("success", success);
-        }
-        return "back-end/admin/listReview";
     }
 }

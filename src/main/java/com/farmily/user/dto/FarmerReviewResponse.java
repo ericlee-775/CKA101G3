@@ -15,6 +15,7 @@ public class FarmerReviewResponse {
     private String farmName;
     private String farmerEmail;
     private Integer reviewRound;
+    private Integer adminId;               // 認領（負責）此案件的管理員 id
     private String adminName;
     private String adminEmail;
     private String reviewStatus;          // PENDING / REVIEWING / APPROVED / REJECTED
@@ -48,6 +49,9 @@ public class FarmerReviewResponse {
     }
     public Integer getReviewRound() {
         return reviewRound;
+    }
+    public Integer getAdminId() {
+        return adminId;
     }
     public String getAdminName() {
         return adminName;
@@ -128,6 +132,7 @@ public class FarmerReviewResponse {
 
         Admin admin = r.getAdmin();
         if(admin != null){
+            dto.adminId = admin.getAdminId();
             dto.adminName = admin.getAdminName();
             dto.adminEmail = admin.getAdminEmail();
         }

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>會員詳情</title>
+</head>
+<body>
+
+<h1 class="page-title" layout:fragment="pagetitle">會員詳情</h1>
+
+<div layout:fragment="content">
+    <div class="crumbs mb-3"><a th:href="@{/admin/members}">← 回會員清單</a></div>
+
+    <div class="card" style="max-width: 720px;">
+        <div class="card-header">
+            #<span th:text="${member.userId}"></span>
+            <span th:text="${member.userName}"></span>
+        </div>
+        <div class="card-body">
+            <table class="table table-borderless mb-0">
+                <tbody>
+                <tr><th style="width:130px;">Email</th><td th:text="${member.email}"></td></tr>
+                <tr><th>姓名</th><td th:text="${member.userName}"></td></tr>
+                <tr><th>暱稱</th><td th:text="${member.userNickname} ?: '—'"></td></tr>
+                <tr><th>電話</th><td th:text="${member.userPhoneNum} ?: '—'"></td></tr>
+                <tr>
+                    <th>地址</th>
+                    <td>
+                        <span th:text="${member.cityName}"></span>
+                        <span th:text="${member.distName}"></span>
+                        <span th:text="${member.userAddress}"></span>
+                    </td>
+                </tr>
+                <tr><th>生日</th><td th:text="${member.birthday} ?: '—'"></td></tr>
+                <tr><th>本月消費</th><td th:text="${member.monthlySpending} ?: 0"></td></tr>
+                <tr><th>消費級距</th><td th:text="${member.spendingTier} ?: '—'"></td></tr>
+                <tr>
+                    <th>Email驗證</th>
+                    <td>
+                        <span class="badge-status" th:classappend="${member.emailVerified} ? 'st-active' : 'st-neutral'"
+                              th:text="${member.emailVerified} ? '是' : '否'"></span>
+                    </td>
+                </tr>
+                <tr><th>登入方式</th><td th:text="${member.authProvider} ?: '—'"></td></tr>
+                <tr><th>已設定密碼</th><td th:text="${member.hasPassword} ? '是' : '否'"></td></tr>
+                <tr><th>註冊時間</th><td th:text="${member.userCreatedAt} ?: '—'"></td></tr>
+                <tr>
+                    <th>會員狀態</th>
+                    <td>
+                        <span class="badge-status"
+                              th:classappend="${member.userStatus.name() == 'ACTIVE'} ? 'st-active'
+                                            : (${member.userStatus.name() == 'WARNED'} ? 'st-warned' : 'st-suspended')"
+                              th:text="${member.userStatus}"></span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <hr/>
+            <!-- 操作：沿用既有變更狀態 POST 端點 -->
+            <form method="post" class="form-inline"
+                  th:action="@{/admin/members/{id}/status(id=${member.userId})}">
+                <select name="status" class="form-control form-control-sm mr-1">
+                    <option value="ACTIVE"    th:selected="${member.userStatus.name() == 'ACTIVE'}">正常</option>
+                    <option value="WARNED"    th:selected="${member.userStatus.name() == 'WARNED'}">警告</option>
+                    <option value="SUSPENDED" th:selected="${member.userStatus.name() == 'SUSPENDED'}">停權</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">更新狀態</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
