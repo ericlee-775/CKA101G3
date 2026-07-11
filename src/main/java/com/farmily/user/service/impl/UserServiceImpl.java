@@ -61,10 +61,10 @@ public class UserServiceImpl implements UserService {
             // 狀況 A: 帳號「沒有本地密碼」，代表他只有第三方登入資訊
             if (existingUser.getPassword() == null
                     && existingUser.getAuthProvider() == User.AuthProvider.GOOGLE) {
-                throw new IllegalStateException("此帳號已使用 Google 登入，請改用 Google 登入");
+                throw new OAuthAccountConflictException();
             }
             // 狀況 B: 剩餘(已有本地密碼)就是一般重複註冊
-            throw new IllegalStateException("帳號已註冊使用");
+            throw new EmailAlreadyExistsException();
         }
 
         // step2: 若 email = null，跨表檢查 email 全域唯一
