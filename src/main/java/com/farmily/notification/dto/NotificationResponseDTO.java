@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 // 用於回傳給前端顯示的通知列表資訊
 public class NotificationResponseDTO {
 	
+	private Integer notificationId;  // 標記為已讀會用到
 	private String targetType;
 	private Integer targetId;
 	private String content;
@@ -13,6 +14,14 @@ public class NotificationResponseDTO {
 
 	public NotificationResponseDTO() {
 		super();
+	}
+	
+	public Integer getNotificationId() {
+		return notificationId;
+	}
+
+	public void setNotificationId(Integer notificationId) {
+		this.notificationId = notificationId;
 	}
 
 	public String getTargetType() {

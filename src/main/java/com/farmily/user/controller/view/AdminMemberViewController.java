@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// 管理後台－會員管理頁（Thymeleaf）
+// 會員管理（Thymeleaf）
 @Controller
 @RequestMapping("/admin/members")
 public class AdminMemberViewController {
@@ -19,7 +19,7 @@ public class AdminMemberViewController {
         this.adminMemberService = adminMemberService;
     }
 
-    // 會員清單
+    // 查所有會員
     @GetMapping
     public String listAll(ModelMap model) {
         List<UserProfileResponse> list = adminMemberService.listAll();
@@ -27,13 +27,14 @@ public class AdminMemberViewController {
         return "back-end/admin/listAllMember";
     }
 
-    // 變更會員狀態 (POST)
+    // 修改: 變更會員狀態 (POST)
     @PostMapping("/{userId}/status")
     public String updateStatus(@PathVariable Integer userId,
                                @RequestParam("status") String status,
                                ModelMap model) {
         // 1.更新狀態
         adminMemberService.updateStatus(userId, status);
+
         // 2.重新查全部，回列表頁
         List<UserProfileResponse> list = adminMemberService.listAll();
         model.addAttribute("memberListData", list);

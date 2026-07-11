@@ -36,6 +36,9 @@ import VerifyEmailView from '@/views/auth/VerifyEmailView.vue'
 import ResendVerificationView from '@/views/auth/ResendVerificationView.vue'
 // 一般會員中心：個人資料 / 訂單 / 優惠券 / 通知
 import MemberProfileView from '@/views/member/MemberProfileView.vue'
+import MemberProductsView from '@/views/member/MemberProductsView.vue'
+import MemberGroupBuysView from '@/views/member/MemberGroupBuysView.vue'
+import MemberFavoritesView from '@/views/member/MemberFavoritesView.vue'
 import MemberOrdersView from '@/views/member/MemberOrdersView.vue'
 import MemberCouponsView from '@/views/member/MemberCouponsView.vue'
 import MemberNotificationsView from '@/views/member/MemberNotificationsView.vue'
@@ -80,8 +83,12 @@ const router = createRouter({
         { path: 'products/:productId', name: 'product-detail', component: ProductView },
         { path: 'cart',        name: 'cart',       component: CartView },
         { path: 'group-buys',  name: 'group-buys', component: GroupBuysView },
-        // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}）
+        // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}，這筆團購已經存在）
         { path: 'group-buys/:groupBuyId', name: 'group-buy-detail', component: GroupBuyDetailView },
+        // 「可發起」商品的詳情頁：/group-buys/product/:productId
+        // 這種商品還沒有任何團購紀錄（沒有 groupBuyId），資料改走 /api/products/{productId}，
+        // 跟上面那個網址共用同一個 GroupBuyDetailView 元件，內部依 route 參數判斷該打哪支 API。
+        { path: 'group-buys/product/:productId', name: 'group-buy-host', component: GroupBuyDetailView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
         { path: 'blogs/:blogId', name: 'blog-detail', component: BlogDetailView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
@@ -120,6 +127,12 @@ const router = createRouter({
             { path: 'blogs/new',      name: 'member-blogs-new',    component: MemberBlogEditView },
             { path: 'blogs/:id/edit', name: 'member-blogs-edit',   component: MemberBlogEditView },
             { path: 'blogs/:id',      name: 'member-blogs-detail', component: MemberBlogDetailView },
+            // 我的商品（程式碼寫在 components/member/MyProducts.vue）
+            { path: 'products',      name: 'member-products',      component: MemberProductsView },
+            // 我的團購（先清空成預設佔位，程式碼寫在 components/member/MyGroupBuys.vue）
+            { path: 'group-buys',    name: 'member-group-buys',    component: MemberGroupBuysView },
+            // 我的收藏（商品收藏 / 團購收藏，程式碼寫在 components/member/Favorite*.vue）
+            { path: 'favorites',     name: 'member-favorites',     component: MemberFavoritesView },
             // 以下三頁各自獨立成元件，功能開發中先放佔位內容
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
             { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },

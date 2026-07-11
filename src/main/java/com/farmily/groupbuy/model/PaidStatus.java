@@ -1,10 +1,8 @@
 package com.farmily.groupbuy.model;
 
 public enum PaidStatus {
-unpaid("待撥款"),
-paid("已撥款"),
-refunded("已退款");
-
+	UNPAID("待撥款"),
+	PAID("已撥款");
 private final String displayName;
 
 	PaidStatus(String displayName){

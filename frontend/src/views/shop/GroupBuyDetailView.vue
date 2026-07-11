@@ -1,20 +1,21 @@
 <script setup>
 // 團購詳情頁（不分層：資料抓取、狀態、畫面全寫在這一個元件裡，用封裝過的 groupBuyApi）。
-// 路由：/group-buys/:groupBuyId（見 router/index.js）。點列表頁卡片會帶著 groupBuyId 進來。
+// 這個元件對應兩條路由（見 router/index.js），依進來的網址決定要打哪支 API：
 //
-// 這頁打的後端 API：
-//   GET /api/groupBuy/{groupBuyId} → GroupBuyDetailDTO（商品名/團購價/目標數量/開團時間/截止時間/取貨地點/狀態）
-//   permitAll，不用登入。
+//   1) /group-buys/:groupBuyId（name: group-buy-detail）—— 這筆團購已經存在
+//      GET /api/groupBuy/{groupBuyId} → GroupBuyDetailDTO（productId/商品名/原價/團購價/達標金額/
+//      開團時間/截止時間/取貨地點/狀態）。DTO 現在有帶 productId，圖片直接用它打
+//      GET /api/products/{productId}/image，不用再靠列表頁用 query 傳了。
 //
-// 圖片：GroupBuyDetailDTO 沒有 productId 欄位，所以圖片沒辦法直接從這支 API 查。
-// 做法是列表頁點卡片時，把 productId 用路由 query 帶過來（見 GroupBuysView.vue），
-// 這裡讀 route.query.productId 去打 GET /api/products/{productId}/image；
-// 如果是直接輸入網址進到這頁（沒有 query），就直接顯示暫無圖片佔位圖，不會出錯。
+//   2) /group-buys/product/:productId（name: group-buy-host）—— 「可發起」的商品，還沒有任何團購紀錄
+//      後端 /api/groupBuy/consumer/list?type=available 改成查「支援團購的商品」而不是既有團購，
+//      回傳的每一筆 groupBuyId 都是 null，沒有 id 可以查 GroupBuyDetailDTO，
+//      所以這裡改打 GET /api/products/{productId}（商品本身的資料）組出一個「假的」團購物件顯示。
 //
 // 依團購狀態顯示對應的操作（兩者都需要以一般會員身分登入，MemberGroupBuyController 用 session 認證）：
-//   status === 'pending'（可發起）→「我要發起團購」，打 POST /api/member/groupBuy/hostCreate/{productId}
-//     productId 一樣是從列表頁帶過來的 query，沒有的話就不給發起（避免打錯 id）。
-//   status === 'open'（開團中）  →「我要參加團購」，打 POST /api/member/groupBuy/joinGroupBuy/{groupBuyId}
+//   沒有 groupBuyId（可發起商品）或 status === 'pending' → 「我要發起團購」，打 POST /api/member/groupBuy/hostCreate/{productId}
+//     達標金額至少 1、開團時間不能早於今天、截止時間至少要比開團時間晚 5 天（前端擋，後端也有各自的驗證）。
+//   status === 'open'（開團中）→「我要參加團購」，打 POST /api/member/groupBuy/joinGroupBuy/{groupBuyId}
 //     這支不需要額外的 productId，body 其他欄位直接沿用已載入的 groupBuy 資料。
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -27,6 +28,8 @@ import noImage from '@/assets/no-image.svg'
 const route = useRoute()
 const router = useRouter()
 const isMember = computed(() => authStore.isMember)
+// 走「可發起商品」那條路由進來的：沒有既有團購紀錄，只有商品資料。
+const isHostOnly = computed(() => route.name === 'group-buy-host')
 
 // 團購詳情（GroupBuyDetailDTO）。還沒抓到前是 null。
 const groupBuy = ref(null)
@@ -64,8 +67,27 @@ function formatDate(datetime) {
   return new Date(datetime).toLocaleDateString('zh-TW')
 }
 
+// 「可發起商品」模式：打商品 API，組一個跟 GroupBuyDetailDTO 同形狀的物件給畫面共用。
+async function loadHostOnlyProduct(productId) {
+  const res = await fetch(`/api/products/${productId}`)
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? '找不到這個商品' : `伺服器回應 ${res.status}`)
+  }
+  const product = await res.json()
+  groupBuy.value = {
+    groupBuyId: null,
+    productName: product.productName,
+    groupPrice: product.groupPrice,
+    description: product.description,
+    targetAmount: null,
+    openDatetime: null,
+    ddlDatetime: null,
+    pickupAddress: null,
+    status: null,
+  }
+}
+
 async function loadGroupBuy() {
-  const id = route.params.groupBuyId
   loading.value = true
   error.value = ''
   groupBuy.value = null
@@ -78,13 +100,18 @@ async function loadGroupBuy() {
   joinMsg.value = ''
 
   try {
-    groupBuy.value = await groupBuyApi.getOne(id)
-    // productId 是從列表頁用 query 帶過來的，只用來查圖片，不是這支 API 的欄位。
-    await loadImage(route.query.productId)
+    if (isHostOnly.value) {
+      const productId = route.params.productId
+      await loadHostOnlyProduct(productId)
+      await loadImage(productId)
+    } else {
+      groupBuy.value = await groupBuyApi.getOne(route.params.groupBuyId)
+      await loadImage(groupBuy.value.productId)
+    }
   } catch (e) {
-    error.value = e.status === 404 || /查無/.test(e.message || '')
-      ? '找不到這個團購'
-      : e.message || '無法載入團購資料，請稍後再試。'
+    error.value = e.status === 404 || /查無|找不到/.test(e.message || '')
+      ? (isHostOnly.value ? '找不到這個商品' : '找不到這個團購')
+      : e.message || '無法載入資料，請稍後再試。'
   } finally {
     loading.value = false
   }
@@ -100,6 +127,22 @@ const hostForm = ref({ targetAmount: null, openDatetime: '', ddlDatetime: '', pi
 const hostSubmitting = ref(false)
 const hostMsg = ref('')
 
+// 日期輸入用的 YYYY-MM-DD 字串（純本地日期組字串，避開 toISOString 的時區位移問題）。
+function toDateInputValue(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+// 開團時間不能選今天以前。
+const todayStr = ref(toDateInputValue(new Date()))
+// 截止時間至少要比「目前選的開團時間」晚 5 天；還沒選開團時間就以今天起算。
+const minDdlStr = computed(() => {
+  const base = new Date(hostForm.value.openDatetime || todayStr.value)
+  base.setDate(base.getDate() + 5)
+  return toDateInputValue(base)
+})
+
 function toggleHostForm() {
   showHostForm.value = !showHostForm.value
   hostMsg.value = ''
@@ -107,14 +150,23 @@ function toggleHostForm() {
 
 async function submitHostCreate() {
   hostMsg.value = ''
-  const productId = route.query.productId
+  // 可發起商品模式下 productId 是路由參數；既有團購模式下 productId 已經在 GroupBuyDetailDTO 裡。
+  const productId = route.params.productId ?? groupBuy.value?.productId
   if (!productId) {
     hostMsg.value = '這個團購沒有帶入商品資訊，請從「可發起」列表頁點進來才能發起。'
     return
   }
   const { targetAmount, openDatetime, ddlDatetime, pickupAddress } = hostForm.value
   if (!targetAmount || !openDatetime || !ddlDatetime || !pickupAddress) {
-    hostMsg.value = '請完整填寫達標數量、開團/截止時間與取貨地址。'
+    hostMsg.value = '請完整填寫達標金額、開團/截止時間與取貨地址。'
+    return
+  }
+  if (openDatetime < todayStr.value) {
+    hostMsg.value = '開團時間不能早於今天。'
+    return
+  }
+  if (ddlDatetime < minDdlStr.value) {
+    hostMsg.value = '截止時間至少要在開團時間 5 天後。'
     return
   }
 
@@ -170,7 +222,8 @@ async function submitJoinGroupBuy() {
 onMounted(loadGroupBuy)
 onUnmounted(revokeImageUrl)
 // 從一個詳情頁換到另一個（例如之後加了「相關團購」連結）時，元件不會重建，靠 watch 重抓。
-watch(() => route.params.groupBuyId, loadGroupBuy)
+// 兩種路由的識別參數不同（groupBuyId / productId），兩個都要 watch。
+watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
 </script>
 
 <template>
@@ -199,19 +252,30 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
       </section>
 
       <section class="info">
-        <span class="badge" :class="groupBuyStatusInfo(groupBuy.status).className">
+        <!-- 可發起商品沒有 status（null），固定顯示「可發起」；其餘照狀態對照表 -->
+        <span v-if="groupBuy.status" class="badge" :class="groupBuyStatusInfo(groupBuy.status).className">
           {{ groupBuyStatusInfo(groupBuy.status).text }}
         </span>
+        <span v-else class="badge status--pending">可發起</span>
+
         <h1 class="info__name">{{ groupBuy.productName }}</h1>
 
         <p class="info__price">
           團購價 {{ formatPrice(groupBuy.groupPrice) }}
+          <span v-if="groupBuy.retailPrice != null" class="info__retail">原價 {{ formatPrice(groupBuy.retailPrice) }}</span>
         </p>
 
-        <dl class="info__meta">
+        <!-- 可發起商品還沒有目標金額/時間/取貨地點這些資料，改顯示商品描述 -->
+        <template v-if="groupBuy.groupBuyId == null">
+          <p class="info__desc">
+            {{ groupBuy.description || '這項商品支援團購，目前還沒有人發起，成為第一個發起的人吧！' }}
+          </p>
+          <p class="info__notice">達標以後小農將會致電通知配達時間，請留意來電</p>
+        </template>
+        <dl v-else class="info__meta">
           <div class="info__meta-row">
-            <dt>目標數量</dt>
-            <dd>{{ groupBuy.targetAmount ?? '—' }}</dd>
+            <dt>達標金額</dt>
+            <dd>{{ formatPrice(groupBuy.targetAmount) }}</dd>
           </div>
           <div class="info__meta-row">
             <dt>開團時間</dt>
@@ -232,15 +296,15 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
           請先<RouterLink to="/login">登入會員</RouterLink>才能發起或參加團購。
         </p>
 
-        <!-- 可發起：狀態為 pending 才顯示「我要發起團購」 -->
-        <div v-else-if="groupBuy.status === 'pending'" class="action-box">
+        <!-- 可發起：沒有 groupBuyId，或狀態為 pending，都顯示「我要發起團購」 -->
+        <div v-else-if="groupBuy.groupBuyId == null || groupBuy.status === 'pending'" class="action-box">
           <button type="button" class="btn" @click="toggleHostForm">
             {{ showHostForm ? '取消' : '我要發起團購' }}
           </button>
           <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
-            <label>達標數量 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
-            <label>開團時間 <input type="date" v-model="hostForm.openDatetime" /></label>
-            <label>截止時間 <input type="date" v-model="hostForm.ddlDatetime" /></label>
+            <label>達標金額 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
+            <label>開團時間 <input type="date" :min="todayStr" v-model="hostForm.openDatetime" /></label>
+            <label>截止時間（至少開團後 5 天） <input type="date" :min="minDdlStr" v-model="hostForm.ddlDatetime" /></label>
             <label>取貨地址 <input type="text" v-model="hostForm.pickupAddress" /></label>
             <button type="submit" class="btn" :disabled="hostSubmitting">送出申請</button>
           </form>
@@ -333,6 +397,22 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
   color: var(--leaf-dark);
   margin: 0 0 20px;
 }
+.info__retail {
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.info__notice {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
 
 .badge {
   display: inline-block;
@@ -346,6 +426,14 @@ watch(() => route.params.groupBuyId, loadGroupBuy)
 .status--failed { background: #f3f4f6; color: #6b7280; }
 .status--cancelled { background: #f3f4f6; color: #6b7280; }
 .status--pending { background: #fff7ed; color: #c2410c; }
+
+.info__desc {
+  color: var(--ink-soft);
+  line-height: 1.7;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin: 0;
+}
 
 .info__meta {
   border-top: 1px solid var(--line);

@@ -16,6 +16,7 @@ public class CouponDetailVO {
 	@Id
 	@Column(name="user_id")
 	private Integer userId;
+
 	@Id
 	@Column(name="coupon_id")
 	private String couponId;

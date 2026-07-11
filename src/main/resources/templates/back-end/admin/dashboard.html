@@ -1,46 +1,85 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{back-end/admin/layout}">
 <head>
-    <meta charset="UTF-8">
-    <title>管理後台 - 總覽</title>
-    <th:block th:insert="~{back-end/admin/included-fragment}"></th:block>
+    <title>總覽</title>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
-    <span class="navbar-brand">Farmily 管理後台</span>
-    <span class="navbar-text text-white mr-3">您好，<span th:text="${adminName}">管理員</span></span>
-    <!-- 登出也是 POST 表單，th:action 會自動帶 CSRF -->
-    <form th:action="@{/admin/logout}" method="post" class="form-inline">
-        <button class="btn btn-outline-light btn-sm" type="submit">登出</button>
-    </form>
-</nav>
 
-<div class="container mt-4">
-    <h3>總覽</h3>
-    <p>登入成功！這是後台首頁，接下來會在這裡放各管理模組的入口。</p>
+<h1 class="page-title" layout:fragment="pagetitle">總覽</h1>
 
-    <!-- 示範 sec:authorize：有對應權限才看得到（步驟 2~3 會補上真正的頁面連結）-->
-    <ul>
-        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')">
-            <a th:href="@{/admin/members}">會員管理</a>
-        </li>
-        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
-            <a th:href="@{/admin/news}">最新消息管理</a>
-        </li>
-        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
-            <a th:href="@{/admin/blog-reports}">部落格檢舉審核</a>
-        </li>
-        <li sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
-            <a th:href="@{/admin/farmers}">小農管理</a>
-            ｜
-            <a th:href="@{/admin/reviews}">小農審核</a>
-        </li>
-        <li sec:authorize="hasAuthority('PERM_ADMIN')">
-            <a th:href="@{/admin/admins}">管理員管理</a>
-        </li>
+<div layout:fragment="content">
 
-    </ul>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="mb-1">歡迎回來，<span th:text="${adminName}">管理員</span> 👋</h4>
+            <p class="text-muted mb-0">這裡是 Farmily 管理後台，請由下方或左側選單進入各管理模組。</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')">
+            <a class="card stat-card h-100" th:href="@{/admin/members}">
+                <span class="stat-ico">👥</span>
+                <span>
+                    <span class="stat-label d-block">會員</span>
+                    <span class="stat-link">會員管理 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+            <a class="card stat-card h-100" th:href="@{/admin/farmers}">
+                <span class="stat-ico">🧑‍🌾</span>
+                <span>
+                    <span class="stat-label d-block">小農</span>
+                    <span class="stat-link">小農管理 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+            <a class="card stat-card h-100" th:href="@{/admin/reviews}">
+                <span class="stat-ico">📋</span>
+                <span>
+                    <span class="stat-label d-block">審核</span>
+                    <span class="stat-link">小農審核 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
+            <a class="card stat-card h-100" th:href="@{/admin/news}">
+                <span class="stat-ico">📰</span>
+                <span>
+                    <span class="stat-label d-block">內容</span>
+                    <span class="stat-link">最新消息管理 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_ADMIN')">
+            <a class="card stat-card h-100" th:href="@{/admin/admins}">
+                <span class="stat-ico">🛡️</span>
+                <span>
+                    <span class="stat-label d-block">權限</span>
+                    <span class="stat-link">管理員管理 →</span>
+                </span>
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
+            <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
+                <span class="stat-ico">📝</span>
+                <span>
+                    <span class="stat-label d-block">部落格</span>
+                    <span class="stat-link">檢舉審核 →</span>
+                </span>
+            </a>
+        </div>
+    </div>
+
 </div>
 </body>
 </html>

@@ -95,7 +95,7 @@ public class UserServiceImpl implements UserService {
         // 存進 DB
         User savedUser = userRepository.save(newUser);
 
-        // 寄出 Email 驗證信
+        // 寄出 Email 驗證信，啟用才能登入 (存取 Redis)
         emailVerificationService.sendVerification(
                 savedUser.getEmail(), AccountToken.AccountType.MEMBER);
 

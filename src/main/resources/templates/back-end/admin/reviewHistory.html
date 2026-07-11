@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>審核紀錄</title>
+</head>
+<body>
+
+<h1 class="page-title" layout:fragment="pagetitle">審核紀錄</h1>
+
+<div layout:fragment="content">
+    <div class="crumbs mb-3">
+        <a th:href="@{/admin/farmers/{id}(id=${farmerId})}">← 回小農詳情</a>
+        ｜<a th:href="@{/admin/farmers}">小農清單</a>
+    </div>
+
+    <div class="card mb-3" th:if="${farmName != null}">
+        <div class="card-body py-2">
+            <span class="text-muted">小農：</span>
+            <strong th:text="${farmName}"></strong>
+            <span class="text-muted ml-2" th:text="${farmerEmail}"></span>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <table class="table table-bordered mb-0">
+            <thead class="thead-light">
+            <tr>
+                <th>審核編號</th><th>輪次</th><th>狀態</th><th>送審時間</th><th>審核時間</th>
+                <th>審核者</th><th>退件理由</th><th>證明文件</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${reviews}">
+                <td th:text="${r.reviewId}"></td>
+                <td th:text="${r.reviewRound}"></td>
+                <td>
+                    <span class="badge-status"
+                          th:classappend="${r.reviewStatus == 'APPROVED'} ? 'st-active'
+                                        : (${r.reviewStatus == 'REJECTED'} ? 'st-suspended'
+                                        : (${r.reviewStatus == 'REVIEWING'} ? 'st-neutral' : 'st-pending'))"
+                          th:text="${r.reviewStatus}"></span>
+                </td>
+                <td th:text="${r.submittedAt != null ? #temporals.format(r.submittedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
+                <td th:text="${r.reviewedAt != null ? #temporals.format(r.reviewedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
+                <td th:text="${r.adminName} ?: '—'"></td>
+                <td th:text="${r.rejectReason} ?: '—'"></td>
+                <td style="white-space:nowrap;">
+                    <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
+                         th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
+                    <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
+                         th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
+                    <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
+                         th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+                    <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
+                          class="text-muted">—</span>
+                </td>
+            </tr>
+            <tr th:if="${reviews.isEmpty()}">
+                <td colspan="8" class="text-center text-muted">此小農尚無審核紀錄</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

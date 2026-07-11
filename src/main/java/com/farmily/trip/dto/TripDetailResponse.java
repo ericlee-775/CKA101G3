@@ -11,6 +11,7 @@ public class TripDetailResponse {
     private Integer referPrice;
     private Integer commentNumbers;
     private Integer starNumbers;
+    
 
     public Integer getFarmTripId() { return farmTripId; }
     public void setFarmTripId(Integer farmTripId) { this.farmTripId = farmTripId; }

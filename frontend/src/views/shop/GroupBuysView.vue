@@ -2,13 +2,19 @@
 // 「團購」頁面：串接 GET /api/groupBuy/consumer/list?type=xxx（PublicGroupBuyController，公開不用登入）
 // 畫面呈現方式比照 ProductsView.vue：loading / error / empty 三態 + 卡片格線；
 // 上方多一排頁籤（總覽/可發起/開團中），切換頁籤即用不同 type 重新打 API。
+//
+// 注意：後端 type=available 現在改成查「所有支援團購的商品」（ProductRepository.findGroupBuyProducts()），
+// 不再是查既有的團購紀錄，所以這批資料的 groupBuyId / status / targetAmount / 時間 / 取貨地點全部是 null，
+// 只有 productId / productName / groupPrice / unitPricingMeasure / description 等商品本身的欄位有值。
+// 「總覽」頁籤現在要同時看到開團中 + 可發起，但後端沒有一支 API 一次給兩種，所以這裡改成前端併兩支 API：
+//   type=all（既有團購紀錄，pending+open）+ type=available（可發起的商品）。
 import { ref, onMounted, onUnmounted } from 'vue'
 import groupBuyApi from '@/api/groupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
-// 三個篩選頁籤：總覽（pending+open 都給）/ 可發起（status=pending）/ 開團中（status=open）
+// 三個篩選頁籤：總覽（開團中+可發起都給）/ 可發起（沒有 groupBuyId 的商品）/ 開團中（status=open）
 const TABS = [
   { key: 'all', label: '總覽' },
   { key: 'available', label: '可發起' },
@@ -23,7 +29,8 @@ const EMPTY_TEXT = {
   open: '目前沒有開團中的團購。',
 }
 
-// 團購清單（ProductGroupBuyDTO[]）。一開始是空陣列，等 API 回來再填進去。
+// 團購清單。一開始是空陣列，等 API 回來再填進去。
+// 元素形狀有兩種（見上面的說明）：有 groupBuyId 的既有團購 / 沒有 groupBuyId 的可發起商品。
 const groupBuys = ref([])
 // 載入狀態：true 時畫面顯示「載入中…」。
 const loading = ref(true)
@@ -31,11 +38,20 @@ const loading = ref(true)
 const error = ref('')
 
 // 跟後端要團購清單，依目前選中的頁籤帶 type 參數。
+// 「總覽」要把 type=all（既有團購）跟 type=available（可發起商品）兩批資料合併顯示。
 async function loadGroupBuys() {
   loading.value = true
   error.value = ''
   try {
-    groupBuys.value = await groupBuyApi.list(activeTab.value)
+    if (activeTab.value === 'all') {
+      const [existing, available] = await Promise.all([
+        groupBuyApi.list('all'),
+        groupBuyApi.list('available'),
+      ])
+      groupBuys.value = [...existing, ...available]
+    } else {
+      groupBuys.value = await groupBuyApi.list(activeTab.value)
+    }
     // 清單拿到後，接著把每筆團購對應商品的圖片也抓回來（沿用商品圖片端點）。
     loadImages()
   } catch (e) {
@@ -43,6 +59,13 @@ async function loadGroupBuys() {
   } finally {
     loading.value = false
   }
+}
+
+// 卡片狀態標籤：可發起商品沒有 status（null），用固定的「可發起」標籤；其餘照原本的狀態對照表。
+function cardStatus(gb) {
+  return gb.groupBuyId == null
+    ? { text: '可發起', className: 'status--pending' }
+    : groupBuyStatusInfo(gb.status)
 }
 
 // 切換頁籤 → 重新打 API 拿該頁籤的清單。
@@ -145,13 +168,18 @@ onMounted(loadGroupBuys)
     <section v-else class="groupbuy-grid">
       <article
         v-for="gb in groupBuys"
-        :key="gb.groupBuyId"
+        :key="gb.groupBuyId ?? `product-${gb.productId}`"
         class="groupbuy-card"
       >
-        <!-- 點卡片 → 進團購詳情頁（/group-buys/:groupBuyId）；帶 productId 讓詳情頁能抓商品圖 -->
+        <!--
+          有 groupBuyId → 已經有團購紀錄，進 /group-buys/:groupBuyId（GroupBuyDetailDTO 現在自己帶 productId，不用再靠 query 傳）
+          沒有 groupBuyId → 只是「可發起」的商品，進 /group-buys/product/:productId（走商品資料，不是團購資料）
+        -->
         <RouterLink
           class="groupbuy-card__link"
-          :to="{ name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId }, query: { productId: gb.productId } }"
+          :to="gb.groupBuyId != null
+            ? { name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId } }
+            : { name: 'group-buy-host', params: { productId: gb.productId } }"
         >
           <div class="groupbuy-card__img-wrap">
             <img
@@ -160,17 +188,22 @@ onMounted(loadGroupBuys)
               :alt="gb.productName"
               loading="lazy"
             />
-            <span class="groupbuy-card__status" :class="groupBuyStatusInfo(gb.status).className">
-              {{ groupBuyStatusInfo(gb.status).text }}
+            <span class="groupbuy-card__status" :class="cardStatus(gb).className">
+              {{ cardStatus(gb).text }}
             </span>
           </div>
           <div class="groupbuy-card__body">
             <h2 class="groupbuy-card__name">{{ gb.productName }}</h2>
+            <p v-if="gb.subCatClassName" class="groupbuy-card__unit">{{ gb.subCatClassName }}</p>
             <p v-if="gb.unitPricingMeasure" class="groupbuy-card__unit">{{ gb.unitPricingMeasure }}</p>
             <p class="groupbuy-card__price">{{ formatPrice(gb.groupPrice) }}</p>
-            <p class="groupbuy-card__meta">目標數量：{{ gb.targetAmount ?? '—' }}</p>
-            <p class="groupbuy-card__meta">截止日期：{{ formatDate(gb.ddlDatetime) }}</p>
-            <p v-if="gb.pickupAddress" class="groupbuy-card__meta">取貨地點：{{ gb.pickupAddress }}</p>
+            <template v-if="gb.groupBuyId != null">
+              <p class="groupbuy-card__meta">達標金額：{{ formatPrice(gb.targetAmount) }}</p>
+              <p class="groupbuy-card__meta">截止日期：{{ formatDate(gb.ddlDatetime) }}</p>
+              <p v-if="gb.pickupAddress" class="groupbuy-card__meta">取貨地點：{{ gb.pickupAddress }}</p>
+            </template>
+            <!-- 可發起商品還沒有目標數量/截止日期這些資料，改顯示商品描述 -->
+            <p v-else-if="gb.description" class="groupbuy-card__meta">{{ gb.description }}</p>
           </div>
         </RouterLink>
       </article>
