@@ -947,20 +947,21 @@ CREATE TABLE GB_ORDER (
     total_quantity INT,
     group_price INT,
     total_amount INT,
-    shipped_status ENUM('PENDING','DELIVERED') DEFAULT 'PENDING',
+    shipped_status ENUM('PENDING','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING',
     shipped_at DATETIME,
+    tracking_num VARCHAR(50),
     created_at DATETIME,
     received_at DATETIME,
-    order_status ENUM('PENDING', 'COMPLETED'),
-    paid_status ENUM('UNPAID', 'PAID'),
+    order_status ENUM('PENDING', 'COMPLETED', 'CANCELED'),
+    paid_status ENUM('UNPAID', 'PAID', 'REFUNDED'),
     completed_at DATETIME,
     FOREIGN KEY (group_buy_id) REFERENCES GROUP_BUY(group_buy_id)
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
-(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, tracking_num, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
