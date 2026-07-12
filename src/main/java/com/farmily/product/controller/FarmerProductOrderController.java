@@ -2,6 +2,7 @@ package com.farmily.product.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.model.ShippedStatus;
 import com.farmily.product.service.ProductOrderService;
+import com.farmily.user.security.FarmerUserDetails;
 
 
 
@@ -25,10 +27,10 @@ public class FarmerProductOrderController {
 	// 更新訂單出貨狀態
 	@PatchMapping("/{orderId}/shipped")
 	public ResponseEntity<Void> shipped(
-			@PathVariable Integer orderId,
-			@RequestParam ShippedStatus status){
+			@AuthenticationPrincipal FarmerUserDetails me,
+			@PathVariable Integer orderId){
 		// updateShippedStatus(Integer orderId, ShippedStatus status)
-		oSvc.updateShippedStatus(orderId, status);
+		oSvc.updateShippedStatus(me.getFarmerId(), orderId);
 		
 		return ResponseEntity.ok().build();
 	}

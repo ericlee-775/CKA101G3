@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,37 +61,55 @@ public class ProductOrderService {
 	private CouponDetailRepository couponDetailRepo;
 
 
-	// 更新訂單出貨狀態
+	// 小農更新訂單出貨狀態
 	@Transactional
-	public void updateShippedStatus(Integer orderId, ShippedStatus status) {
-		orderRepo.findById(orderId).ifPresent(order -> {
-			order.setShippedStatus(status);
-			order.setShippedAt(LocalDateTime.now());
-			orderRepo.save(order);
-		});
-
+	public void updateShippedStatus(Integer farmerId, Integer orderId) {
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此小農
+		if (!(order.getFarmerId().equals(farmerId))){
+			throw new AccessDeniedException("無權限操作此訂單");
+		}
+ 		
+		// 檢查訂單是否尚未出貨
+		if (order.getShippedStatus() != ShippedStatus.pending) {
+			throw new IllegalStateException("訂單已出貨，無法再次操作");
+		}
+		
+		order.setShippedStatus(ShippedStatus.shipping);
+		order.setShippedAt(LocalDateTime.now());
+		orderRepo.save(order);
+	}
+	
+	// 會員確認收貨 (現階段設定: 消費者確認收貨同時更新 shipped_status, received_at, order_status, payout_status, completed_at)
+	@Transactional
+	public void updateReceived(Integer userId, Integer orderId) {
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此會員
+		if (!(order.getUserId().equals(userId))) {
+			throw new AccessDeniedException("無權限操作此訂單");
+		}
+		
+		// 檢查訂單是否已出貨
+		if (order.getShippedStatus() == ShippedStatus.pending) {
+			throw new IllegalStateException("尚未出貨，無法確認收貨");
+		}
+		if (order.getShippedStatus() == ShippedStatus.delivered) {
+			throw new IllegalStateException("訂單已確認貨，無法再次操作");
+		}
+			
+		order.setShippedStatus(ShippedStatus.delivered);
+		order.setReceivedAt(LocalDateTime.now());
+		order.setOrderStatus(OrderStatus.confirmed);
+		order.setPayoutStatus(PayoutStatus.paid);
+		order.setCompletedAt(LocalDateTime.now());
+		orderRepo.save(order);				
 	}
 
-	// 確認收貨 (現階段設定: 消費者確認收貨同時更新 shipped_status, received_at, order_status, payout_status, completed_at)
-	@Transactional
-	public void updateReceived(Integer orderId) {
-		orderRepo.findById(orderId).ifPresent(order -> {
-			// 確認訂單是已出貨狀態，才可以確認收貨
-			if (order.getShippedStatus() == ShippedStatus.shipped) {
-				order.setShippedStatus(ShippedStatus.delivered);
-				order.setReceivedAt(LocalDateTime.now());
-				order.setOrderStatus(OrderStatus.confirmed);
-				order.setPayoutStatus(PayoutStatus.paid);
-				order.setCompletedAt(LocalDateTime.now());
-				orderRepo.save(order);
-			}
-			else {
-				throw new IllegalStateException("尚未出貨，無法確認收貨");
-			}
-		});
-	}
-
-	// 顯示訂單列表
+	// 取得會員訂單列表
 	@Transactional (readOnly = true)
 	public Page<ProductOrderResponseDTO> getOrderByUser(Integer userId, int page){
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("createdAt").descending());
@@ -100,9 +119,17 @@ public class ProductOrderService {
 	}
 
 
-	// 顯示訂單明細
+	// 取得會員訂單明細
 	@Transactional (readOnly = true)
-	public Page<ProductOrderItemResponseDTO> getOrderItem(Integer orderId, int page){
+	public Page<ProductOrderItemResponseDTO> getOrderItem(Integer userId, Integer orderId, int page){
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此會員
+		if (!(order.getUserId().equals(userId))) {
+			throw new AccessDeniedException("無權限查看此訂單");
+		}
+		
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("orderItemId").ascending());
 		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
 		Page<ProductOrderItemResponseDTO> dtoList = list.map(this::toOrderItemDTO);
