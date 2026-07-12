@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.MemberRegisteredEvent;
 import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.CityDistrict;
@@ -13,6 +14,7 @@ import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,23 +32,23 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final SpendingTierRepository spendingTierRepository;
-    private final EmailVerificationService emailVerificationService;
     private final EmailService emailService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
                            CityDistrictRepository cityDistrictRepository,
                            PasswordEncoder passwordEncoder,
                            EmailUniquenessChecker emailUniquenessChecker,
                            SpendingTierRepository spendingTierRepository,
-                           EmailVerificationService emailVerificationService,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.spendingTierRepository = spendingTierRepository;
-        this.emailVerificationService = emailVerificationService;
         this.emailService = emailService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 本地註冊流程
@@ -112,9 +114,12 @@ public class UserServiceImpl implements UserService {
             throw new EmailAlreadyExistsException();
         }
 
-        // 寄出 Email 驗證信，啟用才能登入 (存取 Redis)
-        emailVerificationService.sendVerification(
-                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 寄出 Email 驗證信 + 產生 Redis token
+//        emailVerificationService.sendVerification(
+//                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 用事件監聽器確保交易成功 commit 後才執行寄信事件
+        eventPublisher.publishEvent(
+                new MemberRegisteredEvent(savedUser.getEmail(), AccountToken.AccountType.MEMBER));
 
         // 包裝會員資料成 dto 給 Controller
         return UserProfileResponse.from(savedUser);

@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.UserRegisterRequest;
+import com.farmily.user.event.MemberRegisteredEvent;
 import com.farmily.user.exception.EmailAlreadyExistsException;
 import com.farmily.user.exception.OAuthAccountConflictException;
 import com.farmily.user.model.User;
@@ -17,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -48,7 +50,7 @@ public class UserServiceImplTest {
     private SpendingTierRepository spendingTierRepository;
 
     @Mock
-    private EmailVerificationService emailVerificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private EmailService emailService;
@@ -136,7 +138,7 @@ public class UserServiceImplTest {
         assertEquals(saved.getAuthProvider(), User.AuthProvider.LOCAL); // 斷言是本地註冊
 
         // Mockito - 驗證有觸發寄信通知流程
-        verify(emailVerificationService).sendVerification(eq("test@example.com"), any());
+        verify(eventPublisher).publishEvent(any(MemberRegisteredEvent.class));
     }
 
     // 測試並發競態：saveAndFlush 撞 DB unique 約束拋自訂例外 EmailAlreadyExistsException
