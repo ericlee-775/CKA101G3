@@ -9,6 +9,7 @@ import com.farmily.user.service.AdminMemberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class AdminMemberServiceImpl implements AdminMemberService {
         List<UserProfileResponse> result = new ArrayList<>();
 
         for (User u : users) {
-            Integer amount = u.getMonthlySpending() != null ? u.getMonthlySpending() : 0;
+            BigDecimal amount = u.getMonthlySpending() != null ? u.getMonthlySpending() : BigDecimal.ZERO;
             String tierName = resolveTierName(tiers, amount);
 
             result.add(UserProfileResponse.from(u, tierName));
@@ -45,10 +46,21 @@ public class AdminMemberServiceImpl implements AdminMemberService {
     }
 
     // 在記憶體用金額比對出級距名稱（找不到回傳 null）
-    private String resolveTierName(List<SpendingTier> tiers, int amount) {
+    private String resolveTierName(List<SpendingTier> tiers, BigDecimal amount) {
         for (SpendingTier tier : tiers) {
-            boolean aboveMin = tier.getMinAmount() <= amount;
-            boolean belowMax = tier.getMaxAmount() == null || amount <= tier.getMaxAmount();
+            // Int 轉型成 BigDecimal
+            BigDecimal minAmount = BigDecimal.valueOf(tier.getMinAmount());
+
+            // 判斷會員消費金額 (amount) 是否 >= 級距下限 (minAmount)
+            boolean aboveMin = amount.compareTo(minAmount) >= 0;       // amount 大於 minAmount，回傳正數
+
+            boolean belowMax = true;
+            if (tier.getMaxAmount() != null) {
+                BigDecimal maxAmount = BigDecimal.valueOf(tier.getMaxAmount());
+                // 判斷：會員消費金額 (amount) 是否 <= 級距上限 (maxAmount)
+                belowMax = amount.compareTo(maxAmount) <= 0;            // amount 小於 maxAmount，回傳負數
+            }
+            // 如果金額剛好落在這個級距區間內，就回傳這個級距的名稱
             if (aboveMin && belowMax) {
                 return tier.getTierName();
             }
@@ -64,7 +76,7 @@ public class AdminMemberServiceImpl implements AdminMemberService {
                 .orElseThrow(() -> new IllegalArgumentException("查無此會員"));
 
         // +消費級距
-        Integer amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : 0;
+        BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
         String tierName = spendingTierRepository.findTierNameByAmount(amount);
 
         return UserProfileResponse.from(user, tierName);
@@ -81,7 +93,7 @@ public class AdminMemberServiceImpl implements AdminMemberService {
         List<UserProfileResponse> result = new ArrayList<>();
 
         for (User u : users) {
-            Integer amount = u.getMonthlySpending() != null ? u.getMonthlySpending() : 0;
+            BigDecimal amount = u.getMonthlySpending() != null ? u.getMonthlySpending() : BigDecimal.ZERO;
             String userTier = resolveTierName(tiers, amount);
 
             // 條件 1：消費級距（有勾選才比對；級距不在勾選清單就跳過這筆）
@@ -117,4 +129,5 @@ public class AdminMemberServiceImpl implements AdminMemberService {
         user.setUserStatus(newStatus);
         return UserProfileResponse.from(userRepository.save(user));
     }
+
 }

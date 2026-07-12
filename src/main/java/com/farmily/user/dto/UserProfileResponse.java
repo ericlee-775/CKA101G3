@@ -2,6 +2,7 @@ package com.farmily.user.dto;
 
 import com.farmily.user.model.User;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,7 +19,7 @@ public class UserProfileResponse {
     private String distName;
     private String userAddress;
     private LocalDate birthday;
-    private Integer monthlySpending;
+    private BigDecimal monthlySpending;
     private String spendingTier;
     private Boolean emailVerified;
     private String authProvider;      // 讓前端知道這帳號是 LOCAL/GOOGLE
@@ -57,7 +58,7 @@ public class UserProfileResponse {
     public LocalDate getBirthday() {
         return birthday;
     }
-    public Integer getMonthlySpending() {
+    public BigDecimal getMonthlySpending() {
         return monthlySpending;
     }
     public String getSpendingTier() {

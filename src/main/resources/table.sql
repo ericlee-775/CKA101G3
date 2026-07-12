@@ -431,7 +431,7 @@ CREATE TABLE USER (
                       birthday         DATE,
                       user_phone_num   VARCHAR(50),
                       user_status      ENUM('ACTIVE', 'WARNED', 'SUSPENDED', 'DELETED') DEFAULT 'ACTIVE',
-                      monthly_spending INT          NOT NULL DEFAULT 0,
+                      monthly_spending DECIMAL(12,2)           NOT NULL DEFAULT 0,
                       auth_provider    ENUM('LOCAL', 'GOOGLE') NOT NULL DEFAULT 'LOCAL',
                       provider_id      VARCHAR(255),
                       FOREIGN KEY (district_id) REFERENCES CITY_DISTRICT(district_id)

@@ -59,6 +59,7 @@ public class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
+
     @DisplayName("單元測試-會員重複註冊")
     @Test
     void register() {
@@ -67,18 +68,19 @@ public class UserServiceImplTest {
         reg.setPassword("test12345");
         reg.setUserName("測試");
 
-        // 模擬這個 email 已經有一個「有本地密碼」的帳號
+        // 模擬這個 email 已經有相同帳號，但使用不同密碼註冊
         User existingUser = new User();
         existingUser.setPassword("hashed");
 
-        // Mockito - 當使用 findByEmail 方法，請回答 existingUser 物件
+        // Mockito - 當，使用 findByEmail 方法，就，回答 existingUser 物件
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
+        // 狀態驗證
         assertThrows(EmailAlreadyExistsException.class, () -> {
             userService.register(reg);
         });
 
-        // Mockito - 驗證 userRepository 的 save 從來沒被呼叫過 (重複註冊)
+        // 行為驗證: 驗證 userRepository 的 save 從來沒被呼叫過
         verify(userRepository, never()).save(any());
     }
 
@@ -90,26 +92,24 @@ public class UserServiceImplTest {
         reg.setPassword("test12345");
         reg.setUserName("測試");
 
-        // ====== 劇本 ======
-        // 模擬這個 email 是 Google 帳號（沒有本地密碼）
+        // 模擬 email 是 Google 帳號（沒有本地密碼）
         User googleUser = new User();
         googleUser.setPassword(null);
         googleUser.setAuthProvider(User.AuthProvider.GOOGLE);
 
-        // Mockito - 當使用 findByEmail 方法，就固定返回 googleUser 物件
+        // Mockito - 當，使用 findByEmail 方法，就，固定返回 googleUser 物件
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(googleUser));
 
-        // ====== 演戲 ======
+        // 狀態驗證
         assertThrows(OAuthAccountConflictException.class, () -> {
             userService.register(reg);
         });
 
-        // ====== 假做 ======
-        // Mockito - 驗證不該去存 DB (重複註冊)
+        // 行為驗證: 驗證 userRepository 的 save 方法從未被呼叫過
         verify(userRepository, never()).save(any());
     }
 
-    // 測試全新 email 註冊成功：密碼雜湊、未驗證、寄驗證信
+    // 測試全新 email 註冊成功 (mock 掉寄信監聽事件)
     @DisplayName("單元測試-會員註冊成功")
     @Test
     void registerNewEmailSuccess() {
@@ -124,7 +124,7 @@ public class UserServiceImplTest {
 
         userService.register(reg);
 
-        // Mockito - 驗證有呼叫密碼加密流程
+        // 行為驗證: 驗證有呼叫加密 passwordEncoder 的 encode 方法
         verify(passwordEncoder).encode("test12345");
 
         // ArgumentCaptor 參數捕獲器
@@ -137,7 +137,7 @@ public class UserServiceImplTest {
         assertFalse(saved.getEmailVerified());              // 斷言信箱未驗證
         assertEquals(saved.getAuthProvider(), User.AuthProvider.LOCAL); // 斷言是本地註冊
 
-        // Mockito - 驗證有觸發寄信通知流程
+        // 行為驗證: 有呼叫 eventPublisher 的 publishEvent 方法
         verify(eventPublisher).publishEvent(any(MemberRegisteredEvent.class));
     }
 
