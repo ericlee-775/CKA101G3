@@ -44,6 +44,10 @@
                sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')" th:href="@{/admin/news}">
                 <span class="ico">📰</span> 最新消息</a>
 
+            <a class="nav-link" data-path="/admin/blog-reports"
+               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')" th:href="@{/admin/blog-reports}">
+                <span class="ico">📝</span> 部落格檢舉審核</a>
+
             <a class="nav-link" data-path="/admin/admins"
                sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/admins}">
                 <span class="ico">🛡️</span> 管理員管理</a>

@@ -1,7 +1,10 @@
 package com.farmily.blog.repository;
 
+import com.farmily.blog.constant.BlogStatus;
 import com.farmily.blog.model.Blog;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
 
 /**
  * 文章的 JPA Repository。
@@ -9,4 +12,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Spring Data 就自動提供 findById / findAll / save / delete 等方法，不用寫任何實作。
  */
 public interface BlogRepository extends JpaRepository<Blog, Integer> {
+
+    List<Blog> findByFarmerIdAndBlogStatusOrderByBlogTimeDesc(Integer farmerId, BlogStatus blogStatus);
 }

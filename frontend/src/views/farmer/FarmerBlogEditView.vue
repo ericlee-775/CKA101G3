@@ -148,7 +148,7 @@ onMounted(() => {
       <template v-else>
         <label class="field">
           <span>標題</span>
-          <input v-model="form.blogTitle" type="text" maxlength="100" placeholder="今天的農場…" />
+          <input v-model="form.blogTitle" type="text" maxlength="100" placeholder="幫這篇產地日記下個標題…" />
         </label>
 
         <div class="field">

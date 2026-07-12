@@ -1,5 +1,6 @@
 package com.farmily.blog.service.impl;
 
+import com.farmily.blog.constant.BlogStatus;
 import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
@@ -58,10 +59,11 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public BlogResponse getBlogDetail(Integer blogId) {
-       Blog blog = blogDao.getBlogById(blogId); //dao 撈entity
-       if(blog == null) {
-           throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
-       }
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null || blog.getBlogStatus() == BlogStatus.HIDDEN) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
+        }
+
         return BlogResponse.from(blog); //轉成 DTO回去
     }
 
@@ -283,16 +285,32 @@ public class BlogServiceImpl implements BlogService {
         if (blog == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
         }
+        boolean nowLiked;
         if (blogDao.existsLike(blogId, userId)) {
             // 已經按過 → 取消讚
             blogDao.deleteLike(blogId, userId);
             blogDao.decreaseLikeCount(blogId);
+            nowLiked = false;
         } else {
             // 還沒按過 → 按讚
             blogDao.insertLike(blogId, userId);
             blogDao.increaseLikeCount(blogId);
+            nowLiked = true;
         }
-        return BlogResponse.from(blogDao.getBlogById(blogId));
+        BlogResponse r = BlogResponse.from(blogDao.getBlogById(blogId));
+        r.setLiked(nowLiked);   // 告訴前端切換後的狀態，畫實心/空心
+        return r;
+    }
+
+    @Override
+    public BlogResponse getLikeStatus(Integer blogId, Integer userId) {
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
+        }
+        BlogResponse r = BlogResponse.from(blog);
+        r.setLiked(userId != null && blogDao.existsLike(blogId, userId));
+        return r;
     }
 
     @Override
@@ -315,7 +333,15 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Transactional
-    public void deleteComment(Integer commentId) {
+    public void deleteComment(Integer commentId, Integer userId) {
+        BlogComment comment = blogDao.getBlogCommentById(commentId);
+        if (comment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "留言不存在: " + commentId);
+        }
+        // 只有留言本人能刪自己的留言
+        if (!comment.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能刪除自己的留言");
+        }
         blogDao.deleteCommentReportsByCommentId(commentId);  // 先刪這則留言的檢舉
         blogDao.delteComment(commentId);
 
