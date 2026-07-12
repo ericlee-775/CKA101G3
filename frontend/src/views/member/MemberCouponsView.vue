@@ -115,10 +115,16 @@ onMounted(loadMyCoupons)
       >
         <span class="coupon-ticket">🎟️</span>
         <div class="coupon-body">
-          <p class="coupon-code">{{ c.couponId }}</p>
-          <span class="coupon-status" :class="c.status === 'UNUSED' ? 'ok' : 'off'">
-            {{ statusLabel(c.status) }}
-          </span>
+          <p class="coupon-amount">折 ${{ c.amount }}</p>
+          <p class="coupon-info">{{ c.couponInfo }}</p>
+          <p class="coupon-cond">滿 ${{ c.minSpending }} 可用</p>
+          <p v-if="c.issueEndDate" class="coupon-expiry">到期：{{ c.issueEndDate.slice(0, 10) }}</p>
+          <div class="coupon-foot">
+            <span class="coupon-code">{{ c.couponId }}</span>
+            <span class="coupon-status" :class="c.status === 'UNUSED' ? 'ok' : 'off'">
+              {{ statusLabel(c.status) }}
+            </span>
+          </div>
         </div>
       </li>
     </ul>
@@ -219,13 +225,15 @@ onMounted(loadMyCoupons)
   list-style: none;
   padding: 0;
   margin: 28px 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
 }
 .coupon-card {
+  flex: 1 1 260px;      /* 約 260px 寬、可換行；不用 grid 的 1fr 硬撐 */
+  max-width: 340px;     /* 少量券時也不會被拉太寬 */
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   background: #fff;
   border: 1px solid var(--line);
@@ -244,24 +252,55 @@ onMounted(loadMyCoupons)
 .coupon-ticket {
   font-size: 32px;
   line-height: 1;
+  flex-shrink: 0;        /* emoji 不被壓縮 */
 }
 .coupon-body {
+  flex: 1;
+  min-width: 0;          /* 讓長文字能在 flex 內正常換行，不撐爆卡片 */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+}
+.coupon-info {
+  overflow-wrap: anywhere;   /* 券說明太長時自動斷行 */
+}
+.coupon-amount {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--leaf-dark);
+}
+.coupon-info {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+.coupon-cond,
+.coupon-expiry {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.coupon-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
 }
 .coupon-code {
-  margin: 0;
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--ink);
   letter-spacing: 0.5px;
+  color: var(--muted);
 }
 .coupon-status {
-  align-self: flex-start;
   font-size: 12px;
   padding: 2px 10px;
   border-radius: 999px;
+  white-space: nowrap;
 }
 .coupon-status.ok {
   background: var(--leaf-soft);

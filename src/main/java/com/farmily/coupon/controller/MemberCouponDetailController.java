@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmily.coupon.dto.MyCouponDTO;
 import com.farmily.coupon.model.CouponDetailVO;
 import com.farmily.coupon.service.CouponDetailService;
 import com.farmily.user.security.MemberUserDetails;
@@ -35,7 +36,7 @@ public class MemberCouponDetailController {
 
     // 查我的券：GET /api/member/coupons
     @GetMapping
-    public ResponseEntity<List<CouponDetailVO>> myCoupons(@AuthenticationPrincipal MemberUserDetails me) {
+    public ResponseEntity<List<MyCouponDTO>> myCoupons(@AuthenticationPrincipal MemberUserDetails me) {
             return ResponseEntity.ok(couponDetailService.getMyCoupons(me.getUserId()));
     }
 
