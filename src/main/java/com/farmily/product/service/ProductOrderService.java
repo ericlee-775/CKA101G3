@@ -206,7 +206,7 @@ public class ProductOrderService {
 			if (prod == null) {
 				throw new IllegalStateException("商品不存在" + ci.getProductId());
 			}
-			if (prod.getStatus() != Status.ACTIVE) {
+			if (prod.getStatus() != ProductStatus.ACTIVE) {
 				throw new IllegalStateException("商品已下架" + ci.getProductId());
 			}
 
