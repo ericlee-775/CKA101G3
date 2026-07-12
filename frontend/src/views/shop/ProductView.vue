@@ -12,6 +12,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import cartStore from '@/stores/cart'
+import authStore from '@/stores/auth' // 收藏功能：判斷使用者是否已登入、是不是會員身分
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
@@ -120,6 +121,46 @@ function goCart() {
   router.push({ name: 'cart' })
 }
 
+// ---------- 收藏 ----------
+const isFavorited = ref(false) // 這個商品目前有沒有被收藏
+
+// 收藏功能：查詢目前這個商品是否已被收藏。
+// 重複利用「我的收藏」頁在用的同一支 GET /api/member/wishlists，不用多開一支後端 API。
+async function loadFavoriteStatus() {
+  await authStore.ensureHydrated() // 確保登入狀態已經跟後端確認過，不是猜的
+  if (!authStore.isLoggedIn || !authStore.isMember) {
+    isFavorited.value = false
+    return
+  }
+  try {
+    const res = await fetch('/api/member/wishlists', { credentials: 'include' })
+    if (!res.ok) return
+    const list = await res.json()
+    isFavorited.value = list.some((p) => p.productId === Number(route.params.productId))
+  } catch {
+    // 收藏狀態載入失敗，愛心先當作沒收藏
+  }
+}
+
+// 收藏功能：點愛心切換收藏狀態；已收藏就取消(DELETE)，沒收藏就加入(POST)。
+async function toggleFavorite() {
+  if (!authStore.isLoggedIn || !authStore.isMember) {
+    alert('請先登入才能收藏')
+    return
+  }
+  const id = route.params.productId
+  try {
+    const res = await fetch(`/api/member/wishlists/${id}`, {
+      method: isFavorited.value ? 'DELETE' : 'POST',
+      credentials: 'include',
+    })
+    if (!res.ok) throw new Error(`伺服器回應${res.status}`)
+    isFavorited.value = !isFavorited.value
+  } catch (e) {
+    alert(isFavorited.value ? '取消收藏失敗，請稍後再試' : '加入收藏失敗，請稍後再試')
+  }
+}
+
 // 抓商品詳情 + 圖片清單。route 參數變動時也會重抓（見下方 watch）。
 async function loadProduct() {
   const id = route.params.productId
@@ -145,6 +186,8 @@ async function loadProduct() {
       imageIds.value = await imgRes.json()
       activeImageId.value = imageIds.value[0] ?? null
     }
+
+    loadFavoriteStatus() // 不 await，跟商品詳情並行載入；換商品時會重新查詢，不沿用上一個商品的狀態
   } catch (e) {
     error.value = e.message || '無法載入商品，請稍後再試。'
   } finally {
@@ -205,6 +248,16 @@ watch(() => route.params.productId, loadProduct)
               :alt="product.productName"
               @error="onImageError"
             />
+            <!-- 收藏愛心：跟逛街頁的商品卡片同一套視覺，紅色實心=已收藏、白色空心=未收藏 -->
+            <button
+              type="button"
+              class="fav-btn"
+              :class="{ 'fav-btn--active': isFavorited }"
+              :aria-label="isFavorited ? '取消收藏' : '加入收藏'"
+              @click="toggleFavorite"
+            >
+              {{ isFavorited ? '♥' : '♡' }}
+            </button>
           </div>
           <div v-if="imageIds.length > 1" class="gallery__thumbs">
             <button
@@ -409,10 +462,39 @@ watch(() => route.params.productId, loadProduct)
   }
 }
 .gallery__frame {
+  position: relative; /* 收藏愛心用 absolute 定位，要靠這層當基準 */
   border-radius: 18px;
   overflow: hidden;
   background: var(--line);
   box-shadow: var(--shadow);
+}
+
+/* 收藏愛心：浮在主圖右上角，白色半透明圓底，未收藏是灰色空心 */
+.fav-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink-soft);
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: color 0.18s ease, transform 0.15s ease;
+}
+.fav-btn:hover {
+  transform: scale(1.1);
+}
+/* 已收藏：實心愛心，紅色 */
+.fav-btn--active {
+  color: #e0455f;
 }
 .gallery__main {
   width: 100%;

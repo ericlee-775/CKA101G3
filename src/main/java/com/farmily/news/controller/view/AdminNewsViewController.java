@@ -83,6 +83,34 @@ public class AdminNewsViewController {
         return "redirect:/admin/news";
     }
 
+    @PostMapping("/{newsId}/update")
+    public String update(@PathVariable Integer newsId,
+                         @RequestParam String title,
+                         @RequestParam String content,
+                         @RequestParam(required = false) String publishTime,
+                         @RequestParam(required = false) MultipartFile coverImg,
+                         RedirectAttributes redirectAttributes) throws IOException {
+
+        NewsRequest request = new NewsRequest();
+        request.setTitle(title);
+        request.setContent(content);
+
+        try {
+            request.setPublishTime(parsePublishTime(publishTime));
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", "（發布時間格式錯誤）");
+            return "redirect:/admin/news";
+        }
+
+        if (coverImg != null && !coverImg.isEmpty()) {
+            request.setCoverImg(coverImg.getBytes());
+        }
+
+        newsService.updateNews(newsId, request);
+        redirectAttributes.addFlashAttribute("success", "（已修改最新消息）");
+        return "redirect:/admin/news";
+    }
+
     @PostMapping("/{newsId}/delete")
     public String delete(@PathVariable Integer newsId,
                          RedirectAttributes redirectAttributes) {

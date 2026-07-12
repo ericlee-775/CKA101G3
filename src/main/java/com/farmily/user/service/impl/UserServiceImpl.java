@@ -1,6 +1,8 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.MemberRegisteredEvent;
+import com.farmily.user.event.PasswordChangedEvent;
 import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.CityDistrict;
@@ -9,16 +11,16 @@ import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.SpendingTierRepository;
 import com.farmily.user.repository.UserRepository;
 
-import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
-import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -30,23 +32,20 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final SpendingTierRepository spendingTierRepository;
-    private final EmailVerificationService emailVerificationService;
-    private final EmailService emailService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
                            CityDistrictRepository cityDistrictRepository,
                            PasswordEncoder passwordEncoder,
                            EmailUniquenessChecker emailUniquenessChecker,
                            SpendingTierRepository spendingTierRepository,
-                           EmailVerificationService emailVerificationService,
-                           EmailService emailService) {
+                           ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.spendingTierRepository = spendingTierRepository;
-        this.emailVerificationService = emailVerificationService;
-        this.emailService = emailService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 本地註冊流程
@@ -95,7 +94,7 @@ public class UserServiceImpl implements UserService {
         newUser.setBirthday(reg.getBirthday());
         newUser.setUserCreatedAt(LocalDateTime.now());
         newUser.setEmailVerified(false);
-        newUser.setMonthlySpending(0);
+        newUser.setMonthlySpending(BigDecimal.ZERO);
         newUser.setUserStatus(User.UserStatus.ACTIVE);
 
         /*
@@ -112,9 +111,12 @@ public class UserServiceImpl implements UserService {
             throw new EmailAlreadyExistsException();
         }
 
-        // 寄出 Email 驗證信，啟用才能登入 (存取 Redis)
-        emailVerificationService.sendVerification(
-                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 寄出 Email 驗證信 + 產生 Redis token
+//        emailVerificationService.sendVerification(
+//                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 用事件監聽器確保交易成功 commit 後才執行寄信事件
+        eventPublisher.publishEvent(
+                new MemberRegisteredEvent(savedUser.getEmail(), AccountToken.AccountType.MEMBER));
 
         // 包裝會員資料成 dto 給 Controller
         return UserProfileResponse.from(savedUser);
@@ -159,7 +161,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
 
         // +消費級距 (不同表)
-        Integer amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : 0;
+        BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
         String tierName = spendingTierRepository.findTierNameByAmount(amount);
 
         return UserProfileResponse.from(user, tierName);
@@ -208,8 +210,8 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         userRepository.save(user);
 
-        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
-        emailService.sendPasswordChangedNotice(user.getEmail());
+        // 用事件監聽器確保密碼變更成功(交易成功 commit)後寄通知信
+        eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail()));
     }
 
     // 刪除資料
@@ -252,7 +254,7 @@ public class UserServiceImpl implements UserService {
             user.setProviderId(info.getProviderId());
             user.setEmailVerified(true);
             user.setUserCreatedAt(LocalDateTime.now());
-            user.setMonthlySpending(0);
+            user.setMonthlySpending(BigDecimal.ZERO);
             user.setUserStatus(User.UserStatus.ACTIVE);
         }
 

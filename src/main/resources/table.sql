@@ -431,7 +431,7 @@ CREATE TABLE USER (
                       birthday         DATE,
                       user_phone_num   VARCHAR(50),
                       user_status      ENUM('ACTIVE', 'WARNED', 'SUSPENDED', 'DELETED') DEFAULT 'ACTIVE',
-                      monthly_spending INT          NOT NULL DEFAULT 0,
+                      monthly_spending DECIMAL(12,2)           NOT NULL DEFAULT 0,
                       auth_provider    ENUM('LOCAL', 'GOOGLE') NOT NULL DEFAULT 'LOCAL',
                       provider_id      VARCHAR(255),
                       FOREIGN KEY (district_id) REFERENCES CITY_DISTRICT(district_id)
@@ -947,20 +947,21 @@ CREATE TABLE GB_ORDER (
     total_quantity INT,
     group_price INT,
     total_amount INT,
-    shipped_status ENUM('PENDING','DELIVERED') DEFAULT 'PENDING',
+    shipped_status ENUM('PENDING','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING',
     shipped_at DATETIME,
+    tracking_num VARCHAR(50),
     created_at DATETIME,
     received_at DATETIME,
-    order_status ENUM('PENDING', 'COMPLETED'),
-    paid_status ENUM('UNPAID', 'PAID'),
+    order_status ENUM('PENDING', 'COMPLETED', 'CANCELED'),
+    paid_status ENUM('UNPAID', 'PAID', 'REFUNDED'),
     completed_at DATETIME,
     FOREIGN KEY (group_buy_id) REFERENCES GROUP_BUY(group_buy_id)
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
-(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, tracking_num, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
@@ -1130,7 +1131,6 @@ CREATE TABLE BLOG (
     user_id INT,
     farmer_id INT,
     blog_type_id INT,
-    product_id INT NOT NULL,
     blog_content TEXT NOT NULL,
     blog_img LONGBLOB,
     blog_like_count INT NOT NULL,
@@ -1138,27 +1138,26 @@ CREATE TABLE BLOG (
     blog_status ENUM('VISIBLE','HIDDEN'),
     FOREIGN KEY (user_id) REFERENCES USER(user_id),
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id),
-    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id),
-    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id)
+    FOREIGN KEY (blog_type_id) REFERENCES BLOG_TYPE(blog_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, product_id, blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
+INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content, blog_img, blog_like_count, blog_time, blog_status) VALUES
 -- 一根香蕉
-(9001, '一根香蕉的產地旅程',NULL, 1, 1, 1,'從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
+(9001, '一根香蕉的產地旅程',NULL, 1, 1,'從清晨採收到冷鏈配送，每一根香蕉都承載著小農的用心。', NULL, 48, '2026-02-20 14:00:00', 'VISIBLE'),
 -- 產地日記
-(9002, '有機農場的一天',NULL, 1, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
+(9002, '有機農場的一天',NULL, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', NULL, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9004, '山間農場參訪記', 1, NULL, 3, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
+(9004, '山間農場參訪記', 1, NULL, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
-(9005, '海風農場體驗日', 2, NULL, 3, 4, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
+(9005, '海風農場體驗日', 2, NULL, 3, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
 
 -- 食譜分享
-(9006, '香蕉燕麥鬆餅', 5, NULL, 4, 5, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
+(9006, '香蕉燕麥鬆餅', 5, NULL, 4, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
 
 -- 6. 專欄部落格 - 按讚檢查
 CREATE TABLE BLOG_LIKE (

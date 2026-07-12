@@ -81,19 +81,19 @@ public class UserSecurityConfig {
 		return provider;
 	}
 
-	// ===== 管理員「頁面」過濾鏈：負責 /admin/**（Thymeleaf 後台）=====
-	// 放在最前面 (Order 0)，且不走 commonSetup（因為它會關 CSRF、未登入回 401，這些是給 Vue 用）
-	@Bean
-	@Order(0)
-	public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider)
-			throws Exception {
-		return http.securityMatcher("/admin/**").authenticationProvider(adminAuthenticationProvider)
-				.authorizeHttpRequests(
-						req -> req
-								.requestMatchers("/admin/login").permitAll()
-								.requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
-								.requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
-								.requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+    // ===== 管理員「頁面」過濾鏈：負責 /admin/**（Thymeleaf 後台）=====
+    // 放在最前面 (Order 0)，且不走 commonSetup（因為它會關 CSRF、未登入回 401，這些是給 Vue 用）
+    @Bean
+    @Order(0)
+    public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider) throws Exception {
+        return http
+                .securityMatcher("/admin/**", "/api/admin/**")
+                .authenticationProvider(adminAuthenticationProvider)
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers("/admin/login").permitAll()
+                        .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
+                        .requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
 
 								.anyRequest().hasRole("ADMIN"))
 
@@ -151,6 +151,17 @@ public class UserSecurityConfig {
 				// 團購
 				.requestMatchers(HttpMethod.GET, "/api/groupBuy/**").permitAll()
 
+                        //體驗活動（公開：活動列表/詳情/場次/評論/圖片）
+                        .requestMatchers(HttpMethod.GET, "/api/farm-trips/**").permitAll()
+
+                        //產地地圖（公開：查全部農場 / 單一農場）
+                        .requestMatchers(HttpMethod.GET, "/api/farms", "/api/farms/**").permitAll()
+
+                        //Blog （列表/詳情/封面/留言/照片）
+                        .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
+
+                        //最新消息（公開：列表/詳情/封面圖）
+                        .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用

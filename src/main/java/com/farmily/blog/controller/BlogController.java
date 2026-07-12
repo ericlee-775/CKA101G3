@@ -1,7 +1,7 @@
 package com.farmily.blog.controller;
 
 import com.farmily.blog.dto.*;
-import com.farmily.blog.model.*;
+import com.farmily.blog.model.Blog;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
 import jakarta.servlet.ServletOutputStream;
@@ -13,14 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import com.farmily.user.security.MemberUserDetails;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.List;
 
 @Validated
@@ -59,6 +60,7 @@ public class BlogController {
         parms.setSort(sort);
         parms.setLimit(limit);
         parms.setOffset(offset);
+        parms.setStatus("VISIBLE");
 
         return blogService.getBlogPage(parms);         // 查詢/算總數/組Page/轉DTO 全在 service
     }
@@ -121,53 +123,52 @@ public class BlogController {
         }
 
     }
-
-    // 上傳照片集 (批次上傳多張)
-    @PostMapping("/blogs/{blogId}/photos")
-    public ResponseEntity<List<BlogPhotoResponse>> uploadPhotos(
-            @PathVariable Integer blogId,
-            @RequestParam("files") List<MultipartFile> files) throws IOException {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(blogService.addBlogPhotos(blogId, files));
-    }
-
-
-
-    // 刪除照片
-    @DeleteMapping("/photos/{photoId}")
-    public ResponseEntity<?> deletePhoto(@PathVariable Integer photoId) {
-        blogService.deletePhoto(photoId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-
+    
 
 
     /* ===== 互動 ===== */
     @PostMapping("/blogs/{blogId}/like")
     public BlogResponse likeBlog(@PathVariable Integer blogId,
-                                         @RequestParam Integer userId) {
-        // TODO: 之後登入做好，userId 改成從 token 解析，不再由前端傳
-        return blogService.likeBlog(blogId, userId);
+                                 @AuthenticationPrincipal MemberUserDetails me) {
+        if (me == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請以會員身分登入");
+        return blogService.likeBlog(blogId, me.getUserId());   // 從登入會員取，不信任前端
+    }
+
+    // 進頁面時查目前會員按過沒（公開端點，未登入 me 為 null → liked=false）
+    @GetMapping("/blogs/{blogId}/like-status")
+    public BlogResponse likeStatus(@PathVariable Integer blogId,
+                                   @AuthenticationPrincipal MemberUserDetails me) {
+        Integer userId = (me != null) ? me.getUserId() : null;
+        return blogService.getLikeStatus(blogId, userId);
     }
 
 
     @PostMapping("/blogs/{blogId}/comments")
-    public ResponseEntity<BlogCommentResponse> addBlogComment(@PathVariable Integer blogId, @RequestBody BlogCommentRequest request) {
+    public ResponseEntity<BlogCommentResponse> addBlogComment(@PathVariable Integer blogId,
+                                                              @RequestBody BlogCommentRequest request,
+                                                              @AuthenticationPrincipal MemberUserDetails me) {
+        if (me == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請以會員身分登入");
         request.setBlogId(blogId);
+        request.setUserId(me.getUserId());   // 留言者從登入會員取
         return ResponseEntity.status(HttpStatus.CREATED).body(blogService.addBlogComment(request));
     }
 
     @DeleteMapping("/blogs/comments/{commentId}")
-    public ResponseEntity<?> deleteComment (@PathVariable Integer commentId) {
-        blogService.deleteComment(commentId);
+    public ResponseEntity<?> deleteComment (@PathVariable Integer commentId,
+                                            @AuthenticationPrincipal MemberUserDetails me) {
+        if (me == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請以會員身分登入");
+        blogService.deleteComment(commentId, me.getUserId());   // 只能刪自己的留言，服務層驗證
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     //發送檢舉
     @PostMapping("/blogs/{blogId}/reports")
-    public ResponseEntity<Void> reportBlog(@PathVariable Integer blogId, @RequestBody @Valid BlogReportRequest blogReportRequest) {
+    public ResponseEntity<Void> reportBlog(@PathVariable Integer blogId,
+                                           @RequestBody @Valid BlogReportRequest blogReportRequest,
+                                           @AuthenticationPrincipal MemberUserDetails me) {
+        if (me == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請以會員身分登入");
+        blogReportRequest.setUserId(me.getUserId());   // 檢舉人從登入會員取
         blogService.reportBlog(blogId, blogReportRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
@@ -175,7 +176,11 @@ public class BlogController {
 
 
     @PostMapping("/comments/{commentId}/reports")
-    public ResponseEntity<Void> reportComment(@PathVariable Integer commentId, @RequestBody @Valid BlogReportRequest request) {
+    public ResponseEntity<Void> reportComment(@PathVariable Integer commentId,
+                                              @RequestBody @Valid BlogReportRequest request,
+                                              @AuthenticationPrincipal MemberUserDetails me) {
+        if (me == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "請以會員身分登入");
+        request.setUserId(me.getUserId());   // 檢舉人從登入會員取
         blogService.reportComment(commentId, request);
         return ResponseEntity.status(HttpStatus.CREATED).build(); //201
     }
