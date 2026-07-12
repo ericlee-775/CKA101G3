@@ -34,6 +34,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- MockMvc 測試支援：Spring Boot 4 起已從 starter-test 拆出成獨立模組 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 
 
 

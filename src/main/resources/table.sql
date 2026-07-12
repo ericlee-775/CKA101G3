@@ -833,46 +833,58 @@ INSERT INTO PRODUCT_SHOPPING_CART (product_id, user_id, quantity) VALUES
 
 
 -- 3-9. 農場商品 - 訂單 (將 ORDER 改為 ORDERS 避開保留字)
+DROP TABLE IF EXISTS order_item;
+DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
-    order_id INT PRIMARY KEY,
+    order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
     farmer_id INT NOT NULL,
     coupon_id VARCHAR(50),
-    order_date DATETIME NOT NULL,
-    shipping_address VARCHAR(100) NOT NULL,
+	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
-    paid_status VARCHAR(20),
-    paid_datetime DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     refunded_at DATETIME,
     total_amount INT NOT NULL,
-    discount_amount INT NOT NULL,
+    discount_amount INT NOT NULL DEFAULT 0,
     final_payment INT NOT NULL,
-    shipping_date DATETIME,
-    shipping_status VARCHAR(20),
-    receipt_datetime DATETIME,
-    receipt_status ENUM('RECEIVED', 'NOT_RECEIVED'),
-    FOREIGN KEY (user_id) REFERENCES USER(user_id),
-    FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id),
-    FOREIGN KEY (coupon_id) REFERENCES COUPON(coupon_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 參數
-INSERT INTO ORDERS (order_id, user_id, farmer_id, coupon_id, order_date, shipping_address, payment_id, paid_status, paid_datetime, refunded_at, total_amount, discount_amount, final_payment, shipping_date, shipping_status, receipt_datetime, receipt_status) VALUES
-(1, 1, 1, 'WELCOME100', '2026-03-01 14:00:00', '臺北市中正區重慶南路一段122號', 8881, 'PAID', '2026-03-01 14:05:00', NULL, 240, 100, 140, '2026-03-02 10:00:00', 'SHIPPED', '2026-03-03 15:30:00', 'RECEIVED');
+    shipped_status ENUM('pending', 'shipped', 'delivered') DEFAULT 'pending',
+    shipped_at DATETIME,
+    received_at DATETIME,
+    order_status ENUM('pending', 'confirmed') DEFAULT 'pending',
+    payout_status VARCHAR(50) DEFAULT 'pending',
+    completed_at DATETIME,
+    CONSTRAINT PK_ORDERS_OID PRIMARY KEY (order_id),
+    CONSTRAINT FK_ORDERS_UID FOREIGN KEY (user_id) REFERENCES user (user_id),
+    CONSTRAINT FK_ORDERS_FID FOREIGN KEY (farmer_id) REFERENCES farmer (farmer_id),
+    CONSTRAINT FK_ORDERS_COUPID FOREIGN KEY (coupon_id) REFERENCES coupon (coupon_id)
+)
+AUTO_INCREMENT = 3001
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
+-- 參數
+INSERT INTO ORDERS (user_id, farmer_id, coupon_id, shipping_address, payment_id, total_amount, discount_amount, final_payment) VALUES
+(3, 1, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8881, 880, 100, 780);
+INSERT INTO ORDERS (user_id, farmer_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, shipped_status, shipped_at, received_at, order_status, payout_status, completed_at) VALUES
+(3, 1, '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 0, 500, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'confirmed', 'paid', '2026-03-11 15:30:00');
 
 -- 3-10. 農場商品 - 訂單明細
+DROP TABLE IF EXISTS order_item;
 CREATE TABLE ORDER_ITEM (
-    order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_item_id INT AUTO_INCREMENT,
     product_id INT NOT NULL,
     order_id INT NOT NULL,
+    product_name VARCHAR(50) NOT NULL,
     quantity INT NOT NULL,
     price INT NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES PRODUCT_DETAIL(product_id),
-    FOREIGN KEY (order_id) REFERENCES ORDERS(order_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    CONSTRAINT PK_ORDITEM_ORDITEMID PRIMARY KEY (order_item_id),
+    CONSTRAINT FK_ORDITEM_PRDID FOREIGN KEY (product_id) REFERENCES product_detail (product_id),
+    CONSTRAINT FK_ORDITEM_OID FOREIGN KEY (order_id) REFERENCES orders (order_id)
+)
+AUTO_INCREMENT = 4001
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 參數
-INSERT INTO ORDER_ITEM (order_item_id, product_id, order_id, quantity, price) VALUES
-(1, 1, 1, 2, 120);
+INSERT INTO ORDER_ITEM (product_id, product_name, order_id, quantity, price) VALUES (3, '屏東香蕉', 3001, 4, 250);
 
 
 -- ==========================================
@@ -985,13 +997,13 @@ CREATE TABLE FARM_TRIP (
     farm_trip_intro VARCHAR(500),
     location VARCHAR(100),
     refer_price INT,
-    status ENUM('PENDING','REJECTED','ACTIVE','CLOSED'),
+    trip_status ENUM('PENDING','REJECTED','ACTIVE','CLOSED'),
     comment_numbers INT,
     star_numbers INT,
     FOREIGN KEY (farmer_id) REFERENCES FARMER(farmer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP (farm_trip_id, farmer_id, farm_trip_type, farm_trip_title, farm_trip_pic, farm_trip_intro, location, refer_price, status, comment_numbers, star_numbers) VALUES
+INSERT INTO FARM_TRIP (farm_trip_id, farmer_id, farm_trip_type, farm_trip_title, farm_trip_pic, farm_trip_intro, location, refer_price, trip_status, comment_numbers, star_numbers) VALUES
 (5001, 1, 'FARM_EXPERIENCE','有機蔬菜採收體驗',NULL,'走進陽光農場認識有機蔬菜，親手完成採收與清洗。','臺北市中正區中正路500號',500, 'ACTIVE', 1, 5),
 
 (5002, 2, 'FIELD_VISIT','自然農法農場導覽',NULL,'由農友介紹自然農法、土壤照護及友善環境的栽培方式。','臺北市大同區大同街200號',300, 'ACTIVE', 1, 5),
@@ -1062,7 +1074,7 @@ CREATE TABLE FARM_TRIP_ORDER (
     user_id INT NOT NULL,
     farm_trip_order_booking_no VARCHAR(30),
     num_people INT NOT NULL,
-    status ENUM('CONFIRMED','CANCELLED','COMPLETED'),
+    order_status ENUM('CONFIRMED','CANCELLED','COMPLETED'),
     booked_at DATETIME NOT NULL,
     cancelled_at DATETIME,
     completed_at DATETIME,
@@ -1073,7 +1085,7 @@ CREATE TABLE FARM_TRIP_ORDER (
     FOREIGN KEY (user_id) REFERENCES USER(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_trip_order_booking_no, num_people, status, booked_at, cancelled_at, completed_at, user_name, user_phone_num, note) VALUES
+INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_trip_order_booking_no, num_people, order_status, booked_at, cancelled_at, completed_at, user_name, user_phone_num, note) VALUES
 (8001, 6001, 5, 'TRIP-20260410-001',2, 'COMPLETED','2026-03-15 10:00:00', NULL, '2026-04-10 15:10:00','黃雅婷', '0956789012','第一次參加農村體驗，希望有導覽說明。'),
 
 (8002, 6002, 1, 'TRIP-20260417-001', 2, 'COMPLETED', '2026-03-20 11:00:00', NULL, '2026-04-17 12:10:00', '陳小美', '0912345678', '希望了解自然農法與土壤照護。'),
@@ -1271,6 +1283,12 @@ INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, 
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('farmer', 1, 'order_farmer_new', 'order', 1, '您有一筆新商品訂單 1，請盡速出貨。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 12001 , '專欄文章 9001 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
+
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9001', '您的文章 9001 收到一則新留言。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'account_tier', 'account', '3', '您本月的會員等級已更新為 銀級會員');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 8004，期待您的到來！');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '6004', '感謝您參加體驗活動 6004！歡迎留下您的評分與心得，給小農鼓勵。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'order_created', 'order', '1', '已收到您的商品訂單 1，將盡速為您安排出貨');
 
 
 -- 7. 通知 - 通知類型文字模板
