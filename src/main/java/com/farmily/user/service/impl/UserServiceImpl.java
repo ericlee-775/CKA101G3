@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -93,7 +94,7 @@ public class UserServiceImpl implements UserService {
         newUser.setBirthday(reg.getBirthday());
         newUser.setUserCreatedAt(LocalDateTime.now());
         newUser.setEmailVerified(false);
-        newUser.setMonthlySpending(0);
+        newUser.setMonthlySpending(BigDecimal.ZERO);
         newUser.setUserStatus(User.UserStatus.ACTIVE);
 
         /*
@@ -160,7 +161,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
 
         // +消費級距 (不同表)
-        Integer amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : 0;
+        BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
         String tierName = spendingTierRepository.findTierNameByAmount(amount);
 
         return UserProfileResponse.from(user, tierName);
@@ -253,7 +254,7 @@ public class UserServiceImpl implements UserService {
             user.setProviderId(info.getProviderId());
             user.setEmailVerified(true);
             user.setUserCreatedAt(LocalDateTime.now());
-            user.setMonthlySpending(0);
+            user.setMonthlySpending(BigDecimal.ZERO);
             user.setUserStatus(User.UserStatus.ACTIVE);
         }
 
