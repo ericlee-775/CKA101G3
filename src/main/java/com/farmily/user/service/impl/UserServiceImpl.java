@@ -2,6 +2,7 @@ package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
 import com.farmily.user.event.MemberRegisteredEvent;
+import com.farmily.user.event.PasswordChangedEvent;
 import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.CityDistrict;
@@ -10,9 +11,7 @@ import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.SpendingTierRepository;
 import com.farmily.user.repository.UserRepository;
 
-import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
-import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,7 +31,6 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final SpendingTierRepository spendingTierRepository;
-    private final EmailService emailService;
     private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
@@ -40,14 +38,12 @@ public class UserServiceImpl implements UserService {
                            PasswordEncoder passwordEncoder,
                            EmailUniquenessChecker emailUniquenessChecker,
                            SpendingTierRepository spendingTierRepository,
-                           EmailService emailService,
                            ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.spendingTierRepository = spendingTierRepository;
-        this.emailService = emailService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -213,8 +209,8 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         userRepository.save(user);
 
-        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
-        emailService.sendPasswordChangedNotice(user.getEmail());
+        // 用事件監聽器確保密碼變更成功(交易成功 commit)後寄通知信
+        eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail()));
     }
 
     // 刪除資料
