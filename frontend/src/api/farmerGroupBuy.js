@@ -7,7 +7,7 @@ export const farmerGroupBuyApi = {
   // 自己商品底下的團購清單（含團購主的發起申請）→ GroupBuyFarmerDTO[]
   list: () => http.get(`${BASE}/list`),
 
-  // 單筆團購申請的詳細內容（審核清單「詳細資料」按鈕用）→ GroupBuyVO
+  // 單筆團購申請的詳細內容（審核清單「詳細資料」按鈕用）→ GroupBuyFarmerDTO
   getOne: (groupBuyId) => http.get(`${BASE}/list/${groupBuyId}`),
 
   // 審核團購申請；res = { requestStatus: 'approved' | 'rejected', rejectReason? }
@@ -23,8 +23,10 @@ export const farmerGroupBuyApi = {
   // 單筆訂單詳細資料（含團購主聯絡方式）→ GroupBuyOrderDTO
   getOrder: (orderId) => http.get(`${BASE}/order/${orderId}`),
 
-  // 出貨狀態更新為已送達
-  shipOrder: (orderId) => http.post(`${BASE}/orderShipped/${orderId}`, {}),
+  // 出貨狀態更新；shippedStatus: 'PENDING' | 'DELIVERED'
+  // 注意：後端目前不論送什麼值，實際都會直接改成 DELIVERED（ship() 沒有讀 body），
+  // 這裡仍照下拉選單選的值送出，等後端之後照 body 真的判斷狀態時前端不用再改。
+  shipOrder: (orderId, shippedStatus) => http.post(`${BASE}/orderShipped/${orderId}`, { shippedStatus }),
 }
 
 export default farmerGroupBuyApi

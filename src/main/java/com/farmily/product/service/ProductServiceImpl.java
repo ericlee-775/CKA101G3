@@ -17,7 +17,7 @@ import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
 import com.farmily.product.model.ProductRepository;
 import com.farmily.product.model.ProductVO;
-import com.farmily.product.model.Status;
+import com.farmily.product.model.ProductStatus;
 import com.farmily.product.model.SubCategoryRepository;
 import com.farmily.product.model.SubCategoryVO;
 import com.farmily.product.model.WishListId;
@@ -40,7 +40,17 @@ public class ProductServiceImpl implements ProductService {
 	public Page<ProductSummaryDTO> getAllProducts(Pageable pageable) {
 		return productRepository.findAllProjectedToDto(pageable);
 	}
-	@Override 
+	@Override
+	@Transactional(readOnly = true)
+	public Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
+			Integer minPrice, Integer maxPrice, Pageable pageable) {
+		if (keyword != null && keyword.isBlank()) {
+			keyword = null;
+		}
+		return productRepository.searchProducts(keyword, subCatClassId, minPrice, maxPrice, pageable);
+	}
+
+	@Override
 	@Transactional(readOnly = true)
 	public List<ProductManageDTO> getMyProducts(Integer farmerId){
 		return productRepository.findMyProducts(farmerId);
@@ -78,7 +88,7 @@ public class ProductServiceImpl implements ProductService {
 		}
 
 		productVO.setFarmerId(farmerId);
-		productVO.setStatus(Status.ACTIVE);
+		productVO.setStatus(ProductStatus.ACTIVE);
 
 		productRepository.save(productVO);
 

@@ -15,6 +15,9 @@ public interface AdminService {
     // 查管理員個人資料
     AdminProfileResponse getMyProfile(Integer adminId);
 
+    // 管理員修改自己的密碼
+    void changeMyPassword(Integer adminId, ChangePasswordRequest pw);
+
     // ======== 管理員對其他管理員 CRUD ========
     // CRUD - 新增管理員
     AdminProfileResponse createAdmin(AdminCreateRequest req);
@@ -28,7 +31,7 @@ public interface AdminService {
     // CRUD - 修改管理員
     AdminProfileResponse updateAdmin(Integer adminId, AdminUpdateRequest req);
 
-    // CRUD - 刪除管理員
+    // CRUD - 刪除管理員（軟刪除）
     void deleteAdmin(Integer adminId, Integer currentAdminId);
 
     // 列出系統所有可指派的權限 (給前端動態產生勾選清單)

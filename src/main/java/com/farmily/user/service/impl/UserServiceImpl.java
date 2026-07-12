@@ -1,6 +1,9 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.MemberRegisteredEvent;
+import com.farmily.user.event.PasswordChangedEvent;
+import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.CityDistrict;
 import com.farmily.user.model.User;
@@ -9,8 +12,9 @@ import com.farmily.user.repository.SpendingTierRepository;
 import com.farmily.user.repository.UserRepository;
 
 import com.farmily.user.service.EmailUniquenessChecker;
-import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.UserService;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,20 +31,20 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final SpendingTierRepository spendingTierRepository;
-    private final EmailVerificationService emailVerificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
                            CityDistrictRepository cityDistrictRepository,
                            PasswordEncoder passwordEncoder,
                            EmailUniquenessChecker emailUniquenessChecker,
                            SpendingTierRepository spendingTierRepository,
-                           EmailVerificationService emailVerificationService) {
+                           ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.spendingTierRepository = spendingTierRepository;
-        this.emailVerificationService = emailVerificationService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 本地註冊流程
@@ -56,10 +60,10 @@ public class UserServiceImpl implements UserService {
             // 狀況 A: 帳號「沒有本地密碼」，代表他只有第三方登入資訊
             if (existingUser.getPassword() == null
                     && existingUser.getAuthProvider() == User.AuthProvider.GOOGLE) {
-                throw new IllegalStateException("此帳號已使用 Google 登入，請改用 Google 登入");
+                throw new OAuthAccountConflictException();
             }
             // 狀況 B: 剩餘(已有本地密碼)就是一般重複註冊
-            throw new IllegalStateException("帳號已註冊使用");
+            throw new EmailAlreadyExistsException();
         }
 
         // step2: 若 email = null，跨表檢查 email 全域唯一
@@ -92,12 +96,26 @@ public class UserServiceImpl implements UserService {
         newUser.setMonthlySpending(0);
         newUser.setUserStatus(User.UserStatus.ACTIVE);
 
-        // 存進 DB
-        User savedUser = userRepository.save(newUser);
+        /*
+        存進 DB (注意需用 saveAndFlush，不是 save)
+        一般 save()，INSERT 不會馬上送到 DB，而是等「交易 commit」才送
+        commit 發生在 register() 回傳之後，例外會在方法外面才爆 - 接不到
+        */
+        User savedUser;
+        try {
+            savedUser = userRepository.saveAndFlush(newUser);   // 強迫立即送到 DB，萬一撞 unique 約束，例外當場丟出來，還可以接住
+        } catch (DataIntegrityViolationException e) {
+            // 能進到這裡 = 另一個並發請求在「我查完」到「我存下去」之間搶先註冊了同一 email
+            // 被 DB 的 unique 約束擋下，轉成自訂業務例外 - 回 409
+            throw new EmailAlreadyExistsException();
+        }
 
-        // 寄出 Email 驗證信，啟用才能登入 (存取 Redis)
-        emailVerificationService.sendVerification(
-                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 寄出 Email 驗證信 + 產生 Redis token
+//        emailVerificationService.sendVerification(
+//                savedUser.getEmail(), AccountToken.AccountType.MEMBER);
+        // 用事件監聽器確保交易成功 commit 後才執行寄信事件
+        eventPublisher.publishEvent(
+                new MemberRegisteredEvent(savedUser.getEmail(), AccountToken.AccountType.MEMBER));
 
         // 包裝會員資料成 dto 給 Controller
         return UserProfileResponse.from(savedUser);
@@ -123,13 +141,13 @@ public class UserServiceImpl implements UserService {
 
         if (user.getUserStatus() == User.UserStatus.SUSPENDED
                 || user.getUserStatus() == User.UserStatus.DELETED) {
-            throw new IllegalStateException("此帳號已遭停權或終止，有任何疑問請聯繫客服");
+            throw new AccountSuspendedException();
         }
 
         // 本地帳號必須先完成 Email 驗證（點驗證信連結）才能登入；Google OAuth 除外
         if (user.getAuthProvider() == User.AuthProvider.LOCAL
                 && (user.getEmailVerified() == null || !user.getEmailVerified())) {
-            throw new IllegalStateException("請先完成 Email 驗證後再登入，可至信箱點擊驗證連結");
+            throw new EmailNotVerifiedException();
         }
         return UserProfileResponse.from(user);
     }
@@ -190,13 +208,16 @@ public class UserServiceImpl implements UserService {
         // Google 帳號首次設定本地密碼和本地帳號新密碼一樣：本來就沒有 oldPassword，直接 hash 新密碼存入
         user.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         userRepository.save(user);
+
+        // 用事件監聽器確保密碼變更成功(交易成功 commit)後寄通知信
+        eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail()));
     }
 
     // 刪除資料
     @Override
     public void deleteUser(Integer userId) {
         if (!userRepository.existsById(userId)) {
-            throw new IllegalStateException("查無此用戶");
+            throw new UserNotFoundException();
         }
         userRepository.deleteById(userId);
     }
@@ -239,7 +260,7 @@ public class UserServiceImpl implements UserService {
         // step4. 限制被停權、註銷帳號不能登入
         if (user.getUserStatus() == User.UserStatus.SUSPENDED
                 || user.getUserStatus() == User.UserStatus.DELETED) {
-            throw new IllegalStateException("此帳號已遭停權或終止，有任何疑問請聯繫客服");
+            throw new AccountSuspendedException();
         }
 
         // 包裝會員資料成 dto 給 Controller

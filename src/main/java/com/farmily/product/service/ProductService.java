@@ -17,26 +17,29 @@ import com.farmily.product.model.ProductVO;
 public interface ProductService {
 
 	Integer addProduct(ProductInsertDTO dto, Integer farmerId);
-	
+
 	boolean updateProduct(Integer productId, ProductUpdatedDTO dto, Integer farmerId);
 
 	Page<ProductSummaryDTO> getAllProducts(Pageable pageable);
-	
+
+	Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
+			Integer minPrice, Integer maxPrice, Pageable pageable);
+
 	List<ProductManageDTO> getMyProducts(Integer farmerId);
-	
+
 	ProductDetailDTO getProductDetail(Integer productId);
 
 	byte[] getProductImageBytes(Integer productId);
 
 	// [暫時停用] 待 ProductGroupBuyDTO 補上對應建構子後再啟用
 	List<ProductGroupBuyDTO> getAllGroupBuyProducts();
-	
+
 	ProductVO getGroupBuyProductById(Integer ProductId);
 
 	boolean addWishList(Integer productId, Integer userId);
-	
+
 	boolean deleteWishList(Integer productId, Integer userId);
-	
+
 	List<ProductSummaryDTO> getAllWishLists(Integer userId);
 
 }
