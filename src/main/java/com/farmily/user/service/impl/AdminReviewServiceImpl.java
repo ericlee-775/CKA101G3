@@ -1,6 +1,8 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.FarmerReviewResponse;
+import com.farmily.user.event.FarmerApprovedEvent;
+import com.farmily.user.event.FarmerRejectedEvent;
 import com.farmily.user.model.Admin;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
@@ -9,6 +11,7 @@ import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.AdminReviewService;
 import com.farmily.user.service.EmailVerificationService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,15 +27,16 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     private final FarmerRepository farmerRepository;
     private final AdminRepository adminRepository;
     private final FarmerReviewRepository farmerReviewRepository;
-    private final EmailVerificationService emailVerificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AdminReviewServiceImpl(FarmerRepository farmerRepository, AdminRepository adminRepository,
+    public AdminReviewServiceImpl(FarmerRepository farmerRepository,
+                                  AdminRepository adminRepository,
                                   FarmerReviewRepository farmerReviewRepository,
-                                  EmailVerificationService emailVerificationService) {
+                                  ApplicationEventPublisher eventPublisher) {
         this.farmerRepository = farmerRepository;
         this.adminRepository = adminRepository;
         this.farmerReviewRepository = farmerReviewRepository;
-        this.emailVerificationService = emailVerificationService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 待審清單
@@ -114,9 +118,11 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
         FarmerReviewResponse result = FarmerReviewResponse.from(farmerReviewRepository.save(review));
 
-        // 核准後才寄出「啟用 + Email 驗證」信：小農須點連結完成驗證才能登入。
-        // 帳號雖已設為 ACTIVE，但 email_verified 仍為 false，未點連結前無法自行登入。
-        emailVerificationService.sendFarmerActivation(farmer.getEmail());
+        // 核准後才寄出「啟用 + Email 驗證」信：小農須點連結完成驗證才能登入
+        // 帳號雖已設為 ACTIVE，但 email_verified 仍為 false，未點連結前無法自行登入
+        // 發布事件監聽，交易成功 commit 後才執行寄啟用信
+        eventPublisher.publishEvent(
+                new FarmerApprovedEvent(farmer.getEmail()));
 
         return result;
     }
@@ -139,7 +145,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         FarmerReviewResponse result = FarmerReviewResponse.from(farmerReviewRepository.save(review));
 
         // 退件後寄出通知信（附退件理由 + 重新送審頁連結）；@Async 寄信失敗不影響退件本身
-        emailVerificationService.sendFarmerRejected(review.getFarmer().getEmail(), rejectReason);
+        // 發布事件監聽，交易成功 commit 後才執行寄退件信
+        eventPublisher.publishEvent(
+                new FarmerRejectedEvent(review.getFarmer().getEmail(), rejectReason));
 
         return result;
     }
