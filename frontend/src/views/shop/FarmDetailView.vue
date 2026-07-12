@@ -451,27 +451,33 @@ watch(farmerId, loadFarmDetail)
 
 .blog-list {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
 }
 
 .blog-card {
-  display: grid;
-  grid-template-columns: 180px 1fr;
+  display: block;
   overflow: hidden;
   color: inherit;
   text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
 .blog-card__image {
   width: 100%;
-  height: 100%;
-  min-height: 150px;
+  height: 160px;
   object-fit: cover;
   background: var(--leaf-soft);
+  display: block;
 }
 
 .blog-card div {
-  padding: 18px;
+  padding: 16px 18px;
 }
 
 .blog-card time,
@@ -503,14 +509,6 @@ watch(farmerId, loadFarmDetail)
 
   .farm-hero__content {
     padding: 24px;
-  }
-
-  .blog-card {
-    grid-template-columns: 1fr;
-  }
-
-  .blog-card__image {
-    height: 180px;
   }
 }
 </style>
