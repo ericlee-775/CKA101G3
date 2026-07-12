@@ -5,21 +5,32 @@
 //  - 部署模式(npm run build)：前端由 Spring Boot 同源提供，/api 直接打同一台後端
 // 兩種情況都是同源，session cookie(JSESSIONID)會自動帶上。
 
+// 把後端訊息清成人話：去掉 Spring ResponseStatusException 的
+// "415 UNSUPPORTED_MEDIA_TYPE " 這類狀態碼前綴，以及外層多餘引號
+function cleanMessage(msg) {
+  return String(msg)
+    .replace(/^\d{3}\s+[A-Z_]+\s*/, '')   // 去掉「狀態碼 狀態名」前綴
+    .replace(/^"([\s\S]*)"$/, '$1')       // 去掉外層引號
+    .trim()
+}
+
 // 從後端回應中盡量取出「可讀的錯誤訊息」
-async function extractError(response) {
+export async function extractError(response) {
   const text = await response.text().catch(() => '')
   if (!text) return `發生錯誤 (${response.status})`
+  let msg = text
   // 後端有些端點回 JSON 物件、有些回純文字字串
   try {
     const data = JSON.parse(text)
-    // 常見錯誤欄位：message / error；驗證錯誤可能是欄位對訊息的物件
     if (data && typeof data === 'object') {
-      return data.message || data.error || text
+      msg = data.message || data.error || text   // 常見錯誤欄位
+    } else {
+      msg = String(data)
     }
-    return String(data)
   } catch {
-    return text
+    // 純文字，直接用 text
   }
+  return cleanMessage(msg) || `發生錯誤 (${response.status})`
 }
 
 // 核心請求方法

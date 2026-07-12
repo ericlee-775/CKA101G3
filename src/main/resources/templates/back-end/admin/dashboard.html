@@ -80,6 +80,15 @@
                 </span>
             </a>
         </div>
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
+            <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
+                <span class="stat-ico">📝</span>
+                <span>
+                    <span class="stat-label d-block">部落格</span>
+                    <span class="stat-link">檢舉審核 →</span>
+                </span>
+            </a>
+        </div>
     </div>
 
 </div>

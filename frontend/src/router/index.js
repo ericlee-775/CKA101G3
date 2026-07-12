@@ -18,8 +18,10 @@ import CartView from '@/views/shop/CartView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
 import GroupBuyDetailView from '@/views/shop/GroupBuyDetailView.vue'
 import BlogsView from '@/views/shop/BlogsView.vue'
+import BlogDetailView from '@/views/shop/BlogDetailView.vue'
 import FarmTripsView from '@/views/shop/FarmTripsView.vue'
 import FarmMapView from '@/views/shop/FarmMapView.vue'
+import FarmDetailView from '@/views/shop/FarmDetailView.vue'
 import FarmGameView from '@/views/shop/FarmGameView.vue'
 import AboutView from '@/views/shop/AboutView.vue'
 // 帳號相關：登入 / 註冊 / 密碼 / Email 驗證 / 小農申請
@@ -88,8 +90,10 @@ const router = createRouter({
         // 跟上面那個網址共用同一個 GroupBuyDetailView 元件，內部依 route 參數判斷該打哪支 API。
         { path: 'group-buys/product/:productId', name: 'group-buy-host', component: GroupBuyDetailView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
+        { path: 'blogs/:blogId', name: 'blog-detail', component: BlogDetailView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
         { path: 'farm-map',    name: 'farm-map',   component: FarmMapView },
+        { path: 'farmily/:farmerId', name: 'farm-detail', component: FarmDetailView },
         { path: 'farm-game',   name: 'farm-game',  component: FarmGameView },
         { path: 'about',       name: 'about',      component: AboutView },
 

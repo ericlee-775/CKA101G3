@@ -10,6 +10,7 @@ public class BlogQueryParms {
     private String orderBy;
     private Integer limit ;
     private Integer offset ;
+    private String status;
 
 
     public Integer getBlogTypeId() {
@@ -66,5 +67,13 @@ public class BlogQueryParms {
 
     public void setOffset(Integer offset) {
         this.offset = offset;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

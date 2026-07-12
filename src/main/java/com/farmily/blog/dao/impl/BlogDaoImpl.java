@@ -124,7 +124,7 @@ public class BlogDaoImpl implements BlogDao {
     @Override
     public List<BlogComment> getBlogComments(Integer blogId) {
         String sql = "SELECT comment_id, blog_id, user_id, comment_time, comment_post,comment_like, " +
-                "comment_status FROM blog_comment WHERE blog_id = :blogId";
+                "comment_status FROM blog_comment WHERE blog_id = :blogId AND comment_status = 'VISIBLE'";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
@@ -257,7 +257,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public void insertLike(Integer blogId, Integer userId) {
-        String sql = "INSERT INTO blog_like (blog_id, user_id, create_at) VALUES (:blogId, :userId, NOW())";
+        String sql = "INSERT INTO blog_like (blog_id, user_id, created_at) VALUES (:blogId, :userId, NOW())";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
         map.put("userId", userId);
@@ -468,6 +468,10 @@ public class BlogDaoImpl implements BlogDao {
         if (blogQueryParms.getSearch() != null && !blogQueryParms.getSearch().isBlank()) {
             sql = sql + " AND (blog_title LIKE :search OR blog_content LIKE :search)";
             map.put("search", "%" + blogQueryParms.getSearch() + "%");
+        }
+        if (blogQueryParms.getStatus() != null) {
+            sql = sql + " AND blog_status = :status";
+            map.put("status", blogQueryParms.getStatus());
         }
         return sql;
     }

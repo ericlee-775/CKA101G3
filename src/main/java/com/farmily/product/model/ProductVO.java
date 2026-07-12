@@ -28,11 +28,11 @@ public class ProductVO implements Serializable{
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name="product_id")
 	private Integer productId;
-	
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name="sub_cat_class_id",referencedColumnName = "sub_cat_class_id")
 	private SubCategoryVO subCategoryVO;
-	
+
 	@Column(name="farmer_id")
 	private Integer farmerId;                       // 寫入用（新增商品時設這個）
 
@@ -43,30 +43,30 @@ public class ProductVO implements Serializable{
 
 	@Column(name="retail_price")
 	private Integer retailPrice;
-	
+
 	@Column(name="group_price")
 	private Integer groupPrice;
-	
+
 	@Column(name="unit_pricing_measure")
 	private String unitPricingMeasure;
-	
+
 	@JsonIgnore
 	@Column(name="product_image")
 	private byte[] productImage;
-	
+
 	@Column(name="is_group_buy")
 	private Boolean isGroupBuy;
-	
+
 	@Column(name="description")
 	private String description;
-	
+
 	@Column(name="status")
 	@Enumerated(EnumType.STRING)
-	private Status status;
-	
+	private ProductStatus status;
+
 	@Column(name="product_name")
 	private String productName;
-	
+
 	public Integer getProductId() {
 		return productId;
 	}
@@ -74,7 +74,7 @@ public class ProductVO implements Serializable{
 	public void setProductId(Integer productId) {
 		this.productId = productId;
 	}
-	
+
 	public SubCategoryVO getSubCategoryVO() {
 		return subCategoryVO;
 	}
@@ -128,7 +128,7 @@ public class ProductVO implements Serializable{
 	public void setProductImage(byte[] productImage) {
 		this.productImage = productImage;
 	}
-	
+
 	// 前端 multipart 的檔案會進到這個 setter，Spring 自動呼叫
     public void setProductImage(MultipartFile multipartFile) {
         try {
@@ -154,11 +154,11 @@ public class ProductVO implements Serializable{
 		this.description = description;
 	}
 
-	public Status getStatus() {
+	public ProductStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(Status status) {
+	public void setStatus(ProductStatus status) {
 		this.status = status;
 	}
 
@@ -169,6 +169,6 @@ public class ProductVO implements Serializable{
 	public void setProductName(String productName) {
 		this.productName = productName;
 	}
-	
-	
+
+
 }

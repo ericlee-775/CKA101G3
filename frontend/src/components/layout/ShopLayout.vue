@@ -21,5 +21,7 @@ import ShopFooter from './ShopFooter.vue'
 .shop-main {
   /* 讓內容區至少撐滿一個視窗高，頁尾才不會浮在中間 */
   min-height: 60vh;
+  /* 全站前台統一米白紙底（theme --paper 原意就是整站背景），讓各頁與首頁一致 */
+  background: var(--paper);
 }
 </style>

@@ -15,7 +15,7 @@ async function loadNews() {
   error.value = ''
 
   try {
-    const offset = (page.value - 1) * pageSize + 1
+    const offset = (page.value - 1) * pageSize
     const res = await fetch(`/api/news?limit=${pageSize}&offset=${offset}`, {
       credentials: 'include',
     })

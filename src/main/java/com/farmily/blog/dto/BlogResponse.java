@@ -15,6 +15,7 @@ public class BlogResponse {
     private Integer blogLikeCount;
     private Timestamp blogTime;
     private BlogStatus blogStatus;
+    private Boolean liked;   // 目前這位會員有沒有按過讚（未登入/沒查則為 null，前端當作 false）
     //private byte[] blogImg; 圖片走 /api/blogs/{id}/image
 
     //entity轉DTO
@@ -103,5 +104,13 @@ public class BlogResponse {
 
     public void setBlogStatus(BlogStatus blogStatus) {
         this.blogStatus = blogStatus;
+    }
+
+    public Boolean getLiked() {
+        return liked;
+    }
+
+    public void setLiked(Boolean liked) {
+        this.liked = liked;
     }
 }

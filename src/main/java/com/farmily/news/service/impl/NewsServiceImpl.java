@@ -36,7 +36,7 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional(readOnly = true)
     public byte[] getNewsImage(Integer newsId) {
-        News news = newsRepository.findById(newsId)
+        News news = newsRepository.findByNewIdAndNewsStatus(newsId, NewStatus.VISIBLE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "最新消息不存在: " + newsId));
         return news.getCoverImg();
     }

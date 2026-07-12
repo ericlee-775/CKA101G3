@@ -19,10 +19,10 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
 			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
 			+ "FROM ProductVO p JOIN p.farmer f "
-			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE",
 		countQuery = "SELECT count(p) FROM ProductVO p JOIN p.farmer f "
-			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE")
 	Page<ProductSummaryDTO> findAllProjectedToDto(Pageable pageable);
 
@@ -30,14 +30,14 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
 			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
 			+ "FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
-			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND (:keyword IS NULL OR p.productName LIKE CONCAT('%', :keyword, '%')) "
 			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
 			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
 			+ "AND (:maxPrice IS NULL OR p.retailPrice <= :maxPrice) "
 			+ "AND f.farmerStatus = ACTIVE",
 		countQuery = "SELECT count(p) FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
-			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND (:keyword IS NULL OR p.productName LIKE CONCAT('%', :keyword, '%')) "
 			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
 			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
@@ -62,7 +62,7 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 			+ "p.productId, p.productName, p.retailPrice, p.groupPrice, "
 			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, s.subCatClassId, s.subCatClassName) "
 			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s JOIN p.farmer f "
-			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE")
 	ProductDetailDTO findDetailById(@Param("id") Integer id);
 
@@ -70,7 +70,7 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	@Query("SELECT new com.farmily.product.dto.ProductGroupBuyDTO(p.productId, p.productName, p.groupPrice, "
 			+ "p.unitPricingMeasure, p.description, s.subCatClassId, s.subCatClassName) "
 			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s JOIN p.farmer f "
-			+ "WHERE p.status = com.farmily.product.model.Status.ACTIVE "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE "
 			+ "AND p.isGroupBuy = true")
 	List<ProductGroupBuyDTO> findGroupBuyProducts();
