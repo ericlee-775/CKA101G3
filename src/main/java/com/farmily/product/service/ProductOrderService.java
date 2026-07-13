@@ -396,8 +396,5 @@ public class ProductOrderService {
 		// 清除購物車商品
 		cartSvc.clearCart(userId);
 
-		// 發送通知 (小農/會員)
-		System.out.println("訂單建立成功!");
-		
 	}
 }
