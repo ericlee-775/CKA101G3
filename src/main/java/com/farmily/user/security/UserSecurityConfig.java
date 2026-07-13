@@ -150,6 +150,9 @@ public class UserSecurityConfig {
 				// 團購
 				.requestMatchers(HttpMethod.GET, "/api/groupBuy/**").permitAll()
 
+				// 體驗活動（列表/詳情/場次/評論/圖片）公開瀏覽，不需登入
+				.requestMatchers(HttpMethod.GET, "/api/farm-trips/**").permitAll()
+
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用
