@@ -90,6 +90,8 @@ public class UserSecurityConfig {
                 .securityMatcher("/admin/**", "/api/admin/**")
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(req -> req
+
+						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
                         .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
                         .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
@@ -162,6 +164,7 @@ public class UserSecurityConfig {
 
                         //最新消息（公開：列表/詳情/封面圖）
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
+
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用
@@ -170,7 +173,10 @@ public class UserSecurityConfig {
 				.requestMatchers("/api/city-districts", "/api/city-districts/**").permitAll()
 
 				// 公開：Email 驗證 / 忘記密碼 (未登入也要能用)
-				.requestMatchers("/api/auth/**").permitAll().anyRequest().authenticated()).build();
+				.requestMatchers("/api/auth/**").permitAll()
+
+						.anyRequest().authenticated())
+				.build();
 	}
 
 	// CSRF 保護
