@@ -5,14 +5,48 @@
 //   targetAmount / openDatetime / ddlDatetime / rejectReason / replyDatetime
 // 跟「進行中」（GroupBuyJoinedList，資料來源是 /joinedGroupBuyList）互不相干，
 // 同一筆團購如果自己也有加入，兩邊會同時各自出現一筆，這是預期行為。
+//
+// 商品圖片：UnderReviewDTO 沒有 productId，只有 groupBuyId，做法跟訂單清單一樣，
+// 先打公開的 GET /api/groupBuy/{groupBuyId} 換出 productId，再打商品圖片端點。
 import { ref, onMounted } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
+import groupBuyApi from '@/api/groupBuy'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
+import noImage from '@/assets/no-image.svg'
 
 const emit = defineEmits(['count'])
 
 const list = ref([])
 const loading = ref(true)
 const error = ref('')
+
+const { page, totalPages, pageItems: pagedList } = usePagination(list, 10)
+
+const FALLBACK_IMAGE = noImage
+const imageUrls = ref({})
+
+async function loadImages() {
+  for (const req of list.value) {
+    fetchImage(req.groupBuyId)
+  }
+}
+async function fetchImage(groupBuyId) {
+  if (groupBuyId == null || imageUrls.value[groupBuyId]) return
+  try {
+    const detail = await groupBuyApi.getOne(groupBuyId)
+    if (!detail?.productId) return
+    const res = await fetch(`/api/products/${detail.productId}/image`)
+    if (!res.ok) return
+    const blob = await res.blob()
+    imageUrls.value[groupBuyId] = URL.createObjectURL(blob)
+  } catch {
+    // 查不到團購或沒有圖，維持預設圖。
+  }
+}
+function requestImage(req) {
+  return imageUrls.value[req.groupBuyId] || FALLBACK_IMAGE
+}
 
 // RequestStatus 是英文代碼（沒加 @JsonValue），前端自己對照中文與徽章顏色
 const STATUS_MAP = {
@@ -40,6 +74,7 @@ async function load() {
   try {
     list.value = (await memberGroupBuyApi.myRequests()) || []
     emit('count', list.value.length)
+    loadImages()
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
   } finally {
@@ -76,41 +111,48 @@ onMounted(load)
     </div>
 
     <!-- 申請卡片 -->
-    <article v-for="(req, i) in list" :key="i" class="gb-card">
-      <header class="gb-head">
-        <h3 class="gb-name">{{ req.productName }}</h3>
-        <span class="badge" :class="`badge--${statusOf(req.requestStatus).tone}`">
-          {{ statusOf(req.requestStatus).label }}
-        </span>
-      </header>
+    <template v-else>
+      <article v-for="(req, i) in pagedList" :key="i" class="gb-card">
+        <div class="gb-card__body">
+          <header class="gb-head">
+            <img class="gb-img" :src="requestImage(req)" alt="" loading="lazy" />
+            <h3 class="gb-name">{{ req.productName }}</h3>
+            <span class="badge" :class="`badge--${statusOf(req.requestStatus).tone}`">
+              {{ statusOf(req.requestStatus).label }}
+            </span>
+          </header>
 
-      <dl class="gb-grid">
-        <div class="gb-cell">
-          <dt>團購價</dt>
-          <dd>{{ formatMoney(req.groupPrice) }}</dd>
+          <dl class="gb-grid">
+            <div class="gb-cell">
+              <dt>團購價</dt>
+              <dd>{{ formatMoney(req.groupPrice) }}</dd>
+            </div>
+            <div class="gb-cell">
+              <dt>達標金額</dt>
+              <dd class="gb-money">{{ formatMoney(req.targetAmount) }}</dd>
+            </div>
+            <div class="gb-cell">
+              <dt>開團時間</dt>
+              <dd>{{ formatDate(req.openDatetime) }}</dd>
+            </div>
+            <div class="gb-cell">
+              <dt>截止時間</dt>
+              <dd>{{ formatDate(req.ddlDatetime) }}</dd>
+            </div>
+            <div v-if="req.requestStatus !== 'pending'" class="gb-cell">
+              <dt>審核回覆時間</dt>
+              <dd>{{ formatDate(req.replyDatetime) }}</dd>
+            </div>
+            <div v-if="req.requestStatus === 'rejected'" class="gb-cell gb-cell--wide">
+              <dt>拒絕原因</dt>
+              <dd class="gb-reject-reason">{{ req.rejectReason || '—' }}</dd>
+            </div>
+          </dl>
         </div>
-        <div class="gb-cell">
-          <dt>達標金額</dt>
-          <dd class="gb-money">{{ formatMoney(req.targetAmount) }}</dd>
-        </div>
-        <div class="gb-cell">
-          <dt>開團時間</dt>
-          <dd>{{ formatDate(req.openDatetime) }}</dd>
-        </div>
-        <div class="gb-cell">
-          <dt>截止時間</dt>
-          <dd>{{ formatDate(req.ddlDatetime) }}</dd>
-        </div>
-        <div v-if="req.requestStatus !== 'pending'" class="gb-cell">
-          <dt>審核回覆時間</dt>
-          <dd>{{ formatDate(req.replyDatetime) }}</dd>
-        </div>
-        <div v-if="req.requestStatus === 'rejected'" class="gb-cell gb-cell--wide">
-          <dt>拒絕原因</dt>
-          <dd class="gb-reject-reason">{{ req.rejectReason || '—' }}</dd>
-        </div>
-      </dl>
-    </article>
+      </article>
+
+      <Pagination v-model:page="page" :total-pages="totalPages" />
+    </template>
   </div>
 </template>
 
@@ -123,31 +165,43 @@ onMounted(load)
 
 /* ===== 申請卡片 ===== */
 .gb-card {
-  padding: 18px 20px;
   background: #fff;
   border: 1px solid var(--line);
   border-left: 4px solid var(--leaf);
   border-radius: 14px;
   box-shadow: var(--shadow);
+  overflow: hidden;
   transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 .gb-card:hover {
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
+.gb-card__body {
+  padding: 18px 20px;
+}
 
 .gb-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 14px;
+}
+.gb-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--line);
+  flex-shrink: 0;
 }
 .gb-name {
   margin: 0;
   font-size: 17px;
   color: var(--ink);
+  flex: 1;
+  min-width: 0;
 }
 
 /* 狀態徽章 */

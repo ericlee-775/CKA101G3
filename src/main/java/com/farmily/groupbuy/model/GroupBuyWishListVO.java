@@ -66,5 +66,14 @@ public class GroupBuyWishListVO {
 	public void setSavedDatetime(Timestamp savedDatetime) {
 		this.savedDatetime = savedDatetime;
 	}
+
+	public GroupBuyWishListVO(GroupBuyWishListId id, User user, GroupBuyVO groupBuy, Timestamp savedDatetime) {
+		super();
+		this.id = id;
+		this.user = user;
+		this.groupBuy = groupBuy;
+		this.savedDatetime = savedDatetime;
+	}
+	
 	
 }

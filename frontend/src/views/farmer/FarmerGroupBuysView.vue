@@ -24,6 +24,8 @@ import farmerGroupBuyApi from '@/api/farmerGroupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 import { shippedStatusInfo, orderStatusInfo, paidStatusInfo } from '@/utils/orderStatus'
 import { confirm } from '@/composables/useConfirm'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
 
 // ========== 上方主分頁：審核 / 訂單 ==========
 const MAIN_TABS = [
@@ -61,6 +63,8 @@ const filteredReviewList = computed(() =>
       : gb.requestStatus === reviewSubTab.value
   )
 )
+const { page: reviewPage, totalPages: reviewTotalPages, pageItems: pagedReviewList } =
+  usePagination(filteredReviewList, 10)
 
 async function loadReviewList() {
   reviewLoading.value = true
@@ -168,6 +172,8 @@ const orderSubTab = ref('PENDING')
 const filteredOrderList = computed(() =>
   orderList.value.filter((o) => o.shippedStatus === orderSubTab.value)
 )
+const { page: orderPage, totalPages: orderTotalPages, pageItems: pagedOrderList } =
+  usePagination(filteredOrderList, 10)
 
 // 訂單本身沒有商品名稱，用審核清單（同樣是這位小農的資料）依 groupBuyId 對照出商品名稱顯示。
 const productNameByGroupBuyId = computed(() =>
@@ -319,7 +325,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <template v-for="gb in filteredReviewList" :key="gb.groupBuyId">
+            <template v-for="gb in pagedReviewList" :key="gb.groupBuyId">
               <tr>
                 <td class="col-name">{{ gb.productName }}</td>
                 <td>{{ gb.hostUserName || '—' }}</td>
@@ -389,6 +395,7 @@ onMounted(() => {
             </template>
           </tbody>
         </table>
+        <Pagination v-model:page="reviewPage" :total-pages="reviewTotalPages" />
       </div>
     </section>
 
@@ -424,12 +431,11 @@ onMounted(() => {
               <th>數量</th>
               <th>總金額</th>
               <th>建立時間</th>
-              <th>配送狀態</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="o in filteredOrderList" :key="o.orderId">
+            <tr v-for="o in pagedOrderList" :key="o.orderId">
               <td class="col-name">#{{ o.orderId }}</td>
               <td>{{ productNameByGroupBuyId[o.groupBuyId] || `團購 #${o.groupBuyId}` }}</td>
               <td>{{ o.totalQuantity ?? '—' }}</td>
@@ -453,13 +459,12 @@ onMounted(() => {
                 >
                   更新
                 </button>
-              </td>
-              <td class="col-actions">
                 <button type="button" class="btn btn--ghost" @click="openOrderDetail(o)">詳細資料</button>
               </td>
             </tr>
           </tbody>
         </table>
+        <Pagination v-model:page="orderPage" :total-pages="orderTotalPages" />
       </div>
     </section>
 

@@ -33,6 +33,8 @@ public class GroupBuyOrderDTO {
 	private OrderStatus orderStatus;
 
 	private PaidStatus paidStatus;
+	
+	private Integer productId;
 
 	private Timestamp completedAt;
 	private String hostUserName;
@@ -109,6 +111,14 @@ public class GroupBuyOrderDTO {
 
 	public void setGroupPrice(Integer groupPrice) {
 		this.groupPrice = groupPrice;
+	}
+
+	public Integer getProductId() {
+		return productId;
+	}
+
+	public void setProductId(Integer productId) {
+		this.productId = productId;
 	}
 
 	public Integer getTotalAmount() {
@@ -201,7 +211,7 @@ public class GroupBuyOrderDTO {
 			Integer totalAmount, String shippingAddress, ShippedStatus shippedStatus, Timestamp shippedAt,
 			 Timestamp createdAt, Timestamp receivedAt, OrderStatus orderStatus,
 			PaidStatus paidStatus, Timestamp completedAt,String hostUserName,String hostUserPhone,String hostUserEmail,
-			Integer buyQty,Integer paidAmount) {
+			Integer buyQty,Integer paidAmount,Integer productId) {
 		super();
 		this.orderId = orderId;
 		this.groupBuyId = groupBuyId;
@@ -221,6 +231,7 @@ public class GroupBuyOrderDTO {
 		this.hostUserEmail=hostUserEmail;
 		this.buyQty=buyQty;
 		this.paidAmount=paidAmount;
+		this.productId=productId;
 	}
 
 	
