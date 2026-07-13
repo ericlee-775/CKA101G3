@@ -41,7 +41,8 @@ import com.farmily.user.repository.CityDistrictRepository;
 public class ProductOrderService {
 
 	private static final int PAGE_SIZE = 5;
-
+	private static final int PAGE_SIZE_ITEMS = 10;
+	
 	@Autowired
 	private ProductOrderRepository orderRepo;
 
@@ -136,15 +137,12 @@ public class ProductOrderService {
 			throw new AccessDeniedException("無權限查看此訂單");
 		}
 		
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("orderItemId").ascending());
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE_ITEMS, Sort.by("orderItemId").ascending());
 		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
 		Page<ProductOrderItemResponseDTO> dtoList = list.map(this::toOrderItemDTO);
 		return dtoList;
 	}
-<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
-=======
-	
 	
 	// 取得小農訂單列表
 	public Page<ProductOrderFarmerResponseDTO> getOrderByFarmer(Integer farmerId, int page){
@@ -163,7 +161,7 @@ public class ProductOrderService {
 			throw new AccessDeniedException("無權限查看此訂單");
 		}
 		
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("orderItemId").descending());
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE_ITEMS, Sort.by("orderItemId").descending());
 		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
 		Page<ProductOrderItemFarmerResponseDTO> dtoList = list.map(this::toFarmerOrderItemDTO);
 		
@@ -171,12 +169,13 @@ public class ProductOrderService {
 	}
 	
 	
->>>>>>> f3b7900 新增 商品訂單 service, controller (farmer)
 	// 把 Repository 查回來的 orderVO 轉成 orderDTO
 	private ProductOrderResponseDTO toOrderDTO(ProductOrderVO vo){
 		ProductOrderResponseDTO dto = new ProductOrderResponseDTO();
 		dto.setCreatedAt(vo.getCreatedAt());
 		dto.setOrderId(vo.getOrderId());
+		dto.setFarmerId(vo.getFarmerId());
+		dto.setTotalAmount(vo.getTotalAmount());
 		dto.setDiscountAmount(vo.getDiscountAmount());
 		dto.setFinalPayment(vo.getFinalPayment());
 		dto.setShippedAt(vo.getShippedAt());
@@ -192,17 +191,13 @@ public class ProductOrderService {
 		ProductOrderItemResponseDTO dto = new ProductOrderItemResponseDTO();
 		dto.setProductName(vo.getProductName());
 		dto.setProductId(vo.getProductId());
-		dto.setFarmerId(vo.getOrder().getFarmerId());
+//		dto.setFarmerId(vo.getOrder().getFarmerId());
 		dto.setPrice(vo.getPrice());
 		dto.setQuantity(vo.getQuantity());
 
 		return dto;
 	}
-<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
-
-
-=======
 		
 	// 把 Repository 查回來的 orderVO 轉成小農 orderDTO
 	private ProductOrderFarmerResponseDTO toFarmerOrderDTO(ProductOrderVO vo) {
@@ -232,7 +227,6 @@ public class ProductOrderService {
 	}
 	
 		
->>>>>>> f3b7900 新增 商品訂單 service, controller (farmer)
 	// 取得預設配送地址
 	public ProductOrderCheckoutInfoDTO getCheckoutInfo(User u) {
 		ProductOrderCheckoutInfoDTO dto = new ProductOrderCheckoutInfoDTO();
@@ -403,19 +397,9 @@ public class ProductOrderService {
 
 		// 清除購物車商品
 		cartSvc.clearCart(userId);
-<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
 		// 發送通知 (小農/會員)
 		System.out.println("訂單建立成功!");
-=======
 		
->>>>>>> 8ccfc52 新增 訂單成立發送通知方法
-
 	}
-<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
-
-
-=======
-	
->>>>>>> 8ccfc52 新增 訂單成立發送通知方法
 }
