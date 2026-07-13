@@ -431,7 +431,7 @@ CREATE TABLE USER (
                       birthday         DATE,
                       user_phone_num   VARCHAR(50),
                       user_status      ENUM('ACTIVE', 'WARNED', 'SUSPENDED', 'DELETED') DEFAULT 'ACTIVE',
-                      monthly_spending DECIMAL(12,2)           NOT NULL DEFAULT 0,
+                      monthly_spending INT          NOT NULL DEFAULT 0,
                       auth_provider    ENUM('LOCAL', 'GOOGLE') NOT NULL DEFAULT 'LOCAL',
                       provider_id      VARCHAR(255),
                       FOREIGN KEY (district_id) REFERENCES CITY_DISTRICT(district_id)
@@ -597,7 +597,7 @@ INSERT INTO FARMER (email, email_verified, district_id, uploaded_at, password, f
 VALUES
     ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
     ('farmer02@gmail.com', TRUE, 2, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '大同街200號', '綠野農場', 25.06321000, 121.51234000, '自然農法種植，提供當季新鮮蔬果', '2024-03-22 15:00:00', '0922222222', 'ACTIVE'),
-    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'PENDING'),
+    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'ACTIVE'),
     ('farmer04@gmail.com', TRUE, 4, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '仁愛路88號',  '海風農場', 25.12345000, 121.73456000, '靠海農場，專售海鹽與特色農產品', '2024-03-10 09:00:00', '0944444444', 'SUSPENDED'),
     ('farmer05@gmail.com', TRUE, 5, '2024-06-01 13:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '板橋路77號',  '稻香農場', 24.87654000, 121.45678000, '傳統水稻種植，提供在地新鮮稻米', '2024-06-01 13:00:00', '0955555555', 'PENDING');
 
@@ -887,10 +887,6 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT INTO ORDER_ITEM (product_id, product_name, order_id, quantity, price) VALUES (3, '屏東香蕉', 3001, 4, 250);
 
 
--- ==========================================
--- 三、團購模組 (依賴 Product, User)
--- ==========================================
-
 -- 4. 團購 - 團購活動表
 CREATE TABLE GROUP_BUY (
     group_buy_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -947,21 +943,19 @@ CREATE TABLE GB_ORDER (
     total_quantity INT,
     group_price INT,
     total_amount INT,
-    shipped_status ENUM('PENDING','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING',
+    shipped_status ENUM('PENDING','DELIVERED') DEFAULT 'PENDING',
     shipped_at DATETIME,
-    tracking_num VARCHAR(50),
     created_at DATETIME,
     received_at DATETIME,
-    order_status ENUM('PENDING', 'COMPLETED', 'CANCELED'),
-    paid_status ENUM('UNPAID', 'PAID', 'REFUNDED'),
+    order_status ENUM('PENDING', 'COMPLETED'),
+    paid_status ENUM('UNPAID', 'PAID'),
     completed_at DATETIME,
     FOREIGN KEY (group_buy_id) REFERENCES GROUP_BUY(group_buy_id)
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 參數
-INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, tracking_num, created_at, received_at, order_status, paid_status, completed_at) VALUES
-(90001, 1, 15, 220, 3300, 'PENDING', NULL, NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
+
+
 
 
 -- 4. 團購 - 團購收藏表
@@ -982,6 +976,7 @@ INSERT INTO GB_WISHLIST (
 (1, 1, '2026-03-06 12:00:00'),
 (2, 1, '2026-03-06 13:30:00'),
 (5, 1, '2026-03-07 09:15:00');
+
 
 
 -- ==========================================
