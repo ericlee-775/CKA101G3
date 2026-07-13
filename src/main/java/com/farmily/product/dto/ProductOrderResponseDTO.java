@@ -7,6 +7,8 @@ public class ProductOrderResponseDTO {
 	
 	private LocalDateTime createdAt; 	// 訂單建立日期
 	private Integer orderId;			// 訂單編號
+	private Integer farmerId;
+	private Integer totalAmount;		// 總金額
 	private Integer discountAmount; 	// 折扣金額
 	private Integer finalPayment;		// 實付金額
 	private LocalDateTime shippedAt;	// 出貨時間
@@ -32,6 +34,22 @@ public class ProductOrderResponseDTO {
 
 	public void setOrderId(Integer orderId) {
 		this.orderId = orderId;
+	}
+
+	public Integer getFarmerId() {
+		return farmerId;
+	}
+
+	public void setFarmerId(Integer farmerId) {
+		this.farmerId = farmerId;
+	}
+
+	public Integer getTotalAmount() {
+		return totalAmount;
+	}
+
+	public void setTotalAmount(Integer totalAmount) {
+		this.totalAmount = totalAmount;
 	}
 
 	public Integer getDiscountAmount() {
