@@ -41,7 +41,6 @@ import com.farmily.user.repository.CityDistrictRepository;
 public class ProductOrderService {
 
 	private static final int PAGE_SIZE = 5;
-	private static final int PAGE_SIZE_ITEMS = 10;
 	
 	@Autowired
 	private ProductOrderRepository orderRepo;
@@ -128,7 +127,7 @@ public class ProductOrderService {
 
 	// 取得會員訂單明細
 	@Transactional (readOnly = true)
-	public Page<ProductOrderItemResponseDTO> getOrderItems(Integer userId, Integer orderId, int page){
+	public List<ProductOrderItemResponseDTO> getOrderItems(Integer userId, Integer orderId){
 		ProductOrderVO order = orderRepo.findById(orderId)
 				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
 		
@@ -137,9 +136,9 @@ public class ProductOrderService {
 			throw new AccessDeniedException("無權限查看此訂單");
 		}
 		
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE_ITEMS, Sort.by("orderItemId").ascending());
-		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
-		Page<ProductOrderItemResponseDTO> dtoList = list.map(this::toOrderItemDTO);
+		List<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
+		List<ProductOrderItemResponseDTO> dtoList = list.stream().map(this::toOrderItemDTO).toList();
+		
 		return dtoList;
 	}
 
@@ -154,16 +153,15 @@ public class ProductOrderService {
 	}
 	
 	// 取得小農訂單明細
-	public Page<ProductOrderItemFarmerResponseDTO> getOrderItemsFarmer(Integer farmerId, Integer orderId, int page){
+	public List<ProductOrderItemFarmerResponseDTO> getOrderItemsFarmer(Integer farmerId, Integer orderId){
 		ProductOrderVO order = orderRepo.findById(orderId)
 				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
 		if (!(order.getFarmerId().equals(farmerId))) {
 			throw new AccessDeniedException("無權限查看此訂單");
 		}
 		
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE_ITEMS, Sort.by("orderItemId").descending());
-		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
-		Page<ProductOrderItemFarmerResponseDTO> dtoList = list.map(this::toFarmerOrderItemDTO);
+		List<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
+		List<ProductOrderItemFarmerResponseDTO> dtoList = list.stream().map(this::toFarmerOrderItemDTO).toList();
 		
 		return dtoList;
 	}

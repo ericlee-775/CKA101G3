@@ -11,6 +11,5 @@ public interface ProductOrderRepository extends JpaRepository<ProductOrderVO, In
 
 	// 取得屬於該小農的訂單
 	public Page<ProductOrderVO> findByFarmerId(Integer farmerId, Pageable pageable);
-	
-	
+
 }

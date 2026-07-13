@@ -10,8 +10,7 @@ const page = ref(0)
 const totalPages = ref(0)
 
 const openOrderId = ref(null) // 目前展開的是哪一張訂單 (null=全部收合)
-const itemsMap = reactive({}) // 快取已載過的訂單明細
-const itemsPagesMap = reactive({}) // 這張訂單明細的總頁數
+const items = reactive({}) // 快取已載過的訂單明細 (物件)
 const itemsLoading = ref(false)
 const itemsError = ref('')
 
@@ -75,13 +74,13 @@ async function toggleOrderItems(orderId){
   itemsError.value = ''
 
   // 若明細已經在快取
-  if (itemsMap[orderId]) return
+  if (items[orderId]) return
 
+  // 沒快取，api 取得明細
   itemsLoading.value = true
   try {
-    const res = await memberOrdersApi.listItems(orderId, 0)
-    itemsMap[orderId] = res.content
-    itemsPagesMap[orderId] = res.totalPages ?? 1
+    const res = await memberOrdersApi.listItems(orderId)
+    items[orderId] = res || []
   } catch (e){
     itemsError.value = e.message || '載入明細失敗'
     openOrderId.value = null // 失敗就收合列表
@@ -207,7 +206,7 @@ async function markReceived(o){
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in itemsMap[o.orderId]" :key="item.productId">
+              <tr v-for="item in items[o.orderId]" :key="item.productId">
                 <td class="item-name">
                   <img :src="`/api/products/${item.productId}/image`" alt="" class="item-img" />
                   <span>{{ item.productName }}</span>
@@ -218,7 +217,6 @@ async function markReceived(o){
               </tr>
             </tbody>
           </table>
-
         </div>
       </article>
     </div>
