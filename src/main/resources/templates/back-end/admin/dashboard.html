@@ -20,7 +20,7 @@
     </div>
 
     <div class="row">
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_MEMBER')">
             <a class="card stat-card h-100" th:href="@{/admin/members}">
                 <span class="stat-ico">👥</span>
                 <span>
@@ -30,7 +30,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_FARMER')">
             <a class="card stat-card h-100" th:href="@{/admin/farmers}">
                 <span class="stat-ico">🧑‍🌾</span>
                 <span>
@@ -40,7 +40,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_FARMER')">
             <a class="card stat-card h-100" th:href="@{/admin/reviews}">
                 <span class="stat-ico">📋</span>
                 <span>
@@ -51,7 +51,7 @@
         </div>
 
         <!-- 活動審核（體驗活動）-->
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_EVENT')">
             <a class="card stat-card h-100" th:href="@{/admin/farm-trips}">
                 <span class="stat-ico">🎪</span>
                 <span>
@@ -61,7 +61,7 @@
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_NEWS')">
             <a class="card stat-card h-100" th:href="@{/admin/news}">
                 <span class="stat-ico">📰</span>
                 <span>
@@ -80,7 +80,7 @@
                 </span>
             </a>
         </div>
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_BLOG')">
             <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
                 <span class="stat-ico">📝</span>
                 <span>

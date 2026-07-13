@@ -94,10 +94,18 @@ public class UserSecurityConfig {
 						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
                         .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
-                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
-                        .requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
+						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
 
-								.anyRequest().hasRole("ADMIN"))
+						.requestMatchers("/admin/news/**").hasAuthority("PERM_NEWS")
+						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
+						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
+						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
+						.requestMatchers("/api/admin/groupBuy/**").hasAuthority("PERM_GROUP_BUY")
+
+						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
+						.anyRequest().hasRole("ADMIN"))
+
 
 				// formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
 				.formLogin(form -> form.loginPage("/admin/login").loginProcessingUrl("/admin/login")
