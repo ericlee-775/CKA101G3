@@ -20,8 +20,18 @@ public class ShowJoinedGroupBuyDTO {
 	
 	private Integer difference;//還差多少錢成團
 	
+	private Integer productId;
 	
 	
+	
+	public Integer getProductId() {
+		return productId;
+	}
+
+	public void setProductId(Integer productId) {
+		this.productId = productId;
+	}
+
 	public Integer getTargetAmount() {
 		return targetAmount;
 	}
@@ -87,7 +97,7 @@ public class ShowJoinedGroupBuyDTO {
 	}
 
 	public ShowJoinedGroupBuyDTO(GroupBuyStatus status, Timestamp ddlDatetime, String pickupAddress, String productName,
-			Integer buyQty, Integer paidAmount,Integer targetAmount,Integer difference) {
+			Integer buyQty, Integer paidAmount,Integer targetAmount,Integer difference,Integer productId) {
 		super();
 		this.status = status;
 		this.ddlDatetime = ddlDatetime;
@@ -97,6 +107,7 @@ public class ShowJoinedGroupBuyDTO {
 		this.paidAmount = paidAmount;
 		this.targetAmount=targetAmount;
 		this.difference=difference;
+		this.productId=productId;
 	}
 
 	public ShowJoinedGroupBuyDTO() {

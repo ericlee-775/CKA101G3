@@ -10,7 +10,11 @@
 //   type=all（既有團購紀錄，pending+open）+ type=available（可發起的商品）。
 import { ref, onMounted, onUnmounted } from 'vue'
 import groupBuyApi from '@/api/groupBuy'
+import groupBuyFavoriteApi from '@/api/groupBuyFavorite'
+import authStore from '@/stores/auth'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
@@ -36,6 +40,8 @@ const groupBuys = ref([])
 const loading = ref(true)
 // 錯誤訊息：抓資料失敗時放錯誤內容，畫面就顯示錯誤區塊。
 const error = ref('')
+
+const { page, totalPages, pageItems: pagedGroupBuys } = usePagination(groupBuys, 12)
 
 // 跟後端要團購清單，依目前選中的頁籤帶 type 參數。
 // 「總覽」要把 type=all（既有團購）跟 type=available（可發起商品）兩批資料合併顯示。
@@ -128,8 +134,62 @@ function revokeImageUrls() {
 }
 onUnmounted(revokeImageUrls)
 
+// ========== 收藏愛心（只有 status=open 的團購能收藏，後端 groupBuyFavorite() 只收 open 狀態）==========
+// POST/DELETE /api/member/groupBuyLists/{groupBuyId}；清單本身（GET）在會員中心「我的收藏」頁用，
+// 這裡只需要知道「我收藏了哪些 id」，用來決定愛心是空心還是實心。
+const favoriteIds = ref(new Set())
+
+async function loadFavorites() {
+  if (!authStore.isMember) return
+  try {
+    const list = await groupBuyFavoriteApi.list()
+    favoriteIds.value = new Set(list.map((w) => w.groupBuyId))
+  } catch {
+    // 收藏清單載入失敗不影響團購列表本身，安靜忽略即可。
+  }
+}
+function isFavorited(gb) {
+  return favoriteIds.value.has(gb.groupBuyId)
+}
+
+const favoriteBusyIds = ref(new Set())
+async function toggleFavorite(gb) {
+  // 卡片點擊本來會被 RouterLink 導去詳情頁，這個按鈕要單獨處理，不能讓導頁一起發生。
+  if (!authStore.isMember) {
+    alert('請先登入會員')
+    return
+  }
+  if (favoriteBusyIds.value.has(gb.groupBuyId)) return
+
+  const busy = new Set(favoriteBusyIds.value)
+  busy.add(gb.groupBuyId)
+  favoriteBusyIds.value = busy
+  try {
+    if (isFavorited(gb)) {
+      await groupBuyFavoriteApi.remove(gb.groupBuyId)
+      const next = new Set(favoriteIds.value)
+      next.delete(gb.groupBuyId)
+      favoriteIds.value = next
+    } else {
+      await groupBuyFavoriteApi.add(gb.groupBuyId)
+      const next = new Set(favoriteIds.value)
+      next.add(gb.groupBuyId)
+      favoriteIds.value = next
+    }
+  } catch (e) {
+    alert(e.message || '操作失敗，請稍後再試')
+  } finally {
+    const done = new Set(favoriteBusyIds.value)
+    done.delete(gb.groupBuyId)
+    favoriteBusyIds.value = done
+  }
+}
+
 // 元件掛載到畫面後就去抓資料。
-onMounted(loadGroupBuys)
+onMounted(() => {
+  loadGroupBuys()
+  loadFavorites()
+})
 </script>
 
 <template>
@@ -165,9 +225,10 @@ onMounted(loadGroupBuys)
     <p v-else-if="groupBuys.length === 0" class="state">{{ EMPTY_TEXT[activeTab] }}</p>
 
     <!-- 團購格線 -->
-    <section v-else class="groupbuy-grid">
+    <template v-else>
+    <section class="groupbuy-grid">
       <article
-        v-for="gb in groupBuys"
+        v-for="gb in pagedGroupBuys"
         :key="gb.groupBuyId ?? `product-${gb.productId}`"
         class="groupbuy-card"
       >
@@ -191,6 +252,18 @@ onMounted(loadGroupBuys)
             <span class="groupbuy-card__status" :class="cardStatus(gb).className">
               {{ cardStatus(gb).text }}
             </span>
+            <!-- 收藏愛心：只有開團中的團購能收藏（後端規定），可發起的商品沒有這顆心 -->
+            <button
+              v-if="gb.status === 'open'"
+              type="button"
+              class="groupbuy-card__heart"
+              :class="{ 'groupbuy-card__heart--active': isFavorited(gb) }"
+              :disabled="favoriteBusyIds.has(gb.groupBuyId)"
+              :aria-label="isFavorited(gb) ? '取消收藏' : '收藏這個團購'"
+              @click.stop.prevent="toggleFavorite(gb)"
+            >
+              {{ isFavorited(gb) ? '♥' : '♡' }}
+            </button>
           </div>
           <div class="groupbuy-card__body">
             <h2 class="groupbuy-card__name">{{ gb.productName }}</h2>
@@ -208,6 +281,8 @@ onMounted(loadGroupBuys)
         </RouterLink>
       </article>
     </section>
+    <Pagination v-model:page="page" :total-pages="totalPages" />
+    </template>
   </main>
 </template>
 
@@ -329,6 +404,38 @@ onMounted(loadGroupBuys)
 .status--failed { background: #f3f4f6; color: #6b7280; }
 .status--cancelled { background: #f3f4f6; color: #6b7280; }
 .status--pending { background: #fff7ed; color: #c2410c; }
+
+/* 收藏愛心：右上角，空心/實心切換 */
+.groupbuy-card__heart {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #b03434;
+  font-size: 17px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.groupbuy-card__heart:hover:not(:disabled) {
+  transform: scale(1.1);
+  background: #fff;
+}
+.groupbuy-card__heart:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.groupbuy-card__heart--active {
+  color: #fff;
+  background: #e0435b;
+}
 
 .groupbuy-card__body {
   padding: 16px;
