@@ -23,6 +23,7 @@ import com.farmily.coupon.model.CouponDetailRepository;
 import com.farmily.coupon.model.CouponDetailVO;
 import com.farmily.coupon.model.CouponRepository;
 import com.farmily.coupon.model.CouponVO;
+import com.farmily.notification.service.NotificationService;
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
 import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
 import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
@@ -50,6 +51,9 @@ public class ProductOrderService {
 	@Autowired
 	private ProductShoppingCartService cartSvc;
 
+	@Autowired
+	private NotificationService nSvc;
+	
 	@Autowired
 	private ProductRepository prodRepo;
 
@@ -389,17 +393,29 @@ public class ProductOrderService {
 
 
 			// 新增一筆訂單 ⇒ cascade all 同時新增 OrderItem
-			orderRepo.save(order);
+			ProductOrderVO o = orderRepo.save(order);
+			
+			// 發送通知 (小農/會員)
+			nSvc.sendProdOrderCreated(farmerId, userId, o.getOrderId());
+			System.out.println("訂單 " + o.getOrderId() +  " 建立成功!");
 		}
 
 
 		// 清除購物車商品
 		cartSvc.clearCart(userId);
+<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
 		// 發送通知 (小農/會員)
 		System.out.println("訂單建立成功!");
+=======
+		
+>>>>>>> 8ccfc52 新增 訂單成立發送通知方法
 
 	}
+<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
 
+=======
+	
+>>>>>>> 8ccfc52 新增 訂單成立發送通知方法
 }
