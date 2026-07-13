@@ -12,7 +12,7 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// 管理後台－小農審核頁（Thymeleaf）
+// 管理後台小農審核頁（Thymeleaf）
 @Controller
 @RequestMapping("/admin/reviews")
 public class AdminReviewViewController {
@@ -25,7 +25,8 @@ public class AdminReviewViewController {
 
     // 查所有「待審 PENDING」與「審核中 Reviewing」案件清單
     @GetMapping
-    public String list(@AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
+    public String list(@AuthenticationPrincipal AdminUserDetails me,
+                       ModelMap model) {
         model.addAttribute("pendingData", adminReviewService.listPending());
         model.addAttribute("reviewingData", adminReviewService.listReviewing());
         model.addAttribute("currentAdminId", me.getAdminId());
@@ -34,7 +35,8 @@ public class AdminReviewViewController {
 
     // 查某小農所有審核紀錄
     @GetMapping("/farmer/{farmerId}")
-    public String historyByFarmer(@PathVariable Integer farmerId, ModelMap model) {
+    public String historyByFarmer(@PathVariable Integer farmerId,
+                                  ModelMap model) {
         List<FarmerReviewResponse> reviews = adminReviewService.listByFarmer(farmerId);
 
         model.addAttribute("reviews", reviews);
@@ -49,7 +51,8 @@ public class AdminReviewViewController {
     // 修改: 開始審核（PENDING -> REVIEWING）
     @PostMapping("/{reviewId}/start")
     public String start(@PathVariable Integer reviewId,
-                        @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
+                        @AuthenticationPrincipal AdminUserDetails me,
+                        RedirectAttributes ra) {
         adminReviewService.reviewing(reviewId, me.getAdminId());
         ra.addFlashAttribute("success", "（已認領審核）");
         return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
@@ -58,7 +61,8 @@ public class AdminReviewViewController {
     // 修改: 核准（APPROVED）
     @PostMapping("/{reviewId}/approve")
     public String approve(@PathVariable Integer reviewId,
-                          @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
+                          @AuthenticationPrincipal AdminUserDetails me,
+                          RedirectAttributes ra) {
         adminReviewService.approve(reviewId, me.getAdminId());
         ra.addFlashAttribute("success", "（已核准）");
         return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
@@ -68,7 +72,8 @@ public class AdminReviewViewController {
     @PostMapping("/{reviewId}/reject")
     public String reject(@PathVariable Integer reviewId,
                          @RequestParam("rejectReason") String rejectReason,
-                         @AuthenticationPrincipal AdminUserDetails me, RedirectAttributes ra) {
+                         @AuthenticationPrincipal AdminUserDetails me,
+                         RedirectAttributes ra) {
         adminReviewService.reject(reviewId, me.getAdminId(), rejectReason);
         ra.addFlashAttribute("success", "（已退件）");
         return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
@@ -77,7 +82,8 @@ public class AdminReviewViewController {
     // 證明文件圖片（type = land | product | identity）；回圖片位元組，讓 <img> 直接內嵌
     @GetMapping("/{reviewId}/cert/{type}")
     @ResponseBody
-    public ResponseEntity<byte[]> cert(@PathVariable Integer reviewId, @PathVariable String type) {
+    public ResponseEntity<byte[]> cert(@PathVariable Integer reviewId,
+                                       @PathVariable String type) {
         byte[] bytes = adminReviewService.getCertFile(reviewId, type);
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
     }

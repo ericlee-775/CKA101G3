@@ -40,7 +40,7 @@ public class AdminViewController {
         return "back-end/admin/dashboard";
     }
 
-    // 個人資料頁（任何登入的管理員都能進）；資料直接由 AdminService 撈，走 Thymeleaf 表單、不經 REST
+    // 個人資料頁（任何登入的管理員都能進）；資料直接由 AdminService 撈
     @GetMapping("/admin/profile")
     public String profile(@AuthenticationPrincipal AdminUserDetails me, ModelMap model) {
         model.addAttribute("profile", adminService.getMyProfile(me.getAdminId()));
@@ -56,7 +56,7 @@ public class AdminViewController {
         return "redirect:/admin/profile";           // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
 
-    // 修改自己密碼 (密碼格式由 DTO 的 @Valid 驗證)
+    // 修改自己密碼
     @PostMapping("/admin/profile/password")
     public String changePassword(@AuthenticationPrincipal AdminUserDetails me,
                                  @Valid ChangePasswordRequest pw,
