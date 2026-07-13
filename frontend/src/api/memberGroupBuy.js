@@ -18,6 +18,9 @@ export const memberGroupBuyApi = {
 
   // 發起團購；hostCreate = { targetAmount, openDatetime(YYYY-MM-DD), ddlDatetime(YYYY-MM-DD), pickupAddress }
   hostCreate: (productId, hostCreate) => http.post(`${BASE}/hostCreate/${productId}`, hostCreate),
+
+  // 團購主確認收貨（只有該筆團購的發起人可以呼叫，後端會擋非本人；確認過一次就不能再確認）
+  confirmReceipt: (orderId) => http.patch(`${BASE}/orders/${orderId}/confirm-receipt`),
 }
 
 export default memberGroupBuyApi
