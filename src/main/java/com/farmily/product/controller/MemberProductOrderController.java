@@ -78,7 +78,7 @@ public class MemberProductOrderController {
 			@PathVariable Integer orderId,
 			@RequestParam (defaultValue = "0") int page){
 		// Page<ProductOrderItemResponseDTO> getOrderItem(Integer userId, Integer orderId, int page)
-		Page<ProductOrderItemResponseDTO> list = oSvc.getOrderItem(me.getUserId(), orderId, page);
+		Page<ProductOrderItemResponseDTO> list = oSvc.getOrderItems(me.getUserId(), orderId, page);
 		
 		return ResponseEntity.ok(list);
 	}

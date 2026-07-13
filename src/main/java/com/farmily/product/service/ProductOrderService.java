@@ -24,6 +24,8 @@ import com.farmily.coupon.model.CouponDetailVO;
 import com.farmily.coupon.model.CouponRepository;
 import com.farmily.coupon.model.CouponVO;
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
+import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
+import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
 import com.farmily.product.dto.ProductOrderItemResponseDTO;
 import com.farmily.product.dto.ProductOrderRequestDTO;
 import com.farmily.product.dto.ProductOrderResponseDTO;
@@ -121,7 +123,7 @@ public class ProductOrderService {
 
 	// 取得會員訂單明細
 	@Transactional (readOnly = true)
-	public Page<ProductOrderItemResponseDTO> getOrderItem(Integer userId, Integer orderId, int page){
+	public Page<ProductOrderItemResponseDTO> getOrderItems(Integer userId, Integer orderId, int page){
 		ProductOrderVO order = orderRepo.findById(orderId)
 				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
 		
@@ -135,7 +137,37 @@ public class ProductOrderService {
 		Page<ProductOrderItemResponseDTO> dtoList = list.map(this::toOrderItemDTO);
 		return dtoList;
 	}
+<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
+=======
+	
+	
+	// 取得小農訂單列表
+	public Page<ProductOrderFarmerResponseDTO> getOrderByFarmer(Integer farmerId, int page){
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("createdAt").descending());
+		Page<ProductOrderVO> list = orderRepo.findByFarmerId(farmerId, pageable);
+		Page<ProductOrderFarmerResponseDTO> dtoList = list.map(this::toFarmerOrderDTO);
+		
+		return dtoList;
+	}
+	
+	// 取得小農訂單明細
+	public Page<ProductOrderItemFarmerResponseDTO> getOrderItemsFarmer(Integer farmerId, Integer orderId, int page){
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		if (!(order.getFarmerId().equals(farmerId))) {
+			throw new AccessDeniedException("無權限查看此訂單");
+		}
+		
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("orderItemId").descending());
+		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
+		Page<ProductOrderItemFarmerResponseDTO> dtoList = list.map(this::toFarmerOrderItemDTO);
+		
+		return dtoList;
+	}
+	
+	
+>>>>>>> f3b7900 新增 商品訂單 service, controller (farmer)
 	// 把 Repository 查回來的 orderVO 轉成 orderDTO
 	private ProductOrderResponseDTO toOrderDTO(ProductOrderVO vo){
 		ProductOrderResponseDTO dto = new ProductOrderResponseDTO();
@@ -162,9 +194,41 @@ public class ProductOrderService {
 
 		return dto;
 	}
+<<<<<<< Upstream, based on branch 'master' of https://github.com/ericlee-775/CKA101G3.git
 
 
 
+=======
+		
+	// 把 Repository 查回來的 orderVO 轉成小農 orderDTO
+	private ProductOrderFarmerResponseDTO toFarmerOrderDTO(ProductOrderVO vo) {
+		ProductOrderFarmerResponseDTO dto = new ProductOrderFarmerResponseDTO();
+		dto.setOrderId(vo.getOrderId());
+		dto.setUserId(vo.getUserId());
+		dto.setShippingAddress(vo.getShippingAddress());
+		dto.setCreatedAt(vo.getCreatedAt());
+		dto.setTotalAmount(vo.getTotalAmount());
+		dto.setShippedStatus(vo.getShippedStatus().name());
+		dto.setReceivedAt(vo.getReceivedAt());
+		dto.setPayoutStatus(vo.getPayoutStatus().name());
+		dto.setCompletedAt(vo.getCompletedAt());
+		
+		return dto;
+	}
+	
+	// 把 Repository 查回來的 itemVO 轉成小農 itemDTO 
+	private ProductOrderItemFarmerResponseDTO toFarmerOrderItemDTO(ProductOrderItemVO vo) {
+		ProductOrderItemFarmerResponseDTO dto = new ProductOrderItemFarmerResponseDTO();
+		dto.setProductName(vo.getProductName());
+		dto.setProductId(vo.getProductId());
+		dto.setPrice(vo.getPrice());
+		dto.setQuantity(vo.getQuantity());
+		
+		return dto;
+	}
+	
+		
+>>>>>>> f3b7900 新增 商品訂單 service, controller (farmer)
 	// 取得預設配送地址
 	public ProductOrderCheckoutInfoDTO getCheckoutInfo(User u) {
 		ProductOrderCheckoutInfoDTO dto = new ProductOrderCheckoutInfoDTO();

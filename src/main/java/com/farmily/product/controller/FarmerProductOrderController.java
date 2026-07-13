@@ -1,14 +1,18 @@
 package com.farmily.product.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
+import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
 import com.farmily.product.model.ShippedStatus;
 import com.farmily.product.service.ProductOrderService;
 import com.farmily.user.security.FarmerUserDetails;
@@ -36,9 +40,28 @@ public class FarmerProductOrderController {
 	}
 	
 	
-	// 取得該小農的全部訂單
+	// 顯示該小農的全部訂單
+	@GetMapping
+	public ResponseEntity<Page<ProductOrderFarmerResponseDTO>> getMyOrder(
+			@AuthenticationPrincipal FarmerUserDetails me,
+			@RequestParam (defaultValue = "0") int page){
+		Page<ProductOrderFarmerResponseDTO> list = oSvc.getOrderByFarmer(me.getFarmerId(), page);
+		
+		return ResponseEntity.ok(list);
+	}
 	
 	
-	// 取得訂單明細
+	// 顯示訂單明細
+	@GetMapping("/{orderId}/items")
+	public ResponseEntity<Page<ProductOrderItemFarmerResponseDTO>> getOrderItems(
+			@AuthenticationPrincipal FarmerUserDetails me,
+			@PathVariable Integer orderId,
+			@RequestParam (defaultValue = "0") int page){
+		Page<ProductOrderItemFarmerResponseDTO> list = oSvc.getOrderItemsFarmer(me.getFarmerId(), orderId, page);
+		
+		return ResponseEntity.ok(list);
+	}
+	
+	
 	
 }
