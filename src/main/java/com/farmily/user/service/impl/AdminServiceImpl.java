@@ -248,7 +248,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
 
-    // 自訂方法：把一串權限代碼指派給某管理員
+    // 自訂方法：把一串權限代碼集合指派給某管理員
     private void assignPermissions(Integer adminId, List<String> codes) {
         if (codes == null)
             return;
@@ -262,7 +262,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    // 自訂判斷: 管理員是不是有 PERM_ADMIN 權限
+    // 自訂判斷: 管理員是不是有 PERM_ADMIN 權限 - 超級管理員
     private boolean isSuperAdmin(Integer adminId) {
         List<String> codes = adminRepository.findPermissionCodesByAdminId(adminId);
         return codes.contains("ADMIN");
