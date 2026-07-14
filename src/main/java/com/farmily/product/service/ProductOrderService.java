@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +23,10 @@ import com.farmily.coupon.model.CouponDetailRepository;
 import com.farmily.coupon.model.CouponDetailVO;
 import com.farmily.coupon.model.CouponRepository;
 import com.farmily.coupon.model.CouponVO;
+import com.farmily.notification.service.NotificationService;
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
+import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
+import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
 import com.farmily.product.dto.ProductOrderItemResponseDTO;
 import com.farmily.product.dto.ProductOrderRequestDTO;
 import com.farmily.product.dto.ProductOrderResponseDTO;
@@ -37,7 +41,7 @@ import com.farmily.user.repository.CityDistrictRepository;
 public class ProductOrderService {
 
 	private static final int PAGE_SIZE = 5;
-
+	
 	@Autowired
 	private ProductOrderRepository orderRepo;
 
@@ -47,6 +51,9 @@ public class ProductOrderService {
 	@Autowired
 	private ProductShoppingCartService cartSvc;
 
+	@Autowired
+	private NotificationService nSvc;
+	
 	@Autowired
 	private ProductRepository prodRepo;
 
@@ -60,37 +67,55 @@ public class ProductOrderService {
 	private CouponDetailRepository couponDetailRepo;
 
 
-	// 更新訂單出貨狀態
+	// 小農更新訂單出貨狀態
 	@Transactional
-	public void updateShippedStatus(Integer orderId, ShippedStatus status) {
-		orderRepo.findById(orderId).ifPresent(order -> {
-			order.setShippedStatus(status);
-			order.setShippedAt(LocalDateTime.now());
-			orderRepo.save(order);
-		});
-
+	public void updateShippedStatus(Integer farmerId, Integer orderId) {
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此小農
+		if (!(order.getFarmerId().equals(farmerId))){
+			throw new AccessDeniedException("無權限操作此訂單");
+		}
+ 		
+		// 檢查訂單是否尚未出貨
+		if (order.getShippedStatus() != ShippedStatus.pending) {
+			throw new IllegalStateException("訂單已出貨，無法再次操作");
+		}
+		
+		order.setShippedStatus(ShippedStatus.shipping);
+		order.setShippedAt(LocalDateTime.now());
+		orderRepo.save(order);
+	}
+	
+	// 會員確認收貨 (現階段設定: 消費者確認收貨同時更新 shipped_status, received_at, order_status, payout_status, completed_at)
+	@Transactional
+	public void updateReceived(Integer userId, Integer orderId) {
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此會員
+		if (!(order.getUserId().equals(userId))) {
+			throw new AccessDeniedException("無權限操作此訂單");
+		}
+		
+		// 檢查訂單是否已出貨
+		if (order.getShippedStatus() == ShippedStatus.pending) {
+			throw new IllegalStateException("尚未出貨，無法確認收貨");
+		}
+		if (order.getShippedStatus() == ShippedStatus.delivered) {
+			throw new IllegalStateException("訂單已確認貨，無法再次操作");
+		}
+			
+		order.setShippedStatus(ShippedStatus.delivered);
+		order.setReceivedAt(LocalDateTime.now());
+		order.setOrderStatus(OrderStatus.confirmed);
+		order.setPayoutStatus(PayoutStatus.paid);
+		order.setCompletedAt(LocalDateTime.now());
+		orderRepo.save(order);				
 	}
 
-	// 確認收貨 (現階段設定: 消費者確認收貨同時更新 shipped_status, received_at, order_status, payout_status, completed_at)
-	@Transactional
-	public void updateReceived(Integer orderId) {
-		orderRepo.findById(orderId).ifPresent(order -> {
-			// 確認訂單是已出貨狀態，才可以確認收貨
-			if (order.getShippedStatus() == ShippedStatus.shipped) {
-				order.setShippedStatus(ShippedStatus.delivered);
-				order.setReceivedAt(LocalDateTime.now());
-				order.setOrderStatus(OrderStatus.confirmed);
-				order.setPayoutStatus(PayoutStatus.paid);
-				order.setCompletedAt(LocalDateTime.now());
-				orderRepo.save(order);
-			}
-			else {
-				throw new IllegalStateException("尚未出貨，無法確認收貨");
-			}
-		});
-	}
-
-	// 顯示訂單列表
+	// 取得會員訂單列表
 	@Transactional (readOnly = true)
 	public Page<ProductOrderResponseDTO> getOrderByUser(Integer userId, int page){
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("createdAt").descending());
@@ -100,20 +125,55 @@ public class ProductOrderService {
 	}
 
 
-	// 顯示訂單明細
+	// 取得會員訂單明細
 	@Transactional (readOnly = true)
-	public Page<ProductOrderItemResponseDTO> getOrderItem(Integer orderId, int page){
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("orderItemId").ascending());
-		Page<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderId(orderId, pageable);
-		Page<ProductOrderItemResponseDTO> dtoList = list.map(this::toOrderItemDTO);
+	public List<ProductOrderItemResponseDTO> getOrderItems(Integer userId, Integer orderId){
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
+		// 檢查訂單是否屬於此會員
+		if (!(order.getUserId().equals(userId))) {
+			throw new AccessDeniedException("無權限查看此訂單");
+		}
+		
+		List<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
+		List<ProductOrderItemResponseDTO> dtoList = list.stream().map(this::toOrderItemDTO).toList();
+		
 		return dtoList;
 	}
 
+	
+	// 取得小農訂單列表
+	public Page<ProductOrderFarmerResponseDTO> getOrderByFarmer(Integer farmerId, int page){
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by("createdAt").descending());
+		Page<ProductOrderVO> list = orderRepo.findByFarmerId(farmerId, pageable);
+		Page<ProductOrderFarmerResponseDTO> dtoList = list.map(this::toFarmerOrderDTO);
+		
+		return dtoList;
+	}
+	
+	// 取得小農訂單明細
+	public List<ProductOrderItemFarmerResponseDTO> getOrderItemsFarmer(Integer farmerId, Integer orderId){
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		if (!(order.getFarmerId().equals(farmerId))) {
+			throw new AccessDeniedException("無權限查看此訂單");
+		}
+		
+		List<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
+		List<ProductOrderItemFarmerResponseDTO> dtoList = list.stream().map(this::toFarmerOrderItemDTO).toList();
+		
+		return dtoList;
+	}
+	
+	
 	// 把 Repository 查回來的 orderVO 轉成 orderDTO
 	private ProductOrderResponseDTO toOrderDTO(ProductOrderVO vo){
 		ProductOrderResponseDTO dto = new ProductOrderResponseDTO();
 		dto.setCreatedAt(vo.getCreatedAt());
 		dto.setOrderId(vo.getOrderId());
+		dto.setFarmerId(vo.getFarmerId());
+		dto.setTotalAmount(vo.getTotalAmount());
 		dto.setDiscountAmount(vo.getDiscountAmount());
 		dto.setFinalPayment(vo.getFinalPayment());
 		dto.setShippedAt(vo.getShippedAt());
@@ -129,15 +189,42 @@ public class ProductOrderService {
 		ProductOrderItemResponseDTO dto = new ProductOrderItemResponseDTO();
 		dto.setProductName(vo.getProductName());
 		dto.setProductId(vo.getProductId());
-		dto.setFarmerId(vo.getOrder().getFarmerId());
+//		dto.setFarmerId(vo.getOrder().getFarmerId());
 		dto.setPrice(vo.getPrice());
 		dto.setQuantity(vo.getQuantity());
 
 		return dto;
 	}
 
-
-
+		
+	// 把 Repository 查回來的 orderVO 轉成小農 orderDTO
+	private ProductOrderFarmerResponseDTO toFarmerOrderDTO(ProductOrderVO vo) {
+		ProductOrderFarmerResponseDTO dto = new ProductOrderFarmerResponseDTO();
+		dto.setOrderId(vo.getOrderId());
+		dto.setUserId(vo.getUserId());
+		dto.setShippingAddress(vo.getShippingAddress());
+		dto.setCreatedAt(vo.getCreatedAt());
+		dto.setTotalAmount(vo.getTotalAmount());
+		dto.setShippedStatus(vo.getShippedStatus().name());
+		dto.setReceivedAt(vo.getReceivedAt());
+		dto.setPayoutStatus(vo.getPayoutStatus().name());
+		dto.setCompletedAt(vo.getCompletedAt());
+		
+		return dto;
+	}
+	
+	// 把 Repository 查回來的 itemVO 轉成小農 itemDTO 
+	private ProductOrderItemFarmerResponseDTO toFarmerOrderItemDTO(ProductOrderItemVO vo) {
+		ProductOrderItemFarmerResponseDTO dto = new ProductOrderItemFarmerResponseDTO();
+		dto.setProductName(vo.getProductName());
+		dto.setProductId(vo.getProductId());
+		dto.setPrice(vo.getPrice());
+		dto.setQuantity(vo.getQuantity());
+		
+		return dto;
+	}
+	
+		
 	// 取得預設配送地址
 	public ProductOrderCheckoutInfoDTO getCheckoutInfo(User u) {
 		ProductOrderCheckoutInfoDTO dto = new ProductOrderCheckoutInfoDTO();
@@ -298,17 +385,16 @@ public class ProductOrderService {
 
 
 			// 新增一筆訂單 ⇒ cascade all 同時新增 OrderItem
-			orderRepo.save(order);
+			ProductOrderVO o = orderRepo.save(order);
+			
+			// 發送通知 (小農/會員)
+			nSvc.sendProdOrderCreated(farmerId, userId, o.getOrderId());
+			System.out.println("訂單 " + o.getOrderId() +  " 建立成功!");
 		}
 
 
 		// 清除購物車商品
 		cartSvc.clearCart(userId);
 
-		// 發送通知 (小農/會員)
-		System.out.println("訂單建立成功!");
-
 	}
-
-
 }

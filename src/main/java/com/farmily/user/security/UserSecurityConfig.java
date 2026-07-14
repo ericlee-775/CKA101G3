@@ -90,12 +90,22 @@ public class UserSecurityConfig {
                 .securityMatcher("/admin/**", "/api/admin/**")
                 .authenticationProvider(adminAuthenticationProvider)
                 .authorizeHttpRequests(req -> req
+
+						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
                         .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
-                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
-                        .requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
+						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
 
-								.anyRequest().hasRole("ADMIN"))
+						.requestMatchers("/admin/news/**").hasAuthority("PERM_NEWS")
+						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
+						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
+						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
+						.requestMatchers("/api/admin/groupBuy/**").hasAuthority("PERM_GROUP_BUY")
+
+						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
+						.anyRequest().hasRole("ADMIN"))
+
 
 				// formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
 				.formLogin(form -> form.loginPage("/admin/login").loginProcessingUrl("/admin/login")
@@ -162,6 +172,7 @@ public class UserSecurityConfig {
 
                         //最新消息（公開：列表/詳情/封面圖）
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
+
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用
@@ -170,7 +181,10 @@ public class UserSecurityConfig {
 				.requestMatchers("/api/city-districts", "/api/city-districts/**").permitAll()
 
 				// 公開：Email 驗證 / 忘記密碼 (未登入也要能用)
-				.requestMatchers("/api/auth/**").permitAll().anyRequest().authenticated()).build();
+				.requestMatchers("/api/auth/**").permitAll()
+
+						.anyRequest().authenticated())
+				.build();
 	}
 
 	// CSRF 保護

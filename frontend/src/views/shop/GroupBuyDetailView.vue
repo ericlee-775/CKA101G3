@@ -182,21 +182,43 @@ async function submitHostCreate() {
   }
 }
 
-// ========== 參加團購（狀態 open 時顯示）==========
+// ========== 加入團購與結帳（狀態 open 時顯示）==========
 const showJoinForm = ref(false)
 const joinBuyQty = ref(1)
 const joinSubmitting = ref(false)
 const joinMsg = ref('')
+
+// 結帳資訊：純前端假資料，只做格式驗證，不會送給後端 API（joinGroupBuy 沒有這幾個欄位）。
+const joinPayment = ref({ cardNumber: '', expiry: '', cvv: '' })
 
 function toggleJoinForm() {
   showJoinForm.value = !showJoinForm.value
   joinMsg.value = ''
 }
 
+// 驗證結帳欄位格式；回傳錯誤訊息字串，沒有錯誤就回傳空字串。
+function validatePayment() {
+  if (!/^\d{16}$/.test(joinPayment.value.cardNumber)) {
+    return '信用卡卡號請輸入 16 碼數字。'
+  }
+  if (!/^\d{2}\/\d{2}$/.test(joinPayment.value.expiry)) {
+    return '有效期限請輸入正確格式（MM/YY）。'
+  }
+  if (!/^\d{3}$/.test(joinPayment.value.cvv)) {
+    return '安全驗證碼請輸入 3 碼數字。'
+  }
+  return ''
+}
+
 async function submitJoinGroupBuy() {
   joinMsg.value = ''
   if (!joinBuyQty.value || joinBuyQty.value <= 0) {
     joinMsg.value = '請輸入正確的購買數量。'
+    return
+  }
+  const paymentError = validatePayment()
+  if (paymentError) {
+    joinMsg.value = paymentError
     return
   }
 
@@ -212,6 +234,7 @@ async function submitJoinGroupBuy() {
     })
     joinMsg.value = '參加成功！'
     showJoinForm.value = false
+    joinPayment.value = { cardNumber: '', expiry: '', cvv: '' }
   } catch (e) {
     joinMsg.value = e.message || '參加失敗，請稍後再試。'
   } finally {
@@ -304,21 +327,52 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
           <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
             <label>達標金額 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
             <label>開團時間 <input type="date" :min="todayStr" v-model="hostForm.openDatetime" /></label>
-            <label>截止時間（至少開團後 5 天） <input type="date" :min="minDdlStr" v-model="hostForm.ddlDatetime" /></label>
+            <label>截止時間 <input type="date" :min="minDdlStr" v-model="hostForm.ddlDatetime" /></label>
             <label>取貨地址 <input type="text" v-model="hostForm.pickupAddress" /></label>
             <button type="submit" class="btn" :disabled="hostSubmitting">送出申請</button>
           </form>
           <p v-if="hostMsg" class="action-msg">{{ hostMsg }}</p>
         </div>
 
-        <!-- 開團中：狀態為 open 才顯示「我要參加團購」 -->
+        <!-- 開團中：狀態為 open 才顯示「加入團購與結帳」 -->
         <div v-else-if="groupBuy.status === 'open'" class="action-box">
           <button type="button" class="btn" @click="toggleJoinForm">
-            {{ showJoinForm ? '取消' : '我要參加團購' }}
+            {{ showJoinForm ? '取消' : '加入團購與結帳' }}
           </button>
           <form v-if="showJoinForm" class="action-form" @submit.prevent="submitJoinGroupBuy">
             <label>購買數量 <input type="number" min="1" v-model.number="joinBuyQty" /></label>
-            <button type="submit" class="btn" :disabled="joinSubmitting">確認參加</button>
+            <p class="action-form__subhead">結帳資訊</p>
+            <label>
+              信用卡卡號
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="16"
+                placeholder="16 碼數字"
+                v-model="joinPayment.cardNumber"
+              />
+            </label>
+            <label>
+              有效期限（MM/YY）
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="5"
+                placeholder="MM/YY"
+                v-model="joinPayment.expiry"
+              />
+            </label>
+            <label>
+              安全驗證碼
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="3"
+                placeholder="3 碼數字"
+                v-model="joinPayment.cvv"
+              />
+            </label>
+            <button type="submit" class="btn" :disabled="joinSubmitting">確認送出</button>
           </form>
           <p v-if="joinMsg" class="action-msg">{{ joinMsg }}</p>
         </div>
@@ -519,6 +573,13 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
   gap: 4px;
   font-size: 13px;
   color: var(--ink-soft);
+}
+.action-form__subhead {
+  margin: 4px 0 -2px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 12px;
+  color: var(--muted);
 }
 .action-form input {
   padding: 8px 10px;

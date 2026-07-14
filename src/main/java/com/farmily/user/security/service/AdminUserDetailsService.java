@@ -37,6 +37,7 @@ public class AdminUserDetailsService implements UserDetailsService {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
+        // 為每個擁有的權限加上前綴: "PERM"
         for (String code : codes) {
             authorities.add(new SimpleGrantedAuthority("PERM_" + code));
         }
