@@ -597,7 +597,7 @@ INSERT INTO FARMER (email, email_verified, district_id, uploaded_at, password, f
 VALUES
     ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
     ('farmer02@gmail.com', TRUE, 2, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '大同街200號', '綠野農場', 25.06321000, 121.51234000, '自然農法種植，提供當季新鮮蔬果', '2024-03-22 15:00:00', '0922222222', 'ACTIVE'),
-    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'ACTIVE'),
+    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'PENDING'),
     ('farmer04@gmail.com', TRUE, 4, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '仁愛路88號',  '海風農場', 25.12345000, 121.73456000, '靠海農場，專售海鹽與特色農產品', '2024-03-10 09:00:00', '0944444444', 'SUSPENDED'),
     ('farmer05@gmail.com', TRUE, 5, '2024-06-01 13:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '板橋路77號',  '稻香農場', 24.87654000, 121.45678000, '傳統水稻種植，提供在地新鮮稻米', '2024-06-01 13:00:00', '0955555555', 'PENDING');
 
@@ -954,8 +954,9 @@ CREATE TABLE GB_ORDER (
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
+-- 參數
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
@@ -1093,7 +1094,7 @@ INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_
 (8005, 6005, 5, 'TRIP-20260515-001', 2, 'COMPLETED', '2026-04-15 16:00:00', NULL, '2026-05-15 16:10:00', '黃雅婷', '0956789012', '希望體驗插秧與傳統米食製作。');
 -- 5. 體驗活動 - 體驗活動評論
 CREATE TABLE FARM_TRIP_COMMENT (
-    farm_trip_comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    farm_trip_comment INT AUTO_INCREMENT PRIMARY KEY,
     farm_trip_id INT NOT NULL,
     user_id INT NOT NULL,
     star INT,
@@ -1103,7 +1104,7 @@ CREATE TABLE FARM_TRIP_COMMENT (
     FOREIGN KEY (user_id) REFERENCES USER(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_COMMENT (farm_trip_comment_id, farm_trip_id, user_id, star, content, created_at) VALUES
+INSERT INTO FARM_TRIP_COMMENT (farm_trip_comment, farm_trip_id, user_id, star, content, created_at) VALUES
 (1, 5001, 5, 5, '有機蔬菜採收體驗很有趣，農友解說得非常仔細。', '2026-04-11 10:00:00'),
 
 (2, 5002, 1, 4, '導覽內容很豐富，讓我更了解自然農法。', '2026-04-18 11:00:00'),
