@@ -182,6 +182,7 @@ public class UserSecurityConfig {
 
 				// 公開：Email 驗證 / 忘記密碼 (未登入也要能用)
 				.requestMatchers("/api/auth/**").permitAll()
+				.requestMatchers("/api/ai/**").permitAll()
 
 						.anyRequest().authenticated())
 				.build();
