@@ -26,22 +26,22 @@
                 <span class="ico">🏠</span> 總覽</a>
 
             <a class="nav-link" data-path="/admin/members"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')" th:href="@{/admin/members}">
+               sec:authorize="hasAuthority('PERM_MEMBER')" th:href="@{/admin/members}">
                 <span class="ico">👥</span> 會員管理</a>
 
             <a class="nav-link" data-path="/admin/farmers"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/farmers}">
+               sec:authorize="hasAuthority('PERM_FARMER')" th:href="@{/admin/farmers}">
                 <span class="ico">🧑‍🌾</span> 小農管理</a>
 
             <a class="nav-link" data-path="/admin/reviews"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/reviews}">
+               sec:authorize="hasAuthority('PERM_FARMER')" th:href="@{/admin/reviews}">
                 <span class="ico">📋</span> 小農審核</a>
              <a class="nav-link" data-path="/admin/coupons"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN')" th:href="@{/admin/coupons}">
-                <span class="ico">???</span> 優惠卷管理</a>
+               sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/coupons}">
+                <span class="ico">🎟️</span> 優惠卷管理</a>
 
             <a class="nav-link" data-path="/admin/news"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')" th:href="@{/admin/news}">
+               sec:authorize="hasAuthority('PERM_NEWS')" th:href="@{/admin/news}">
                 <span class="ico">📰</span> 最新消息</a>
 
             <a class="nav-link" data-path="/admin/blog-reports"

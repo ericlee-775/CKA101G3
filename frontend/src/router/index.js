@@ -133,10 +133,12 @@ const router = createRouter({
             { path: 'group-buys',    name: 'member-group-buys',    component: MemberGroupBuysView },
             // 我的收藏（商品收藏 / 團購收藏，程式碼寫在 components/member/Favorite*.vue）
             { path: 'favorites',     name: 'member-favorites',     component: MemberFavoritesView },
-            // 以下三頁各自獨立成元件，功能開發中先放佔位內容
+            // 我的訂單
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
-            { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },
+            // 我的通知 
             { path: 'notifications', name: 'member-notifications', component: MemberNotificationsView },
+            // 以下三頁各自獨立成元件，功能開發中先放佔位內容
+            { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },
           ],
         },
       ],

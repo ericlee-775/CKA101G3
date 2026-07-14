@@ -6,7 +6,7 @@ import notificationStore from '@/stores/farmerNotification';
 
 const notifs = ref([])
 const loading = ref(true)
-const loadErro = ref('')
+const loadError = ref('')
 const page = ref(0)
 const totalPages = ref(0)
 const targetType = ref('')
@@ -44,14 +44,14 @@ onMounted(loadNotif)
 // 載入通知 (取得 notifs 陣列)
 async function loadNotif() {
   loading.value = true
-  loadErro.value = ''
+  loadError.value = ''
   try {
     const res = await notificationApi.list(targetType.value, page.value)
     notifs.value = res.content || [] // 把這頁的通知列存進 notifs 陣列
     totalPages.value = res.totalPages
 
   } catch (e) {
-    loadErro.value = e.message || '載入通知失敗'
+    loadError.value = e.message || '載入通知失敗'
 
   } finally {
     loading.value = false
@@ -138,7 +138,7 @@ function formateDateTime(dt) {
 
       <!-- 載入狀態 -->
       <p v-if="loading" class="hint">載入中...</p>
-      <p v-else-if="loadErro" class="msg-err">{{ loadErro }}</p>
+      <p v-else-if="loadError" class="msg-err">{{ loadError }}</p>
       <p v-else-if="notifs.length === 0" class="hint">暫無通知。</p>
 
       <!-- 非以上三種狀態，載入通知列表 -->

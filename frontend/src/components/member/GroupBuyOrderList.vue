@@ -9,9 +9,20 @@
 // 後端 ShippedStatus / OrderStatus / PaidStatus 三個 enum 用「全大寫」序列化
 //（跟 GroupBuyStatus / RequestStatus 的全小寫不同），對照表要對到大寫的代碼，
 // 不然畫面上會直接顯示英文代碼原文（例如以前這裡曾經對錯大小寫，畫面上會看到 "PENDING"）。
-import { ref, onMounted } from 'vue'
+//
+// 商品圖片：GroupBuyOrderDTO 現在直接帶 productId，打 GET /api/products/{productId}/image 就好。
+//
+// 確認收貨：PATCH /api/member/groupBuy/orders/{orderId}/confirm-receipt，只有「這筆團購的發起人（團購主）」
+// 能呼叫，後端會擋非本人。DTO 沒有 hostUserId，只有 hostUserEmail，前端用信箱比對目前登入的會員是不是本人
+// 來決定要不要顯示按鈕；後端仍會再做一次真正的權限檢查，這裡只是先把不相關的人畫面上就不要有按鈕。
+// 確認過一次（orderStatus 變成 COMPLETED）就不能再按。實測過：只有本人能按、按過不能重按、非本人會被後端擋。
+import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
-import { shippedStatusInfo, orderStatusInfo, paidStatusInfo } from '@/utils/orderStatus'
+import authStore from '@/stores/auth'
+import { shippedStatusInfo, orderStatusInfo } from '@/utils/orderStatus'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
+import noImage from '@/assets/no-image.svg'
 
 // 通知父層（MemberGroupBuysView）目前有幾筆，顯示在 tab 的數字小徽章
 const emit = defineEmits(['count'])
@@ -19,6 +30,8 @@ const emit = defineEmits(['count'])
 const orders = ref([])
 const loading = ref(true)
 const error = ref('')
+
+const { page, totalPages, pageItems: pagedOrders } = usePagination(orders, 10)
 
 // orderStatus.js 的 className 是共用團購狀態那套的 class 名稱，這裡另外對照一份 tone
 // （跟本檔案既有的 .badge--xxx 顏色系統一致），維持這個元件原本的視覺風格。
@@ -37,16 +50,68 @@ function formatDate(value) {
 
 const formatMoney = (n) => (n == null ? '—' : `NT$ ${Number(n).toLocaleString('zh-TW')}`)
 
+// 目前登入會員是不是這筆訂單的團購主（用信箱比對，DTO 沒有 id 可以比）。
+function isHost(order) {
+  const me = authStore.state.user
+  return !!me?.email && me.email === order.hostUserEmail
+}
+
+const FALLBACK_IMAGE = noImage
+const imageUrls = ref({})
+
+async function loadImages() {
+  for (const order of orders.value) {
+    fetchImage(order.productId)
+  }
+}
+
+async function fetchImage(productId) {
+  if (productId == null || imageUrls.value[productId]) return
+  try {
+    const res = await fetch(`/api/products/${productId}/image`)
+    if (!res.ok) return
+    const blob = await res.blob()
+    imageUrls.value[productId] = URL.createObjectURL(blob)
+  } catch {
+    // 沒圖就維持預設圖，不影響其他卡片。
+  }
+}
+function orderImage(order) {
+  return imageUrls.value[order.productId] || FALLBACK_IMAGE
+}
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
     orders.value = (await memberGroupBuyApi.mySuccessOrders()) || []
     emit('count', orders.value.length)
+    loadImages()
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
   } finally {
     loading.value = false
+  }
+}
+
+// 確認收貨送出中的 orderId 集合，避免重複點擊；送出中/送出後都直接刷新該筆的狀態。
+const confirmingIds = ref(new Set())
+function isConfirming(id) {
+  return confirmingIds.value.has(id)
+}
+async function confirmReceipt(order) {
+  const next = new Set(confirmingIds.value)
+  next.add(order.orderId)
+  confirmingIds.value = next
+  try {
+    await memberGroupBuyApi.confirmReceipt(order.orderId)
+    await load()
+  } catch (e) {
+    error.value = e.message || '確認收貨失敗，請稍後再試'
+  } finally {
+    const done = new Set(confirmingIds.value)
+    done.delete(order.orderId)
+    confirmingIds.value = done
   }
 }
 
@@ -79,68 +144,75 @@ onMounted(load)
     </div>
 
     <!-- 訂單卡片 -->
-    <article v-for="order in orders" :key="order.orderId" class="order-card">
-      <header class="order-head">
-        <div class="order-id-group">
-          <span class="order-id">訂單編號 #{{ order.orderId }}</span>
-          <time class="order-date">{{ formatDate(order.createdAt) }}</time>
+    <template v-else>
+      <article v-for="order in pagedOrders" :key="order.orderId" class="order-card">
+        <div class="order-img-wrap">
+          <img class="order-img" :src="orderImage(order)" alt="" loading="lazy" />
         </div>
-        <div class="order-badges">
-          <!-- 只顯示出貨狀態（待出貨／已送達），訂單狀態改放進下面的欄位格，不再放兩個徽章擠在一起 -->
-          <span class="badge" :class="`badge--${toneOf(shippedStatusInfo(order.shippedStatus))}`">
-            {{ shippedStatusInfo(order.shippedStatus).text }}
-          </span>
-        </div>
-      </header>
+        <div class="order-body">
+          <header class="order-head">
+            <div class="order-id-group">
+              <span class="order-id">訂單編號 #{{ order.orderId }}</span>
+              <time class="order-date">{{ formatDate(order.createdAt) }}</time>
+            </div>
+            <div class="order-badges">
+              <!-- 只顯示出貨狀態（待出貨／已送達） -->
+              <span class="badge" :class="`badge--${toneOf(shippedStatusInfo(order.shippedStatus))}`">
+                {{ shippedStatusInfo(order.shippedStatus).text }}
+              </span>
+            </div>
+          </header>
 
-      <dl class="order-grid">
-        <div class="order-cell">
-          <dt>我訂購</dt>
-          <dd>{{ order.buyQty ?? '—' }} 件</dd>
-        </div>
-        <div class="order-cell">
-          <dt>成團價</dt>
-          <dd>{{ formatMoney(order.groupPrice) }}</dd>
-        </div>
-        <div class="order-cell">
-          <dt>我付的金額</dt>
-          <dd class="order-money">{{ formatMoney(order.paidAmount) }}</dd>
-        </div>
-        <div class="order-cell">
-          <dt>款項狀態</dt>
-          <dd>{{ paidStatusInfo(order.paidStatus).text }}</dd>
-        </div>
-        <div class="order-cell">
-          <dt>訂單狀態</dt>
-          <dd>{{ orderStatusInfo(order.orderStatus).text }}</dd>
-        </div>
-        <div class="order-cell order-cell--wide">
-          <dt>取貨地點</dt>
-          <dd>📍 {{ order.shippingAddress || '—' }}</dd>
-        </div>
-      </dl>
+          <dl class="order-grid">
+            <div class="order-cell">
+              <dt>我訂購</dt>
+              <dd>{{ order.buyQty ?? '—' }} 件</dd>
+            </div>
+            <div class="order-cell">
+              <dt>成團價</dt>
+              <dd>{{ formatMoney(order.groupPrice) }}</dd>
+            </div>
+            <div class="order-cell">
+              <dt>我付的金額</dt>
+              <dd class="order-money">{{ formatMoney(order.paidAmount) }}</dd>
+            </div>
+            <div class="order-cell">
+              <dt>訂單狀態</dt>
+              <dd>{{ orderStatusInfo(order.orderStatus).text }}</dd>
+            </div>
+            <div class="order-cell order-cell--wide">
+              <dt>取貨地點</dt>
+              <dd>📍 {{ order.shippingAddress || '—' }}</dd>
+            </div>
+          </dl>
 
-      <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
-      <div class="host-contact">
-        <h4>團購主聯絡方式</h4>
-        <p>{{ order.hostUserName || '—' }}</p>
-        <p>📞 {{ order.hostUserPhone || '—' }}</p>
-        <p>✉️ {{ order.hostUserEmail || '—' }}</p>
-        <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
-      </div>
+          <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
+          <div class="host-contact">
+            <h4>團購主聯絡方式</h4>
+            <p>{{ order.hostUserName || '—' }}</p>
+            <p>📞 {{ order.hostUserPhone || '—' }}</p>
+            <p>✉️ {{ order.hostUserEmail || '—' }}</p>
+            <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+          </div>
 
-      <!-- 確認收貨：先做畫面，目前不接任何 API -->
-      <div class="order-footer">
-        <button
-          v-if="order.orderStatus !== 'COMPLETED'"
-          type="button"
-          class="confirm-btn"
-        >
-          確認收貨
-        </button>
-        <span v-else class="confirmed-text">✓ 已確認收貨</span>
-      </div>
-    </article>
+          <!-- 確認收貨：只有團購主看得到按鈕，確認過一次就不能再按 -->
+          <div v-if="isHost(order)" class="order-footer">
+            <button
+              v-if="order.orderStatus !== 'COMPLETED'"
+              type="button"
+              class="confirm-btn"
+              :disabled="isConfirming(order.orderId)"
+              @click="confirmReceipt(order)"
+            >
+              確認收貨
+            </button>
+            <span v-else class="confirmed-text">✓ 已確認收貨</span>
+          </div>
+        </div>
+      </article>
+
+      <Pagination v-model:page="page" :total-pages="totalPages" />
+    </template>
   </div>
 </template>
 
@@ -153,6 +225,7 @@ onMounted(load)
 
 /* ===== 訂單卡片 ===== */
 .order-card {
+  display: flex;
   padding: 0;
   background: #fff;
   border: 1px solid var(--line);
@@ -164,6 +237,20 @@ onMounted(load)
 .order-card:hover {
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
+}
+.order-img-wrap {
+  flex: 0 0 120px;
+  background: var(--line);
+}
+.order-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.order-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .order-head {
@@ -276,8 +363,12 @@ onMounted(load)
   cursor: pointer;
   transition: background 0.18s ease;
 }
-.confirm-btn:hover {
+.confirm-btn:hover:not(:disabled) {
   background: var(--leaf-dark);
+}
+.confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .confirmed-text {
   font-size: 13px;
@@ -286,6 +377,13 @@ onMounted(load)
 }
 
 @media (max-width: 560px) {
+  .order-card {
+    flex-direction: column;
+  }
+  .order-img-wrap {
+    flex-basis: auto;
+    height: 140px;
+  }
   .order-grid {
     grid-template-columns: repeat(2, 1fr);
   }
