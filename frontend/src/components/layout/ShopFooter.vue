@@ -74,10 +74,9 @@ const year = new Date().getFullYear()
 <style scoped>
 /* ========== 整體頁尾 ========== */
 .site-footer {
-  margin-top: 48px;
   background: var(--ink);            /* 深色底，跟頁面內容區隔 */
   color: #d8e0d6;
-  padding: 48px clamp(18px, 4vw, 56px) 0;
+  padding: 48px clamp(18px, 4vw, 56px) 0;   /* 上內距 48px 已提供留白，不再用 margin-top（外距會露出 body 白底）*/
 }
 
 /* ========== 上半部欄位 ========== */
