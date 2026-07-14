@@ -1,6 +1,7 @@
 <script setup>
   import { onMounted, onBeforeUnmount, ref } from 'vue';
   import ConfirmDialog from './components/ConfirmDialog.vue';
+  import TurtleChat from './components/TurtleChat.vue';
   import authStore from '@/stores/auth';
 
   // ===== 全站自訂游標:小圓點 + 慢半拍的外圈,滑到可點元素時外圈放大 =====
@@ -87,6 +88,9 @@
 
     <!-- 全域確認彈窗：任何地方呼叫 confirm() 都由這個元件顯示 -->
     <ConfirmDialog></ConfirmDialog>
+
+    <!-- 全站浮動烏龜客服 🐢 -->
+    <TurtleChat></TurtleChat>
 
     <!-- 全站自訂游標(僅桌機啟用,元素永遠 pointer-events:none 不擋點擊) -->
     <div class="cursor-dot" ref="cursorDot" aria-hidden="true"></div>
