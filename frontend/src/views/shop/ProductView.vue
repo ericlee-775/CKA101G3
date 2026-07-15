@@ -84,7 +84,7 @@ const cartBtnText = computed(() => {
   switch (cartStatus.value) {
     case 'adding': return '加入中…'
     case 'done': return '已加入購物車 ✓'
-    case 'error': return '加入失敗，再試一次'
+    case 'error': return '請登入一般會員'
     default: return '🥬 加入購物車'
   }
 })
