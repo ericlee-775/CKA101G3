@@ -15,8 +15,15 @@ public class PasswordChangedListener {
         this.emailService = emailService;
     }
 
+    // 監聽會員/小農交易
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPasswordChanged(PasswordChangedEvent event) {
         emailService.sendPasswordChangedNotice(event.getEmail());
+    }
+
+    // 監聽管理員交易
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onAdminPasswordChanged(AdminPasswordChangedEvent event) {
+        emailService.sendPasswordChangedNoticeToAdmin(event.getEmail());
     }
 }
