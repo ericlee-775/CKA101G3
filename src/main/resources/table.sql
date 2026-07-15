@@ -838,53 +838,54 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
     order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
-    farmer_id INT NOT NULL,
     coupon_id VARCHAR(50),
 	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refunded_at DATETIME,
     total_amount INT NOT NULL,
     discount_amount INT NOT NULL DEFAULT 0,
     final_payment INT NOT NULL,
-    shipped_status ENUM('pending', 'shipped', 'delivered') DEFAULT 'pending',
-    shipped_at DATETIME,
-    received_at DATETIME,
-    order_status ENUM('pending', 'confirmed') DEFAULT 'pending',
-    payout_status VARCHAR(50) DEFAULT 'pending',
+    order_status ENUM('pending', 'completed') DEFAULT 'pending',
     completed_at DATETIME,
     CONSTRAINT PK_ORDERS_OID PRIMARY KEY (order_id),
     CONSTRAINT FK_ORDERS_UID FOREIGN KEY (user_id) REFERENCES user (user_id),
-    CONSTRAINT FK_ORDERS_FID FOREIGN KEY (farmer_id) REFERENCES farmer (farmer_id),
     CONSTRAINT FK_ORDERS_COUPID FOREIGN KEY (coupon_id) REFERENCES coupon (coupon_id)
 )
 AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, farmer_id, coupon_id, shipping_address, payment_id, total_amount, discount_amount, final_payment) VALUES
-(3, 1, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8881, 880, 100, 780);
-INSERT INTO ORDERS (user_id, farmer_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, shipped_status, shipped_at, received_at, order_status, payout_status, completed_at) VALUES
-(3, 1, '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 0, 500, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'confirmed', 'paid', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, shipping_address, payment_id, total_amount, discount_amount, final_payment)
+VALUES (3, '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
+
 
 -- 3-10. 農場商品 - 訂單明細
 DROP TABLE IF EXISTS order_item;
 CREATE TABLE ORDER_ITEM (
-    order_item_id INT AUTO_INCREMENT,
+    order_item_id INT NOT NULL AUTO_INCREMENT,
+	order_id INT NOT NULL,
     product_id INT NOT NULL,
-    order_id INT NOT NULL,
     product_name VARCHAR(50) NOT NULL,
+    farmer_id INT NOT NULL,
     quantity INT NOT NULL,
     price INT NOT NULL,
+    shipped_status ENUM('pending', 'shipping', 'delivered') DEFAULT 'pending',
+    shipped_at DATETIME,
+    received_at DATETIME,
+	payout_status VARCHAR(50) DEFAULT 'pending',
     CONSTRAINT PK_ORDITEM_ORDITEMID PRIMARY KEY (order_item_id),
+	CONSTRAINT FK_ORDITEM_OID FOREIGN KEY (order_id) REFERENCES orders (order_id),
     CONSTRAINT FK_ORDITEM_PRDID FOREIGN KEY (product_id) REFERENCES product_detail (product_id),
-    CONSTRAINT FK_ORDITEM_OID FOREIGN KEY (order_id) REFERENCES orders (order_id)
+    CONSTRAINT FK_ORDITEM_FID FOREIGN KEY (farmer_id) REFERENCES farmer (farmer_id)
 )
 AUTO_INCREMENT = 4001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 參數
-INSERT INTO ORDER_ITEM (product_id, product_name, order_id, quantity, price) VALUES (3, '屏東香蕉', 3001, 4, 250);
+INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
+VALUES (3001, 3, '屏東香蕉', 1, 4, 250, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'paid');
 
 
 -- 4. 團購 - 團購活動表
@@ -1300,14 +1301,14 @@ INSERT INTO notification_template VALUES ('gb_request_rejected', '團購編號 {
 INSERT INTO notification_template VALUES ('gb_success', '團購編號 {group_buy_id} 已成團，訂單編號 {order_id}，將盡速為您安排出貨。');
 INSERT INTO notification_template VALUES ('gb_failed', '團購編號 {group_buy_id} 未達標，活動已取消，款項將全額退還，期待您再次參與。');
 INSERT INTO notification_template VALUES ('gb_cancelled', '團購編號 {group_buy_id} 已取消，款項將全額退還。');
-INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，請留意近期收貨。');
 INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 配達，感謝您的參與，快聯繫團員取貨吧!');
 INSERT INTO notification_template VALUES ('gb_request_created', '您收到 {product_name} 的新團購申請，請儘速審核回覆。');
 INSERT INTO notification_template VALUES ('gb_order_created', '團購訂單 {group_buy_id} 已成團，請準備出貨。');
 INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT${total_amount} 已撥款，請查收。');
 
 INSERT INTO notification_template VALUES ('order_created', '已收到您的商品訂單 {order_id}，將盡速為您安排出貨');
-INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipping_date} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipping_date} 出貨，請留意近期收貨。');
 INSERT INTO notification_template VALUES ('order_completed', '商品訂單編號 {order_id} 已於 {receipt_datetime} 配達，感謝您的購買。');
 INSERT INTO notification_template VALUES ('order_farmer_new', '您有一筆新商品訂單 {order_id}，請盡速出貨。');
 INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款 NT${total_mount} 已撥款，請查收。');
