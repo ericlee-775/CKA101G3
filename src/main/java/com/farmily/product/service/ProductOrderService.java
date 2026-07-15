@@ -4,9 +4,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.farmily.product.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import com.farmily.product.dto.ProductOrderFarmerGroupDTO;
 import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
 import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
 import com.farmily.product.dto.ProductOrderItemResponseDTO;
+import com.farmily.product.dto.ProductOrderMemberGroupDTO;
 import com.farmily.product.dto.ProductOrderRequestDTO;
 import com.farmily.product.dto.ProductOrderResponseDTO;
 import com.farmily.shoppingcart.dto.ShoppingcartDTO;
@@ -152,9 +155,9 @@ public class ProductOrderService {
 	}
 
 
-	// 取得會員訂單明細
+	// 取得會員訂單明細 (按小農分組)
 	@Transactional (readOnly = true)
-	public List<ProductOrderItemResponseDTO> getOrderItems(Integer userId, Integer orderId){
+	public List<ProductOrderMemberGroupDTO> getOrderItems(Integer userId, Integer orderId){
 		ProductOrderVO order = orderRepo.findById(orderId)
 				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
 		
@@ -163,10 +166,39 @@ public class ProductOrderService {
 			throw new AccessDeniedException("無權限查看此訂單");
 		}
 		
-		List<ProductOrderItemVO> list = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
-		List<ProductOrderItemResponseDTO> dtoList = list.stream().map(this::toOrderItemDTO).toList();
+		// 取明細
+		List<ProductOrderItemVO> items = orderItemRepo.findByOrder_OrderIdOrderByOrderItemIdDesc(orderId);
 		
-		return dtoList;
+		// 按小農 id 分組
+		Map<Integer, List<ProductOrderItemVO>> byFarmer = items.stream()
+				.collect(Collectors.groupingBy(ProductOrderItemVO::getFarmerId, LinkedHashMap::new, Collectors.toList()));
+		
+		// 查農場名稱
+		Set<Integer> farmerIds = byFarmer.keySet();
+		Map<Integer, String> farmerNames = new HashMap<>();
+		for (Farmer f : farmerRepo.findAllById(farmerIds)) {
+			farmerNames.put(f.getFarmerId(), f.getFarmName());
+		}
+		
+		List<ProductOrderMemberGroupDTO> groupList = new ArrayList<>();
+		for (Map.Entry<Integer, List<ProductOrderItemVO>> e : byFarmer.entrySet()) {
+			Integer farmerId = e.getKey();
+			List<ProductOrderItemVO> groupItem = e.getValue();
+			
+			ProductOrderMemberGroupDTO g = new ProductOrderMemberGroupDTO();
+			g.setFarmerId(farmerId);
+			g.setFarmerName(farmerNames.get(farmerId));
+			
+			g.setShippedStatus(groupItem.get(0).getShippedStatus().name());
+			g.setShippedAt(groupItem.get(0).getShippedAt());
+			g.setReceivedAt(groupItem.get(0).getReceivedAt());
+			g.setSubtotal(groupItem.stream().mapToInt(i -> i.getPrice() * i.getQuantity()).sum());
+			g.setItems(groupItem.stream().map(this::toOrderItemDTO).toList());
+			
+			groupList.add(g);
+		}
+
+		return groupList;
 	}
 
 	
@@ -198,12 +230,9 @@ public class ProductOrderService {
 		ProductOrderItemResponseDTO dto = new ProductOrderItemResponseDTO();
 		dto.setProductName(vo.getProductName());
 		dto.setProductId(vo.getProductId());
-		dto.setFarmerId(vo.getFarmerId());
 		dto.setPrice(vo.getPrice());
 		dto.setQuantity(vo.getQuantity());
-		dto.setShippedStatus(vo.getShippedStatus().name());
-		dto.setShippedAt(vo.getShippedAt());
-		dto.setReceivedAt(vo.getReceivedAt());
+		dto.setItemSubtotal(vo.getPrice() * vo.getQuantity());
 
 		return dto;
 	}
@@ -383,7 +412,7 @@ public class ProductOrderService {
 				}
 			}
 		}
-		dto.setRecommendedCouponId(best.getCouponId());
+		dto.setRecommendedCouponId(best != null ? best.getCouponId() : null);
 		
 		return dto;
 	}
