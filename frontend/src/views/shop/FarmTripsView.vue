@@ -1,5 +1,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 目前登入者（還沒接登入，先手動指定，查我的報名用它）
 const userId = ref(1)
@@ -9,6 +12,11 @@ const trips = ref([])
 const listLoading = ref(true)
 const listError = ref('')
 function hideImg(e) { e.target.style.display = 'none' }
+
+function goFarm(farmerId) {
+  if (farmerId == null) return
+  router.push({ name: 'farm-detail', params: { farmerId } })
+}
 
 // ---- 我的報名 ----
 const myOrders = ref([])
@@ -137,7 +145,9 @@ onMounted(loadTrips)
           <img class="thumb" :src="`/api/farm-trips/${t.farmTripId}/image`" alt="" @error="hideImg" />
           <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
           <h3>{{ t.farmTripTitle }}</h3>
-          <p class="farm-name" v-if="t.farmName">🏡 {{ t.farmName }}</p>
+          <p class="farm-name" v-if="t.farmName">
+            🏡 <span class="farm-link" @click.stop.prevent="goFarm(t.farmerId)">{{ t.farmName }}</span>
+          </p>          
           <p class="muted">📍 {{ t.location }}</p>
           <p class="star">{{ stars(t.starNumbers) }}</p>
           <p class="price">參考價 {{ formatPrice(t.referPrice) }}</p>
@@ -167,6 +177,8 @@ onMounted(loadTrips)
 <style scoped>
 
 .farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
+.farm-link { cursor: pointer; text-decoration: underline; }
+.farm-link:hover { color: var(--leaf); }
 
 .page-note {
   background: var(--leaf-soft); border-left: 4px solid var(--leaf);

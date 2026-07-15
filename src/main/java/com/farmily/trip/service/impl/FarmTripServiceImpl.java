@@ -99,7 +99,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 				.map(f -> f.getFarmName())
 				.orElse(null);
 		dto.setFarmName(farmName);
-		
+						
 		return dto;
 	}
 
@@ -116,6 +116,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 				.map(f -> f.getFarmName())
 				.orElse(null);
 		dto.setFarmName(farmName);
+		dto.setFarmerId(trip.getFarmerId());
 		
 		return dto;
 	}
