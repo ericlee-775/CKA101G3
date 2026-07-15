@@ -36,16 +36,21 @@
             <a class="nav-link" data-path="/admin/reviews"
                sec:authorize="hasAuthority('PERM_FARMER')" th:href="@{/admin/reviews}">
                 <span class="ico">📋</span> 小農審核</a>
+
              <a class="nav-link" data-path="/admin/coupons"
-               sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/coupons}">
+               sec:authorize="hasAuthority('PERM_SHOP')" th:href="@{/admin/coupons}">
                 <span class="ico">🎟️</span> 優惠卷管理</a>
+
+            <a class="nav-link" data-path="/admin/farm-trips"
+               sec:authorize="hasAuthority('PERM_NEWS')" th:href="@{/admin/farm-trips}">
+                <span class="ico">🎪</span> 體驗活動</a>
 
             <a class="nav-link" data-path="/admin/news"
                sec:authorize="hasAuthority('PERM_NEWS')" th:href="@{/admin/news}">
                 <span class="ico">📰</span> 最新消息</a>
 
             <a class="nav-link" data-path="/admin/blog-reports"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')" th:href="@{/admin/blog-reports}">
+               sec:authorize="hasAuthority('PERM_BLOG')" th:href="@{/admin/blog-reports}">
                 <span class="ico">📝</span> 部落格檢舉審核</a>
 
             <a class="nav-link" data-path="/admin/admins"
