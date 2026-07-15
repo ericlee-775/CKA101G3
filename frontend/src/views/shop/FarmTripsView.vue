@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 // 目前登入者（還沒接登入，先手動指定，查我的報名用它）
 const userId = ref(1)
@@ -17,6 +17,19 @@ const myOrdersMsg = ref('')
 // 活動類型 enum 轉中文
 const TYPE_LABEL = { FARM_EXPERIENCE: '農場體驗營', FIELD_VISIT: '產地參訪' }
 function typeLabel(t) { return TYPE_LABEL[t] || t || '' }
+
+// ---- 子類別篩選 ----
+const activeType = ref(null)   // null = 全部
+const TYPE_TABS = [
+  { value: null,              label: '全部',     icon: '🌿' },
+  { value: 'FARM_EXPERIENCE', label: '農場體驗營', icon: '🏕️' },
+  { value: 'FIELD_VISIT',     label: '產地參訪',   icon: '🚜' },
+]
+const filteredTrips = computed(() =>
+  activeType.value === null
+    ? trips.value
+    : trips.value.filter(t => t.farmTripType === activeType.value)
+)
 
 function formatPrice(p) {
   if (p == null) return '—'
@@ -81,13 +94,42 @@ onMounted(loadTrips)
 
     <!-- ============ 活動列表 ============ -->
     <section>
+      <!-- 頁面說明 -->
+      <div class="page-note">
+        <p>
+          本頁彙整各地小農自行舉辦的農遊體驗活動，讓你走進產地、親手參與農事。
+          頁面上顯示的價格皆為小農提供的<strong>參考價</strong>，實際費用以活動當天為準。
+        </p>
+        <p>
+          你可以直接在本頁線上<strong>預約</strong>想參加的場次，
+          預約時<strong>無需事先付款</strong>；待體驗活動當天到現場後，再將費用直接付給小農即可。
+        </p>
+      </div>
+
+      <!-- 子類別篩選 -->
+      <div class="type-tabs">
+        <button
+          v-for="tab in TYPE_TABS"
+          :key="tab.label"
+          class="type-tab"
+          :class="{ active: activeType === tab.value }"
+          @click="activeType = tab.value"
+        >
+          <span class="type-icon">{{ tab.icon }}</span>
+          <span>{{ tab.label }}</span>
+        </button>
+      </div>
+
+      <!-- 子類別篩選 -->
       <p v-if="listLoading">載入中…</p>
       <p v-else-if="listError" class="error">{{ listError }}</p>
       <p v-else-if="trips.length === 0">目前沒有上架中的活動。</p>
 
+      <p v-else-if="filteredTrips.length === 0" class="muted">這個類別目前沒有活動。</p>
+
       <div v-else class="grid">
         <router-link
-          v-for="t in trips"
+          v-for="t in filteredTrips"
           :key="t.farmTripId"
           class="card"
           :to="{ name: 'farm-trip-detail', params: { farmTripId: t.farmTripId } }"
@@ -122,6 +164,24 @@ onMounted(loadTrips)
 </template>
 
 <style scoped>
+
+.page-note {
+  background: var(--leaf-soft); border-left: 4px solid var(--leaf);
+  border-radius: 12px; padding: 16px 20px; margin-top: 20px;
+  line-height: 1.8; color: var(--ink-soft);
+}
+.page-note p { margin: 4px 0; }
+.page-note strong { color: var(--leaf-dark); }
+.type-tabs { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.type-tab {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 8px 18px; cursor: pointer; font-size: 15px; color: var(--ink); transition: all .15s;
+}
+.type-tab:hover { border-color: var(--leaf); }
+.type-tab.active { background: var(--leaf); color: #fff; border-color: var(--leaf); }
+.type-icon { font-size: 18px; }
+
 .page { padding: 32px clamp(18px, 4vw, 56px); color: var(--ink); }
 .topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 h1 { color: var(--ink); }
