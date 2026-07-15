@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
@@ -61,6 +61,21 @@ const certIdentity = ref(null)    // certFileIdentity
 
 const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
 
+// 各檔案 input 的 DOM 參照：移除文件時用來清空原生 input，允許重選同一檔
+const certLandEl = ref(null)
+const certProductEl = ref(null)
+const certIdentityEl = ref(null)
+const certInputEls = { land: certLandEl, product: certProductEl, identity: certIdentityEl }
+
+// 各證明文件的預覽圖 URL（由 URL.createObjectURL 產生，移除/替換/離開時需 revoke 釋放）
+const certPreviews = reactive({ land: '', product: '', identity: '' })
+
+// 設定預覽圖：先釋放舊 URL 再產生新的（file 為 null 則只清空）
+function setPreview(key, file) {
+  if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  certPreviews[key] = file ? URL.createObjectURL(file) : ''
+}
+
 // 使用者在該欄位選檔：驗證通過才存入對應 ref，並清掉舊錯誤
 function onCertChange(key, event) {
   error.value = ''
@@ -68,17 +83,36 @@ function onCertChange(key, event) {
   const file = event.target.files && event.target.files[0]
   if (!file) {
     target.value = null
+    setPreview(key, null)
     return
   }
   const msg = validateCertFile(file)
   if (msg) {
     error.value = msg
     target.value = null
+    setPreview(key, null)
     event.target.value = ''   // 驗證失敗清空，允許重選同一檔
     return
   }
   target.value = file
+  setPreview(key, file)
 }
+
+// 移除已選檔案：清掉 ref、預覽圖與原生 input，允許重新上傳同一檔
+function onCertRemove(key) {
+  error.value = ''
+  certRefs[key].value = null
+  setPreview(key, null)
+  const el = certInputEls[key].value
+  if (el) el.value = ''
+}
+
+// 離開頁面時釋放所有預覽圖 URL，避免記憶體洩漏
+onBeforeUnmount(() => {
+  Object.keys(certPreviews).forEach((key) => {
+    if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  })
+})
 
 // 縣市 / 行政區下拉資料（來自 /api/city-districts）
 const districtList = ref([])      // 全部行政區的扁平清單
@@ -296,18 +330,30 @@ async function handleRegister() {
           <p class="cert-title">證明文件（皆須上傳，JPG / PNG，單張 ≤ 5MB）</p>
           <label class="cert-item">
             <span>農地證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
-            <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+            <input ref="certLandEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+            <small v-if="certLand" class="cert-name">
+              已選：{{ certLand.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('land')">移除</button>
+            </small>
+            <img v-if="certPreviews.land" :src="certPreviews.land" class="cert-preview" alt="農地證明預覽" />
           </label>
           <label class="cert-item">
             <span>產品證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
-            <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+            <input ref="certProductEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+            <small v-if="certProduct" class="cert-name">
+              已選：{{ certProduct.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('product')">移除</button>
+            </small>
+            <img v-if="certPreviews.product" :src="certPreviews.product" class="cert-preview" alt="產品證明預覽" />
           </label>
           <label class="cert-item">
             <span>身分證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
-            <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+            <input ref="certIdentityEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+            <small v-if="certIdentity" class="cert-name">
+              已選：{{ certIdentity.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('identity')">移除</button>
+            </small>
+            <img v-if="certPreviews.identity" :src="certPreviews.identity" class="cert-preview" alt="身分證明預覽" />
           </label>
         </div>
 
@@ -495,8 +541,31 @@ async function handleRegister() {
   background: #fff;
 }
 .cert-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--leaf-dark);
   font-size: 12px;
+}
+.cert-remove {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cert-remove:hover {
+  border-color: #c0392b;
+}
+.cert-preview {
+  margin-top: 6px;
+  max-width: 160px;
+  max-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .auth-error {

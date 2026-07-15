@@ -58,7 +58,10 @@
                         <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
                               class="text-muted">—</span>
                     </th:block>
-                    <span th:unless="${r.adminId == currentAdminId}" class="text-muted">
+                    <span th:if="${r.adminId == null}" class="text-muted">
+                        尚未被認領
+                    </span>
+                    <span th:if="${r.adminId != null and r.adminId != currentAdminId}" class="text-muted">
                         由其他管理員負責
                     </span>
                 </td>
