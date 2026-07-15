@@ -1,0 +1,39 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  
+  mysql:
+    image: mysql:8.0                          # 借現成 mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --skip-character-set-client-handshake --lower-case-table-names=1
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"           # 設密碼(配合 app)
+    ports:
+      - "3307:3306"                           # 開門
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/table.sql:/docker-entrypoint-initdb.d/init.sql  # 開機自動建庫
+    healthcheck:                                              # ← 新增這整段
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 5s        # 每 5 秒檢查一次
+      timeout: 3s         # 單次檢查超過 3 秒算失敗
+      retries: 10         # 連續失敗 10 次才判定 unhealthy
+      start_period: 20s   # 開機後給 20 秒緩衝,這期間失敗不計入 retries
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/Farmily?serverTimezone=Asia/Taipei"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: "123456"
+      APP_REDIS_HOST: "redis"
+      SPRING_AI_OLLAMA_INIT_PULL_MODEL_STRATEGY: "never"
+    depends_on:
+      mysql:
+        condition: service_healthy      # ← 等 mysql 回報 healthy
+      redis:
+        condition: service_started      # ← redis 開機快,等它「起來」就好
+volumes:          # ← 最左邊,跟 services 齊平
+  mysql-data:     # ← 縮排 2 格,就是你上面用的名字

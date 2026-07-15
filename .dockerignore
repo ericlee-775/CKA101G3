@@ -1,0 +1,10 @@
+frontend/node_modules
+src/main/resources/static/farmily-web
+target
+.git
+.settings
+.classpath
+.project
+Dockerfile
+docker-compose.yml
+.dockerignore
