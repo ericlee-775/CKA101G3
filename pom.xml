@@ -17,41 +17,8 @@
 	<properties>
 		<java.version>17</java.version>
 	</properties>
-	<dependencyManagement>
-    	<dependencies>
-        	<dependency>
-            	<groupId>org.springframework.ai</groupId>
-            	<artifactId>spring-ai-bom</artifactId>
-            	<version>2.0.0</version>
-            	<type>pom</type>
-           	 	<scope>import</scope>
-        	</dependency>
-    	</dependencies>
-	</dependencyManagement>
 	<dependencies>
-	
-		<!-- 對話+embedding 換成 OpenAI GPT；要切回本機 Ollama 就把上面兩行改用下面註解那段 -->
-		<dependency>
-    		<groupId>org.springframework.ai</groupId>
-    		<artifactId>spring-ai-starter-model-openai</artifactId>
-		</dependency>
-		<!--
-		<dependency>
-    		<groupId>org.springframework.ai</groupId>
-    		<artifactId>spring-ai-starter-model-ollama</artifactId>
-		</dependency>
-		-->
 
-		<!-- RAG：記憶體向量庫 SimpleVectorStore + VectorStore 介面 -->
-		<dependency>
-    		<groupId>org.springframework.ai</groupId>
-    		<artifactId>spring-ai-vector-store</artifactId>
-		</dependency>
-		<!-- RAG：QuestionAnswerAdvisor（2.0 由 spring-ai-advisors-vector-store 改名） -->
-		<dependency>
-    		<groupId>org.springframework.ai</groupId>
-    		<artifactId>spring-ai-vector-store-advisor</artifactId>
-		</dependency>
 		<dependency><!-- ＠用途說明2: Add typical dependencies for a web application -->
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>

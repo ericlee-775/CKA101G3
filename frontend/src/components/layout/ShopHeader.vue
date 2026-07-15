@@ -52,7 +52,6 @@ const accountWrap = ref(null) // 綁在外層 div，用來判斷點擊是否發�
 const accountMenu = [
   { label: '個人資料', icon: '👤', to: '/member/me' },
   { label: '我的文章', icon: '✍️', to: '/member/blogs' },
-  { label: '我的商品', icon: '📦', to: '/member/products' },
   { label: '我的團購', icon: '👥', to: '/member/group-buys' },
   { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
   { label: '我的訂單', icon: '🧾', to: '/member/orders' },
