@@ -1,6 +1,8 @@
 package com.farmily.product.dto;
 
-//用於前端顯示的訂單明細資訊
+import java.time.LocalDateTime;
+
+//用於會員前端顯示的訂單明細資訊
 public class ProductOrderItemResponseDTO {
 	
 	private String productName;
@@ -8,6 +10,9 @@ public class ProductOrderItemResponseDTO {
 	private Integer farmerId;
 	private Integer price;  	// 單價
 	private Integer quantity;	// 購買數量
+	private String shippedStatus;
+	private LocalDateTime shippedAt;
+	private LocalDateTime receivedAt;
 
 
 	public ProductOrderItemResponseDTO() {
@@ -54,5 +59,29 @@ public class ProductOrderItemResponseDTO {
 		this.quantity = quantity;
 	}
 
+	public String getShippedStatus() {
+		return shippedStatus;
+	}
+
+	public void setShippedStatus(String shippedStatus) {
+		this.shippedStatus = shippedStatus;
+	}
+
+	public LocalDateTime getShippedAt() {
+		return shippedAt;
+	}
+
+	public void setShippedAt(LocalDateTime shippedAt) {
+		this.shippedAt = shippedAt;
+	}
+
+	public LocalDateTime getReceivedAt() {
+		return receivedAt;
+	}
+
+	public void setReceivedAt(LocalDateTime receivedAt) {
+		this.receivedAt = receivedAt;
+	}
+	
 	
 }
