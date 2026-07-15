@@ -214,6 +214,30 @@ public class NotificationService {
 	// sendNotif(String typeCode, NotificationRecipientType recipientType, 
 	//  	Integer recipientId, String targetType, Integer targetId, Map<String, String> variables)
 	
+	// 商品訂單成立，通知小農/會員
+	public void sendProdOrderCreated(Integer farmerId, Integer userId, Integer orderId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		// 給消費者 (會員)
+		req.setTypeCode("order_created");
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("order");
+		req.setTargetId(orderId);
+		req.setVariables(Map.of("order_id", orderId.toString()));
+		sendOneNotif(req);
+		
+		// 給小農
+		req.setTypeCode("order_farmer_new");
+		req.setRecipientType(NotificationRecipientType.farmer);
+		req.setRecipientId(farmerId);
+		req.setTargetType("order");
+		req.setTargetId(orderId);
+		req.setVariables(Map.of("order_id", String.valueOf(orderId)));
+		sendOneNotif(req);
+	}
+	
+	
+	
 	// 團購申請通過, 通知團主(hostUserId)
 	public void sendGBApproved(Integer hostUserId, Integer groupBuyId) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -222,7 +246,7 @@ public class NotificationService {
 		req.setRecipientId(hostUserId);
 		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
-		req.setVariables(Map.of("group_buy_id", groupBuyId.toString()));
+		req.setVariables(Map.of("group_buy_id", String.valueOf(groupBuyId)));
 		sendOneNotif(req);
 	}
 	
@@ -234,10 +258,9 @@ public class NotificationService {
 		req.setRecipientId(hostUserId);
 		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
-		req.setVariables(Map.of("group_buy_id", groupBuyId.toString(), "reject_reason", rejectReason));
+		req.setVariables(Map.of("group_buy_id", String.valueOf(groupBuyId), "reject_reason", rejectReason));
 		sendOneNotif(req);
 	}
-	
 	
 
 }
