@@ -1,7 +1,5 @@
 package com.farmily.product.controller;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductOrderFarmerResponseDTO;
-import com.farmily.product.dto.ProductOrderItemFarmerResponseDTO;
 import com.farmily.product.service.ProductOrderService;
 import com.farmily.user.security.FarmerUserDetails;
 
@@ -50,18 +47,6 @@ public class FarmerProductOrderController {
 		
 		return ResponseEntity.ok(list);
 	}
-	
-	
-	// 顯示訂單明細
-	@GetMapping("/{orderId}/items")
-	public ResponseEntity<List<ProductOrderItemFarmerResponseDTO>> getOrderItems(
-			@AuthenticationPrincipal FarmerUserDetails me,
-			@PathVariable Integer orderId){
-		List<ProductOrderItemFarmerResponseDTO> list = oSvc.getOrderItemsFarmer(me.getFarmerId(), orderId);
-		
-		return ResponseEntity.ok(list);
-	}
-	
 	
 	
 }

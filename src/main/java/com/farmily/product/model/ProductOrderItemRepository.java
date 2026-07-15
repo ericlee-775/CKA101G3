@@ -9,4 +9,7 @@ public interface ProductOrderItemRepository extends JpaRepository<ProductOrderIt
 	// 取得該筆訂單明細
 	public List<ProductOrderItemVO> findByOrder_OrderIdOrderByOrderItemIdDesc(Integer orderId);
 
+	// 取得屬於該小農的訂單的明細
+	public List<ProductOrderItemVO> findByOrder_OrderIdAndFarmerIdOrderByOrderItemIdDesc(Integer orderId, Integer farmerId);
+	
 }

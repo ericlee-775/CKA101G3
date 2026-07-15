@@ -91,16 +91,44 @@ async function handleRegister() {
     error.value = '信箱格式不正確'
     return
   }
-  // 後端 @Size(min = 8)
-  if (password.value.length < 8) {
-    error.value = '密碼至少需 8 個字元'
+  // 後端 @Size(max = 50 / 200 / 2000)
+  if (farmName.value.length > 50) {
+    error.value = '農場名稱最多 50 字'
+    return
+  }
+  if (farmAddress.value.length > 100) {
+    error.value = '農場地址最多 100 字'
+    return
+  }
+  if (farmDesc.value.length > 2000) {
+    error.value = '農場介紹最多 2000 字'
+    return
+  }
+  // 後端 @NotNull：所在區域必選
+  if (!districtId.value) {
+    error.value = '請選擇所在縣市與行政區'
+    return
+  }
+  // 後端 @Pattern ^09\d{8}$：手機需 09 開頭共 10 碼（先去掉空白/連字號再驗）
+  const phoneNorm = phone.value.replace(/[\s-]/g, '')
+  if (!/^09\d{8}$/.test(phoneNorm)) {
+    error.value = '手機號碼格式錯誤（需為 09 開頭共 10 碼）'
+    return
+  }
+  // 後端 @Size(8~60) + @Pattern：長度 8~60 且需同時含英文與數字
+  if (password.value.length < 8 || password.value.length > 60) {
+    error.value = '密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(password.value) || !/\d/.test(password.value)) {
+    error.value = '密碼需同時包含英文字母與數字'
     return
   }
   if (password.value !== confirm.value) {
     error.value = '兩次輸入的密碼不一致'
     return
   }
-  // 三張證明文件皆必填
+  // 三張證明文件皆必填（格式/大小已在 onCertChange 用 validateCertFile 擋過）
   if (!certLand.value || !certProduct.value || !certIdentity.value) {
     error.value = '請上傳農地、產品與身分三項證明文件'
     return
@@ -114,10 +142,10 @@ async function handleRegister() {
     fd.append('password', password.value)
     fd.append('farmName', farmName.value)
     fd.append('farmAddress', farmAddress.value)
-    fd.append('farmerPhoneNum', phone.value)
+    fd.append('farmerPhoneNum', phoneNorm)
     fd.append('farmDesc', farmDesc.value)
-    // districtId 為選填，有選才送
-    if (districtId.value) fd.append('districtId', Number(districtId.value))
+    // districtId 為必填（後端 @NotNull），前面已驗證有值
+    fd.append('districtId', Number(districtId.value))
     fd.append('certFileLand', certLand.value)
     fd.append('certFileProduct', certProduct.value)
     fd.append('certFileIdentity', certIdentity.value)
@@ -156,7 +184,7 @@ async function handleRegister() {
           <input v-model="phone" type="tel" placeholder="0912-345-678" />
         </label>
 
-        <!-- 縣市 / 行政區（選填，選了地址才完整）-->
+        <!-- 縣市 / 行政區（必選，後端 districtId @NotNull）-->
         <div class="auth-grid">
           <label>
             <span>縣市</span>
@@ -350,6 +378,7 @@ async function handleRegister() {
   margin: 0;
   color: #c0392b;
   font-size: 13px;
+  white-space: pre-line;   /* 後端多欄位錯誤以 \n 換行顯示 */
 }
 .auth-ok {
   margin: 0;

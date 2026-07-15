@@ -173,6 +173,7 @@ public class UserSecurityConfig {
                         //最新消息（公開：列表/詳情/封面圖）
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
 
+
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
 				.permitAll().requestMatchers("/oauth-test.html").permitAll() // OAuth2.0 測試用

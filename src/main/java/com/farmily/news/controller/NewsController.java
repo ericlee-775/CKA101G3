@@ -49,25 +49,33 @@ public class NewsController {
 
     @GetMapping("/news/{newsId}/image")
     public void getNewsImg(HttpServletResponse res, @PathVariable Integer newsId) throws IOException {
+        writeImage(res, newsService.getNewsImage(newsId));   // 公開：只給 VISIBLE
+    }
 
-        byte[] img = newsService.getNewsImage(newsId);
+    // 後台：任何狀態都能預覽封面（草稿/隱藏），走 admin 權限
+    @GetMapping("/admin/news/{newsId}/image")
+    public void getAdminNewsImg(HttpServletResponse res, @PathVariable Integer newsId) throws IOException {
+        writeImage(res, newsService.getAdminNewsImage(newsId));
+    }
+
+    // 共用：把封面 bytes 寫回 response，沒圖回 404（前端 onerror/@error 會自動隱藏）
+    private void writeImage(HttpServletResponse res, byte[] img) throws IOException {
         ServletOutputStream out = res.getOutputStream();
-
         if (img != null && img.length > 0) {
             // 自動判斷 jpg/png/gif，判不出就當 jpeg
             String type = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(img));
             res.setContentType(type != null ? type : MediaType.IMAGE_JPEG_VALUE);
             out.write(img);
         } else {
-            res.setStatus(HttpStatus.NOT_FOUND.value());   // 沒圖回 404，前端 @error 會自動隱藏
+            res.setStatus(HttpStatus.NOT_FOUND.value());
         }
     }
 
     //管理員
     @GetMapping("/admin/news")
     public Page<NewsResponse> getAllNews(
-            @RequestParam(defaultValue = "0") Integer offset,
-            @RequestParam(defaultValue = "5") Integer limit) {
+            @RequestParam(defaultValue = "0") @Min(0) Integer offset,
+            @RequestParam(defaultValue = "5") @Min(1) @Max(1000) Integer limit) {
 
         return newsService.getAllNews(offset, limit);
     }

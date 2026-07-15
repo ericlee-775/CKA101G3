@@ -1,5 +1,7 @@
 package com.farmily.user.dto;
 
+import com.farmily.user.validation.ValidImage;
+import jakarta.validation.constraints.Size;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -8,13 +10,22 @@ import java.math.BigDecimal;
 // 證明文件走 multipart/form-data；沒上傳（null/空）時 service 端會沿用上一輪審核的圖片
 public class FarmerResubmitRequest {
 
+    @Size(max = 50, message = "農場名稱最多 50 字")
     private String farmName;
     private Integer districtId;
+    @Size(max = 100, message = "農場地址最多 100 字")
     private String farmAddress;
     private BigDecimal locLat;
     private BigDecimal locLong;
+
+    // 沒上傳時沿用上一輪的圖片，required = false（預設），有上傳才驗格式與大小
+    @ValidImage
     private MultipartFile certFileLand;
+
+    @ValidImage
     private MultipartFile certFileProduct;
+
+    @ValidImage
     private MultipartFile certFileIdentity;
 
     public String getFarmName() {

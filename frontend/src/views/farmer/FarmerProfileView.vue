@@ -101,10 +101,20 @@ function onCityChange() {
 async function saveContact() {
   contactMsg.value = ''
   contactErr.value = ''
+  // 對齊後端：手機格式（有填才驗）、農場介紹長度
+  const phone = contact.value.farmerPhoneNum.replace(/[\s-]/g, '')
+  if (phone && !/^09\d{8}$/.test(phone)) {
+    contactErr.value = '手機號碼格式錯誤（需為 09 開頭共 10 碼）'
+    return
+  }
+  if (contact.value.farmDesc.length > 2000) {
+    contactErr.value = '農場介紹最多 2000 字'
+    return
+  }
   savingContact.value = true
   try {
     const updated = await farmerApi.updateContact({
-      farmerPhoneNum: contact.value.farmerPhoneNum,
+      farmerPhoneNum: phone,
       farmDesc: contact.value.farmDesc,
     })
     profile.value = updated
@@ -123,6 +133,8 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
+  if (apply.value.farmName.length > 50) { applyErr.value = '農場名稱最多 50 字'; return }
+  if (apply.value.farmAddress.length > 100) { applyErr.value = '農場地址最多 100 字'; return }
   const ok = await confirm({
     title: '重新送審',
     message: '修改這些欄位會重新送審，期間狀態會變為待審核。確定要送出嗎？',
@@ -157,8 +169,12 @@ async function resubmit() {
 async function changePassword() {
   pwMsg.value = ''
   pwErr.value = ''
-  if (pw.value.newPassword.length < 8) {
-    pwErr.value = '新密碼至少需 8 個字元'
+  if (pw.value.newPassword.length < 8 || pw.value.newPassword.length > 60) {
+    pwErr.value = '新密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(pw.value.newPassword) || !/\d/.test(pw.value.newPassword)) {
+    pwErr.value = '新密碼需同時包含英文字母與數字'
     return
   }
   if (pw.value.newPassword !== pw.value.confirm) {

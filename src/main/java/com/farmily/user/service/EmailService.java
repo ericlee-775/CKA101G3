@@ -107,7 +107,7 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toAdminEmail);
-        message.setSubject("Farmily - 管理員密碼變更通知");
+        message.setSubject("Farmily 管理員團隊 - 密碼變更通知");
         message.setText("您的管理員密碼剛剛已變更，請使用新密碼登入。\n");
 
         mailSender.send(message);

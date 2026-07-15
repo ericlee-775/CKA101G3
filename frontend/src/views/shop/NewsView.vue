@@ -192,7 +192,7 @@ onMounted(loadNews)
 
 .news-card {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 360px 1fr;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 12px;

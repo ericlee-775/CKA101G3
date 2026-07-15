@@ -38,7 +38,10 @@
                     <div class="form-group">
                         <label>密碼</label>
                         <div class="input-group">
-                            <input type="password" name="password" class="form-control" required/>
+                            <input type="password" name="password" class="form-control" required
+                                   minlength="8" maxlength="60"
+                                   pattern="(?=.*[A-Za-z])(?=.*\d).{8,60}"
+                                   title="密碼長度需 8~60 字，且需同時包含英文字母與數字"/>
                             <div class="input-group-append">
                                 <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" aria-label="顯示密碼">
                                     <!-- 眼睛圖示對齊前端 Vue 的 PasswordInput（Feather eye / eye-off）-->
@@ -50,7 +53,7 @@
                     </div>
                     <div class="form-group">
                         <label>姓名</label>
-                        <input type="text" name="name" class="form-control" required/>
+                        <input type="text" name="name" class="form-control" required maxlength="50"/>
                     </div>
                     <div class="form-group">
                         <label>權限</label>

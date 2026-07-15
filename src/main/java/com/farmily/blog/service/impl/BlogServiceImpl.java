@@ -59,12 +59,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public BlogResponse getBlogDetail(Integer blogId) {
-        Blog blog = blogDao.getBlogById(blogId);
-        if (blog == null || blog.getBlogStatus() == BlogStatus.HIDDEN) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
-        }
-
-        return BlogResponse.from(blog); //轉成 DTO回去
+        return BlogResponse.from(getVisibleBlogOr404(blogId));   // 存在且非隱藏才回
     }
 
     @Override
@@ -84,6 +79,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public List<BlogCommentResponse> getBlogComments(Integer blogId) {
+        getVisibleBlogOr404(blogId);   // 隱藏文章不給讀留言
         List<BlogComment> comments = blogDao.getBlogComments(blogId);
         List<BlogCommentResponse> result = new ArrayList<>();
         for (BlogComment comment : comments) {
@@ -281,10 +277,7 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional
     public BlogResponse likeBlog(Integer blogId, Integer userId) {
-        Blog blog = blogDao.getBlogById(blogId);
-        if (blog == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
-        }
+        Blog blog = getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能按讚
         boolean nowLiked;
         if (blogDao.existsLike(blogId, userId)) {
             // 已經按過 → 取消讚
@@ -304,10 +297,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public BlogResponse getLikeStatus(Integer blogId, Integer userId) {
-        Blog blog = blogDao.getBlogById(blogId);
-        if (blog == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + blogId);
-        }
+        Blog blog = getVisibleBlogOr404(blogId);
         BlogResponse r = BlogResponse.from(blog);
         r.setLiked(userId != null && blogDao.existsLike(blogId, userId));
         return r;
@@ -321,6 +311,7 @@ public class BlogServiceImpl implements BlogService {
         if(userId == null ||     blogId == null) {
             throw new IllegalArgumentException("使用者和文章不能為NULL");
         }
+        getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能留言
         Integer commentId = blogDao.addComment(blogComment); //建立
         BlogComment newComment = blogDao.getBlogCommentById(commentId); //撈出剛建立的
         return BlogCommentResponse.from(newComment); //轉DTO
@@ -388,6 +379,16 @@ public class BlogServiceImpl implements BlogService {
 
 
     /* ===== 方法 ===== */
+
+    // 公開讀取/互動前：文章必須存在且非隱藏（和 getBlogDetail 行為一致）
+    private Blog getVisibleBlogOr404(Integer blogId) {
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog == null || blog.getBlogStatus() == BlogStatus.HIDDEN) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在：" + blogId);
+        }
+        return blog;
+    }
+
     private Blog getOwnedBlog(BlogAuthor author, Integer blogId) {
         Blog blog = blogDao.getBlogById(blogId);
         if (blog == null) {
@@ -401,4 +402,5 @@ public class BlogServiceImpl implements BlogService {
         }
         return blog;
     }
+
 }

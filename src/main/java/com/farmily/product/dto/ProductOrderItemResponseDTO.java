@@ -1,13 +1,13 @@
 package com.farmily.product.dto;
 
-//用於前端顯示的訂單明細資訊
+//用於會員前端顯示的訂單明細資訊
 public class ProductOrderItemResponseDTO {
 	
 	private String productName;
 	private Integer productId;
-	private Integer farmerId;
 	private Integer price;  	// 單價
 	private Integer quantity;	// 購買數量
+	private Integer itemSubtotal; // 該品項小計
 
 
 	public ProductOrderItemResponseDTO() {
@@ -30,14 +30,6 @@ public class ProductOrderItemResponseDTO {
 		this.productId = productId;
 	}
 
-	public Integer getFarmerId() {
-		return farmerId;
-	}
-
-	public void setFarmerId(Integer farmerId) {
-		this.farmerId = farmerId;
-	}
-
 	public Integer getPrice() {
 		return price;
 	}
@@ -52,6 +44,14 @@ public class ProductOrderItemResponseDTO {
 
 	public void setQuantity(Integer quantity) {
 		this.quantity = quantity;
+	}
+
+	public Integer getItemSubtotal() {
+		return itemSubtotal;
+	}
+
+	public void setItemSubtotal(Integer itemSubtotal) {
+		this.itemSubtotal = itemSubtotal;
 	}
 
 	

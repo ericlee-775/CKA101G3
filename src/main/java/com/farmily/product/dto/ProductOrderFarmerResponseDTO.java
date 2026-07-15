@@ -1,6 +1,7 @@
 package com.farmily.product.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 //用於小農前端顯示的訂單列表資訊
 public class ProductOrderFarmerResponseDTO {
@@ -9,11 +10,11 @@ public class ProductOrderFarmerResponseDTO {
 	private Integer userId;
 	private String shippingAddress;
 	private LocalDateTime createdAt;
-	private Integer totalAmount;
+	private Integer subtotal;
 	private String shippedStatus;
-	private LocalDateTime receivedAt;
+	private LocalDateTime shippedAt;
 	private String payoutStatus;
-	private LocalDateTime completedAt;
+	private List<ProductOrderItemFarmerResponseDTO> items;
 	
 	public ProductOrderFarmerResponseDTO() {
 		super();
@@ -51,12 +52,12 @@ public class ProductOrderFarmerResponseDTO {
 		this.createdAt = createdAt;
 	}
 
-	public Integer getTotalAmount() {
-		return totalAmount;
+	public Integer getSubtotal() {
+		return subtotal;
 	}
 
-	public void setTotalAmount(Integer totalAmount) {
-		this.totalAmount = totalAmount;
+	public void setSubtotal(Integer subtotal) {
+		this.subtotal = subtotal;
 	}
 
 	public String getShippedStatus() {
@@ -67,12 +68,12 @@ public class ProductOrderFarmerResponseDTO {
 		this.shippedStatus = shippedStatus;
 	}
 
-	public LocalDateTime getReceivedAt() {
-		return receivedAt;
+	public LocalDateTime getShippedAt() {
+		return shippedAt;
 	}
 
-	public void setReceivedAt(LocalDateTime receivedAt) {
-		this.receivedAt = receivedAt;
+	public void setShippedAt(LocalDateTime shippedAt) {
+		this.shippedAt = shippedAt;
 	}
 
 	public String getPayoutStatus() {
@@ -83,13 +84,14 @@ public class ProductOrderFarmerResponseDTO {
 		this.payoutStatus = payoutStatus;
 	}
 
-	public LocalDateTime getCompletedAt() {
-		return completedAt;
+	public List<ProductOrderItemFarmerResponseDTO> getItems() {
+		return items;
 	}
 
-	public void setCompletedAt(LocalDateTime completedAt) {
-		this.completedAt = completedAt;
+	public void setItems(List<ProductOrderItemFarmerResponseDTO> items) {
+		this.items = items;
 	}
+
 	
-	
+
 }

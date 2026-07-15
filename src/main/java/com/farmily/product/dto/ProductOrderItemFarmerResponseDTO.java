@@ -1,8 +1,8 @@
 package com.farmily.product.dto;
 
-
 //用於小農前端顯示的訂單明細資訊
 public class ProductOrderItemFarmerResponseDTO {
+	
 	private String productName;
 	private Integer productId;
 	private Integer price;
@@ -43,6 +43,6 @@ public class ProductOrderItemFarmerResponseDTO {
 	public void setQuantity(Integer quantity) {
 		this.quantity = quantity;
 	}
-	
+
 	
 }

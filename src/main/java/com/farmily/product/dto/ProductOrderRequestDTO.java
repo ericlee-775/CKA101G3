@@ -17,8 +17,10 @@ public class ProductOrderRequestDTO {
 	@Size (max = 80, message = "地址過長")
 	private String detailAddress;
 	
-	// 記錄哪一張小農訂單有用優惠券 Map<farmerId, couponId>
-	private Map<Integer, String> coupon = new HashMap<>();
+	private String coupon;
+	
+//	// 記錄哪一張小農訂單有用優惠券 Map<farmerId, couponId>
+//	private Map<Integer, String> coupon = new HashMap<>();
 
 	
 	public ProductOrderRequestDTO() {
@@ -41,12 +43,22 @@ public class ProductOrderRequestDTO {
 		this.detailAddress = detailAddress;
 	}
 
-	public Map<Integer, String> getCoupon() {
+	public String getCoupon() {
 		return coupon;
 	}
 
-	public void setCoupon(Map<Integer, String> coupon) {
+	public void setCoupon(String coupon) {
 		this.coupon = coupon;
 	}
+	
+	
+
+//	public Map<Integer, String> getCoupon() {
+//		return coupon;
+//	}
+//
+//	public void setCoupon(Map<Integer, String> coupon) {
+//		this.coupon = coupon;
+//	}
 
 }
