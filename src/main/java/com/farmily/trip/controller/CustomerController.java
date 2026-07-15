@@ -20,13 +20,14 @@ import com.farmily.trip.dto.OrderResponse;
 import com.farmily.trip.dto.OrderUpdateRequest; // 【新增】
 import com.farmily.trip.dto.SessionResponse;
 import com.farmily.trip.dto.TripDetailResponse;
-import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.service.FarmTripService;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLConnection;
 import org.springframework.http.MediaType;
+
+import com.farmily.trip.dto.TripListResponse;
 
 @RestController
 @RequestMapping("/api/farm-trips")
@@ -40,8 +41,8 @@ public class CustomerController {
 	}
 
 	@GetMapping
-	public ResponseEntity<List<FarmTrip>> getAll() {
-		return ResponseEntity.ok(farmTripService.getActiveTrips());
+	public ResponseEntity<List<TripListResponse>> getAll() {
+	    return ResponseEntity.ok(farmTripService.getActiveTripList());
 	}
 
 	// GET /api/farm-trips/3 → 看 id 為 3 的活動詳情

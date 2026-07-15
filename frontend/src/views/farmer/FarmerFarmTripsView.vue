@@ -5,12 +5,15 @@ import authStore from '@/stores/auth'
 
 const api = {
   create: (fd) => http.post('/api/farmer/farm-trips', fd),
+  updateTrip: (tripId, fd) => http.put(`/api/farmer/farm-trips/${tripId}`, fd),
+  removeTrip: (tripId, farmerId) => http.del(`/api/farmer/farm-trips/${tripId}?farmerId=${farmerId}`),
   myTrips: (farmerId) => http.get(`/api/farmer/farm-trips?farmerId=${farmerId}`),
   myOrders: (farmerId) => http.get(`/api/farmer/farm-trips/orders?farmerId=${farmerId}`),
   sessions: (tripId) => http.get(`/api/farm-trips/${tripId}/sessions`),
   createSession: (tripId, body) => http.post(`/api/farmer/farm-trips/${tripId}/sessions`, body),
   updateSession: (sessionId, body) => http.put(`/api/farmer/farm-trips/sessions/${sessionId}`, body),
   cancelSession: (sessionId) => http.put(`/api/farmer/farm-trips/sessions/${sessionId}/cancel`),
+  notifySession: (sessionId, body) => http.post(`/api/farmer/farm-trips/sessions/${sessionId}/notify`, body),
 }
 
 const farmerId = ref(null)
@@ -31,6 +34,14 @@ const creating = ref(false)
 const tripMsg = ref('')
 const tripErr = ref('')
 
+// ---- 修改活動 ----
+const editingTripId = ref(null)
+const editTripForm = ref({ farmTripType: 'FARM_EXPERIENCE', farmTripTitle: '', farmTripIntro: '', location: '', referPrice: null })
+const editTripPic = ref(null)
+const savingTrip = ref(false)
+const editTripMsg = ref('')
+const editTripErr = ref('')
+
 // ---- 新增場次 ----
 const newSession = ref({ farmTripStart: '', farmTripEnd: '', tripBookStart: '', tripBookEnd: '' })
 const sessionMsg = ref('')
@@ -38,6 +49,13 @@ const sessionMsg = ref('')
 // ---- 編輯場次 ----
 const editingId = ref(null)
 const editForm = ref({ farmTripStart: '', farmTripEnd: '', tripBookStart: '', tripBookEnd: '' })
+
+// ---- 通知報名者 ----
+const notifyingId = ref(null)   // 目前正在撰寫通知的場次 id
+const notifyForm = ref({ subject: '', message: '' })
+const notifySending = ref(false)
+const notifyMsg = ref('')
+const notifyErr = ref('')
 
 const TRIP_STATUS = { PENDING: '審核中', ACTIVE: '上架中', REJECTED: '已退回', CLOSED: '已關閉' }
 const SESSION_STATUS = { ACTIVE: '報名中', CANCELLED: '已取消', COMPLETED: '已截止' }
@@ -146,6 +164,61 @@ async function submitTrip() {
   }
 }
 
+// ===== 修改活動 =====
+function startEditTrip(t) {
+  editingTripId.value = t.farmTripId
+  editTripPic.value = null
+  editTripMsg.value = ''
+  editTripErr.value = ''
+  editTripForm.value = {
+    farmTripType: t.farmTripType || 'FARM_EXPERIENCE',
+    farmTripTitle: t.farmTripTitle || '',
+    farmTripIntro: t.farmTripIntro || '',
+    location: t.location || '',
+    referPrice: t.referPrice ?? null,
+  }
+}
+function cancelEditTrip() { editingTripId.value = null }
+function onEditPicChange(e) { editTripPic.value = e.target.files[0] || null }
+
+async function submitEditTrip(tripId) {
+  editTripMsg.value = ''
+  editTripErr.value = ''
+  if (!editTripForm.value.farmTripTitle) { editTripErr.value = '請填寫活動標題。'; return }
+  if (!farmerId.value) { editTripErr.value = '請先以小農身分登入。'; return }
+  savingTrip.value = true
+  try {
+    const fd = new FormData()
+    fd.append('farmerId', farmerId.value)
+    fd.append('farmTripType', editTripForm.value.farmTripType)
+    fd.append('farmTripTitle', editTripForm.value.farmTripTitle)
+    fd.append('farmTripIntro', editTripForm.value.farmTripIntro ?? '')
+    fd.append('location', editTripForm.value.location ?? '')
+    if (editTripForm.value.referPrice != null) fd.append('referPrice', editTripForm.value.referPrice)
+    if (editTripPic.value) fd.append('pic', editTripPic.value)
+    await api.updateTrip(tripId, fd)
+    editingTripId.value = null
+    await loadAll()
+  } catch (e) {
+    editTripErr.value = e.message || '修改失敗，請稍後再試。'
+  } finally {
+    savingTrip.value = false
+  }
+}
+
+// ===== 刪除活動 =====
+async function removeTrip(t) {
+  if (!confirm(`確定要刪除活動「${t.farmTripTitle}」嗎？此動作無法復原。`)) return
+  try {
+    await api.removeTrip(t.farmTripId, farmerId.value)
+    if (expandedId.value === t.farmTripId) expandedId.value = null
+    if (editingTripId.value === t.farmTripId) editingTripId.value = null
+    await loadAll()
+  } catch (e) {
+    alert('刪除失敗：' + (e.message || '請稍後再試'))
+  }
+}
+
 // ===== 新增場次 =====
 async function addSession(tripId) {
   sessionMsg.value = ''
@@ -201,9 +274,36 @@ async function cancelSess(tripId, sessionId) {
   }
 }
 
-// ===== 通知報名者（待接通知模組）=====
-function notifyRegistrants() {
-  alert('通知功能待接通知模組後開放。')
+// ===== 通知報名者 =====
+function openNotify(sessionId) {
+  notifyingId.value = notifyingId.value === sessionId ? null : sessionId
+  notifyForm.value = { subject: '', message: '' }
+  notifyMsg.value = ''
+  notifyErr.value = ''
+}
+function cancelNotify() { notifyingId.value = null }
+
+async function sendNotify(sessionId) {
+  notifyMsg.value = ''
+  notifyErr.value = ''
+  if (!notifyForm.value.message.trim()) { notifyErr.value = '請填寫通知內容。'; return }
+  notifySending.value = true
+  try {
+    const count = await api.notifySession(sessionId, {
+      subject: notifyForm.value.subject.trim(),
+      message: notifyForm.value.message.trim(),
+    })
+    if (count > 0) {
+      notifyMsg.value = `已寄出通知給 ${count} 位報名者。`
+      notifyForm.value = { subject: '', message: '' }
+    } else {
+      notifyErr.value = '沒有可通知的報名者（此場次沒有「已確認」的報名，或查無 email）。'
+    }
+  } catch (e) {
+    notifyErr.value = '寄送失敗：' + (e.message || '請稍後再試')
+  } finally {
+    notifySending.value = false
+  }
 }
 </script>
 
@@ -257,7 +357,35 @@ function notifyRegistrants() {
             </div>
             <div class="muted">{{ typeLabel(t.farmTripType) }}｜📍 {{ t.location }}｜{{ formatPrice(t.referPrice) }}</div>
           </div>
+          <div class="trip-ops" @click.stop>
+            <button class="btn-sm" @click="startEditTrip(t)">改活動</button>
+            <button class="btn-sm danger" @click="removeTrip(t)">刪除</button>
+          </div>
           <span class="chev">{{ expandedId === t.farmTripId ? '▲' : '▼' }}</span>
+        </div>
+
+        <!-- 修改活動 -->
+        <div v-if="editingTripId === t.farmTripId" class="trip-edit">
+          <p class="hint">修改後活動會改回「待審核」，須管理員重新審核通過才會再上架。</p>
+          <div class="form">
+            <label>活動類型
+              <select v-model="editTripForm.farmTripType">
+                <option value="FARM_EXPERIENCE">農場體驗營</option>
+                <option value="FIELD_VISIT">產地參訪</option>
+              </select>
+            </label>
+            <label>活動標題<input v-model="editTripForm.farmTripTitle" /></label>
+            <label class="full">活動介紹<textarea v-model="editTripForm.farmTripIntro" rows="3" /></label>
+            <label>地點<input v-model="editTripForm.location" /></label>
+            <label>參考價（每人）<input type="number" v-model.number="editTripForm.referPrice" min="0" placeholder="NT$" /></label>
+            <label class="full">更換圖片（不選則保留原圖）<input type="file" accept="image/*" @change="onEditPicChange" /></label>
+          </div>
+          <div class="edit-btns">
+            <button class="btn" :disabled="savingTrip" @click="submitEditTrip(t.farmTripId)">{{ savingTrip ? '儲存中…' : '儲存修改（重新送審）' }}</button>
+            <button class="btn-sm ghost" @click="cancelEditTrip">取消</button>
+          </div>
+          <p v-if="editTripMsg" class="msg">{{ editTripMsg }}</p>
+          <p v-if="editTripErr" class="err">{{ editTripErr }}</p>
         </div>
 
         <!-- 展開：場次 + 報名名單 -->
@@ -296,7 +424,7 @@ function notifyRegistrants() {
             <div class="roster" v-if="ordersOfSession(s.farmSessionId).length">
               <div class="roster-head">
                 報名名單（{{ ordersOfSession(s.farmSessionId).length }} 筆）
-                <button class="btn-sm ghost" @click="notifyRegistrants">通知報名者</button>
+                <button class="btn-sm ghost" @click="openNotify(s.farmSessionId)">通知報名者</button>
               </div>
               <ul>
                 <li v-for="o in ordersOfSession(s.farmSessionId)" :key="o.farmTripOrderId">
@@ -305,6 +433,24 @@ function notifyRegistrants() {
                   <span class="muted">｜{{ o.farmTripOrderBookingNo }}</span>
                 </li>
               </ul>
+
+              <!-- 撰寫通知信 -->
+              <div v-if="notifyingId === s.farmSessionId" class="notify-box">
+                <p class="hint">此通知會 email 給本場次「已確認」的報名者（已完成、已取消者不寄），內容可提醒衣著、天氣、裝備、集合地點等。</p>
+                <label>主旨（可留白，預設為「Farmily - 體驗活動提醒」）
+                  <input v-model="notifyForm.subject" placeholder="例如：草莓園採果體驗 - 行前提醒" />
+                </label>
+                <label>通知內容
+                  <textarea v-model="notifyForm.message" rows="4"
+                    placeholder="例如：本週日天氣涼，請穿著長袖與布鞋；集合地點在大湖遊客中心停車場，08:50 前抵達。" />
+                </label>
+                <div class="notify-btns">
+                  <button class="btn" :disabled="notifySending" @click="sendNotify(s.farmSessionId)">{{ notifySending ? '寄送中…' : '寄送通知' }}</button>
+                  <button class="btn-sm ghost" @click="cancelNotify">取消</button>
+                </div>
+                <p v-if="notifyMsg" class="msg">{{ notifyMsg }}</p>
+                <p v-if="notifyErr" class="err">{{ notifyErr }}</p>
+              </div>
             </div>
           </div>
 
@@ -350,6 +496,9 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--line); bord
 .trip-head:hover { background: var(--leaf-soft); }
 .thumb { width: 84px; height: 60px; object-fit: cover; border-radius: 8px; flex: none; }
 .trip-main { flex: 1; }
+.trip-ops { display: flex; gap: 8px; flex: none; }
+.trip-edit { padding: 12px 16px 18px; border-top: 1px dashed var(--line); background: var(--leaf-soft); }
+.trip-edit .edit-btns { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .trip-title { display: flex; align-items: center; gap: 10px; }
 .muted { color: var(--muted); font-size: 13px; }
 .chev { color: var(--muted); }
@@ -368,6 +517,8 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--line); bord
 .edit-btns { grid-column: 1 / -1; display: flex; gap: 8px; }
 .roster { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
 .roster-head { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.notify-box { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--leaf-soft); display: flex; flex-direction: column; gap: 10px; }
+.notify-btns { display: flex; align-items: center; gap: 10px; }
 .roster ul { list-style: none; padding: 0; margin: 0; }
 .roster li { padding: 4px 0; font-size: 14px; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 </style>
