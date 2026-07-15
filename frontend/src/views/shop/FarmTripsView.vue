@@ -137,6 +137,7 @@ onMounted(loadTrips)
           <img class="thumb" :src="`/api/farm-trips/${t.farmTripId}/image`" alt="" @error="hideImg" />
           <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
           <h3>{{ t.farmTripTitle }}</h3>
+          <p class="farm-name" v-if="t.farmName">🏡 {{ t.farmName }}</p>
           <p class="muted">📍 {{ t.location }}</p>
           <p class="star">{{ stars(t.starNumbers) }}</p>
           <p class="price">參考價 {{ formatPrice(t.referPrice) }}</p>
@@ -164,6 +165,8 @@ onMounted(loadTrips)
 </template>
 
 <style scoped>
+
+.farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
 
 .page-note {
   background: var(--leaf-soft); border-left: 4px solid var(--leaf);

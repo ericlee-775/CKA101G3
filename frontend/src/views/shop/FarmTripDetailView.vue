@@ -164,6 +164,7 @@ onMounted(loadDetail)
       <span class="badge">{{ typeLabel(detail.farmTripType) }}</span>
       <h2>{{ detail.farmTripTitle }}</h2>
       <img class="detail-img" :src="`/api/farm-trips/${detail.farmTripId}/image`" alt="" @error="hideImg" />
+      <p class="farm-name" v-if="detail.farmName">🏡 {{ detail.farmName }}</p>
       <p class="muted">📍 {{ detail.location }}</p>
       <p class="star">{{ stars(detail.starNumbers) }}（{{ detail.commentNumbers || 0 }} 則評論）</p>
       <p class="price">參考價 {{ formatPrice(detail.referPrice) }}</p>
@@ -227,6 +228,9 @@ onMounted(loadDetail)
 </template>
 
 <style scoped>
+
+.farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
+
 .page { padding: 32px clamp(18px, 4vw, 56px); color: var(--ink); }
 h2 { color: var(--ink); }
 

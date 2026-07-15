@@ -9,6 +9,7 @@ public class TripListResponse {
     private String location;
     private Integer referPrice;
     private Integer starNumbers;
+    private String farmName;
 
     public Integer getFarmTripId() { return farmTripId; }
     public void setFarmTripId(Integer farmTripId) { this.farmTripId = farmTripId; }
@@ -27,4 +28,8 @@ public class TripListResponse {
 
     public Integer getStarNumbers() { return starNumbers; }
     public void setStarNumbers(Integer starNumbers) { this.starNumbers = starNumbers; }
+    
+    public String getFarmName() { return farmName; }
+    public void setFarmName(String farmName) { this.farmName = farmName; }
+
 }
