@@ -107,6 +107,16 @@ async function loadBell(){
   }
 }
 
+// 登入後重載鈴鐺
+watch(() => authStore.isMember, (isMember) => {
+  if (isMember){
+    loadBell()
+  } else {
+    notifications.value = []
+    notificationStore.reset()
+  }
+})
+
 // 載入小鈴鐺，每 {300} 秒自動更新一次未讀數
 let BellTimer = null
 onMounted(() => {
