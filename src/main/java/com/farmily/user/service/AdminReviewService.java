@@ -25,6 +25,7 @@ public interface AdminReviewService {
     FarmerReviewResponse reject(Integer reviewId, Integer adminId, String rejectReason);
 
     // 取某輪審核的證明文件原始位元組（type = land | product | identity）
-    byte[] getCertFile(Integer reviewId, String type);
+    // 僅負責（認領/審核）此案件的管理員才能取檔，非負責者拋 AccessDeniedException
+    byte[] getCertFile(Integer reviewId, String type, Integer adminId);
 
 }

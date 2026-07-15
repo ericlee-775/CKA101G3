@@ -19,7 +19,13 @@ const loading = ref(false)
 // ===== 田埂插秧:一個欄位對應一叢秧苗,填好就插好一叢 =====
 const nameOk = computed(() => name.value.trim().length > 0)
 const emailOk = computed(() => email.value.includes('@') && email.value.length > 3)
-const pwdOk = computed(() => password.value.length >= 8)
+// 對齊後端：8~60 字且需同時含英文與數字
+const pwdOk = computed(() =>
+  password.value.length >= 8 &&
+  password.value.length <= 60 &&
+  /[A-Za-z]/.test(password.value) &&
+  /\d/.test(password.value)
+)
 const confirmOk = computed(() => confirm.value.length > 0 && confirm.value === password.value)
 
 // 四叢秧苗:label 顯示在小木牌上,ok = 該欄位完成(插好秧)
@@ -49,9 +55,13 @@ async function handleRegister() {
     error.value = '信箱格式不正確'
     return
   }
-  // 後端 @Size(min = 8):密碼至少 8 碼
-  if (password.value.length < 8) {
-    error.value = '密碼至少需 8 個字元'
+  // 後端 @Size(8~60) + @Pattern：長度 8~60 且需同時含英文與數字
+  if (password.value.length < 8 || password.value.length > 60) {
+    error.value = '密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(password.value) || !/\d/.test(password.value)) {
+    error.value = '密碼需同時包含英文字母與數字'
     return
   }
   // 確認兩次密碼一致

@@ -67,7 +67,10 @@
                 <div class="form-group">
                     <label>新密碼（至少 8 碼）</label>
                     <div class="input-group">
-                        <input type="password" name="newPassword" class="form-control" minlength="8" required/>
+                        <input type="password" name="newPassword" class="form-control" required
+                               minlength="8" maxlength="60"
+                               pattern="(?=.*[A-Za-z])(?=.*\d).{8,60}"
+                               title="密碼長度需 8~60 字，且需同時包含英文字母與數字"/>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" aria-label="顯示密碼">
                                 <svg class="icon-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
