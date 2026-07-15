@@ -1,6 +1,6 @@
 package com.farmily.product.dto;
 
-import com.farmily.product.model.Status;
+import com.farmily.product.model.ProductStatus;
 
 import jakarta.validation.constraints.Min;
 
@@ -24,13 +24,13 @@ public class ProductUpdatedDTO {
 	@Min(value = 0, message = "團購價不可為負數")
 	private Integer groupPrice; // 團購價
 	
-	private Status status;
+	private ProductStatus status;
 
-	public Status getStatus() {
+	public ProductStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(Status status) {
+	public void setStatus(ProductStatus status) {
 		this.status = status;
 	}
 

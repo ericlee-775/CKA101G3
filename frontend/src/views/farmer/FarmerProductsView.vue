@@ -1,17 +1,39 @@
 <script setup>
 // 小農後台：商品管理（待接後端 API）,商品管理（清單／改價／上下架）
-import { ref, onMounted} from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 
 const products = ref([])
+// 新增商品彈窗開關：按「＋ 新增商品」設 true 跳出來，關閉/取消設回 false
+const showAddModal = ref(false)
 const loading = ref(true)
 const error = ref('')
+const categoryErr = ref('')
 const categories = ref([])
 const selectedMainCat = ref('')
-const newProduct = ref([])
+const newProduct = ref({ productName: '', subCatClassId: '', retailPrice: '', groupPrice: '', unitPricingMeasure: '', isGroupBuy: false, description: '' })
 const selectedImage = ref(null)
 const addMsg = ref('')
 const addErr = ref('')
-const adding = ref([])
+const adding = ref(false)
+const mainCategories = computed(() => [...new Map(categories.value.map((s) => [s.productMainCatId, s.productMainCatName]))])
+const subCategoriesInMain = computed(() => categories.value.filter((s) => s.productMainCatId === selectedMainCat.value))
+
+// ===== 純前端分頁：一頁 5 筆，不用重打 API，直接從 products 切一段出來 =====
+const currentPage = ref(1)
+const pageSize = 5
+// 目前這一頁該顯示的商品：算出「起點」，往後切 5 筆
+const pagedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return products.value.slice(start, start + pageSize)
+})
+// 總共幾頁：商品總數除以 5、無條件進位；至少是 1 頁，避免 0/0 的怪狀況
+const totalPages = computed(() => Math.ceil(products.value.length / pageSize) || 1)
+// 頁碼按鈕要顯示的數字清單：[1, 2, 3, ...totalPages]
+const pageNumbers = computed(() => {
+  const pages = []
+  for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+  return pages
+})
 
 
 async function loadProducts() {
@@ -77,7 +99,86 @@ async function changeStatus(product, status) {
 
 }
 
+async function loadCategories() {
+
+
+  error.value = ''
+  try {
+    const res = await fetch('/api/products/categories')
+    if (!res.ok) {
+
+      throw new Error(`伺服器回應${res.status}`)
+    }
+    categories.value = await res.json()
+
+  } catch (e) {
+    categoryErr.value = e.message || '無法載入商品,請稍後再試'
+  }
+
+}
+
+function onFileChange(event) {
+
+  const file = event.target.files[0]
+  selectedImage.value = file
+
+}
+
+async function addProduct() {
+  addMsg.value = ''
+  addErr.value = ''
+
+  try {
+
+    const fd = new FormData()
+    fd.append('productName', newProduct.value.productName)
+    fd.append('subCatClassId', newProduct.value.subCatClassId)
+    fd.append('retailPrice', newProduct.value.retailPrice)
+    fd.append('groupPrice', newProduct.value.groupPrice)
+    fd.append('unitPricingMeasure', newProduct.value.unitPricingMeasure)
+    fd.append('isGroupBuy', newProduct.value.isGroupBuy)
+    fd.append('description', newProduct.value.description)
+    if (selectedImage.value) { fd.append('productImage', selectedImage.value) }
+
+    adding.value = true
+    const res = await fetch(`/api/farmer/products`, {
+      method: 'POST',
+      credentials: 'include',
+      body: fd
+    })
+    if (!res.ok) {
+      // 讀後端回傳的文字內容（例如「驗證失敗」），沒有的話才退回顯示狀態碼
+      const msg = await res.text()
+      throw new Error(msg || `伺服器回應${res.status}`)
+    }
+
+    addMsg.value = '已新增'
+    loadProducts()
+    newProduct.value = { productName: '', subCatClassId: '', retailPrice: '', groupPrice: '', unitPricingMeasure: '', isGroupBuy: false, description: '' }
+    selectedImage.value = null
+  } catch (e) {
+    addErr.value = e.message || '無法新增商品,請稍後再試'
+  }
+  finally {
+    adding.value = false
+
+  }
+
+}
+
+// Esc 鍵關閉彈窗，照抄 ConfirmDialog.vue 的做法：
+// 彈窗開著時才掛鍵盤監聽，關閉時移除，避免沒開彈窗時 Esc 也被攔截
+function onModalKeydown(e) {
+  if (e.key === 'Escape') showAddModal.value = false
+}
+watch(showAddModal, (open) => {
+  if (open) window.addEventListener('keydown', onModalKeydown)
+  else window.removeEventListener('keydown', onModalKeydown)
+})
+onUnmounted(() => window.removeEventListener('keydown', onModalKeydown))
+
 onMounted(loadProducts)
+onMounted(loadCategories)
 </script>
 
 <template>
@@ -86,50 +187,166 @@ onMounted(loadProducts)
       <h1>📦 商品管理</h1>
     </header>
 
+    <!-- 商品清單卡片：現在是整個版面唯一的主角，標題旁邊放「新增商品」按鈕 -->
+    <section class="card">
+      <div class="card-head">
+        <h2>目前商品</h2>
+        <button type="button" class="btn" @click="showAddModal = true">＋ 新增商品</button>
+      </div>
 
-    <p v-if="loading" class="state">載入中..</p>
+      <p v-if="loading" class="state">載入中..</p>
 
-    <div v-else-if="error" class="state state-error">
-      <p>{{ error }}</p>
-      <button type="button" @click="loadProducts">重新載入</button>
-    </div>
+      <div v-else-if="error" class="state state-error">
+        <p class="msg-err">{{ error }}</p>
+        <button type="button" class="btn-ghost" @click="loadProducts">重新載入</button>
+      </div>
 
-    <p v-else-if="products.length === 0" class="state">目前沒有商品。</p>
+      <p v-else-if="products.length === 0" class="state">目前沒有商品。</p>
 
-    <section v-else>
-      <article v-for="(product, index) in products" :key="product.productId">
-        <h2>{{ product.productName }}</h2>
-        <p>{{ "第" + (index + 1) + "項" }}</p>
-        <p>{{ product.unitPricingMeasure }}</p>
-        <p>{{ product.status }}</p>
-        <input type="number" v-model="product.retailPrice">
-        <button type="button" @click="savePrice(product)">
-          存價格
-        </button>
-         <button type="button" @click="changeStatus(product,'ACTIVE')">
-          上架
-        </button>
-         <button type="button" @click="changeStatus(product,'INACTIVE')">
-          下架
-        </button>
-      </article>
+      <div v-else class="product-list">
+        <article v-for="(product, index) in pagedProducts" :key="product.productId" class="product-row">
+          <div class="product-row__head">
+            <h3>{{ product.productName }}</h3>
+            <!-- 上架/下架用不同顏色的小標籤，一眼就能分辨狀態 -->
+            <span class="tag" :class="{ 'tag-warn': product.status !== 'ACTIVE' }">{{ product.status }}</span>
+          </div>
+          <!-- 「第幾項」不能只看 index：index 每一頁都會重新從 0 算，
+               要加上「前面幾頁跳過的筆數」才是這筆商品在整份清單裡真正的排名 -->
+          <p class="product-row__unit">
+            第{{ (currentPage - 1) * pageSize + index + 1 }}項・{{ product.unitPricingMeasure }}
+          </p>
+
+          <div class="product-row__actions">
+            <input type="number" v-model="product.retailPrice" class="price-input">
+            <button type="button" class="btn" @click="savePrice(product)">存價格</button>
+            <button type="button" class="btn-ghost" @click="changeStatus(product, 'ACTIVE')">上架</button>
+            <button type="button" class="btn-ghost" @click="changeStatus(product, 'INACTIVE')">下架</button>
+          </div>
+        </article>
+
+        <!-- 分頁控制：只有 1 頁時不用顯示上一頁/下一頁，畫面比較乾淨 -->
+        <div v-if="totalPages > 1" class="pagination">
+          <button type="button" class="btn-ghost" :disabled="currentPage === 1" @click="currentPage--">
+            上一頁
+          </button>
+          <!-- 頁碼下拉選單：選了哪一頁，v-model 直接把 currentPage 設成那個數字，馬上跳頁 -->
+          <select v-model="currentPage" class="page-select">
+            <option v-for="page in pageNumbers" :key="page" :value="page">第 {{ page }} 頁</option>
+          </select>
+          <button type="button" class="btn-ghost" :disabled="currentPage === totalPages" @click="currentPage++">
+            下一頁
+          </button>
+        </div>
+      </div>
     </section>
 
-  
+    <!-- 新增商品彈窗：平常不顯示，按上面「＋ 新增商品」才跳出來。
+         結構照抄 ConfirmDialog.vue：Teleport 到 body 避免被版面卡住、
+         Transition 做淡入淡出、遮罩層 @click.self 點背景關閉。-->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
+          <div class="modal-card" role="dialog" aria-modal="true">
+            <div class="modal-head">
+              <h2>新增商品</h2>
+              <button type="button" class="modal-close" @click="showAddModal = false" aria-label="關閉">✕</button>
+            </div>
+
+            <form class="form" @submit.prevent="addProduct">
+              <div class="grid2">
+                <label>
+                  <span>大分類</span>
+                  <select v-model="selectedMainCat">
+                    <option value="">請選擇大分類</option>
+                    <option v-for="[id, name] in mainCategories" :key="id" :value="id">{{ name }}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>子分類</span>
+                  <select v-model="newProduct.subCatClassId" :disabled="!selectedMainCat">
+                    <option value="">請選擇子類別</option>
+                    <option v-for="s in subCategoriesInMain" :key="s.subCatClassId" :value="s.subCatClassId">
+                      {{ s.subCatClassName }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                <span>商品名稱</span>
+                <input type="text" v-model="newProduct.productName">
+              </label>
+
+              <div class="grid2">
+                <label>
+                  <span>零售價</span>
+                  <input type="number" v-model="newProduct.retailPrice">
+                </label>
+                <label>
+                  <span>團購價（選填）</span>
+                  <input type="number" v-model="newProduct.groupPrice">
+                </label>
+              </div>
+
+              <label>
+                <span>計價單位</span>
+                <input type="text" v-model="newProduct.unitPricingMeasure" placeholder="例如：包/300g">
+              </label>
+
+              <label>
+                <span>商品描述（選填）</span>
+                <input type="text" v-model="newProduct.description">
+              </label>
+
+              <label class="checkbox-row">
+                <input type="checkbox" v-model="newProduct.isGroupBuy">
+                <span>開放團購</span>
+              </label>
+
+              <label>
+                <span>商品圖片（選填）</span>
+                <input type="file" @change="onFileChange">
+              </label>
+
+              <!-- 用固定高度的容器包住訊息，不管有沒有訊息、訊息多長，
+                   這塊空間都在，下面的送出按鈕才不會被推來推去 -->
+              <div class="form-msg">
+                <p v-if="categoryErr" class="msg-err">{{ categoryErr }}</p>
+                <p v-if="addMsg" class="msg-ok">{{ addMsg }}</p>
+                <p v-if="addErr" class="msg-err">{{ addErr }}</p>
+              </div>
+
+              <button type="submit" class="btn" :disabled="adding">
+                {{ adding ? '新增中…' : '新增商品' }}
+              </button>
+            </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </main>
 </template>
 
 <style scoped>
+/* 整頁外框：留白＋限制最大寬度並置中，跟 FarmerProfileView 同一種「單欄置中」手感。
+   用 flex column + gap 排列底下兩張卡片（商品清單卡、新增商品卡），不用自己一個個加 margin。*/
 .farmer-page {
   padding: 32px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .page-head h1 {
-  margin: 0 0 20px;
-  font-size: 24px;
+  margin: 0;
+  font-size: 26px;
   color: var(--ink);
 }
 
+/* 卡片：全站共用的樣式（白底、淡邊框、陰影、頂部一條主題綠），
+   兩張卡片（商品清單／新增商品）都套這個 class，看起來才會像同一個系統。*/
 .card {
   background: #fff;
   border: 1px solid var(--line);
@@ -138,10 +355,298 @@ onMounted(loadProducts)
   padding: 24px;
   border-top: 3px solid var(--leaf);
 }
-
-.placeholder {
+.card h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--ink);
+}
+/* 卡片標題那一行：文字靠左、「新增商品」按鈕靠右，兩端對齊 */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-head h2 {
   margin: 0;
+}
+
+/* 載入中／空清單的置中提示文字（顏色用次要文字色，不搶主要內容的視覺） */
+.state {
+  text-align: center;
   color: var(--muted);
+  padding: 24px 0;
+}
+.state-error {
+  padding: 0;
+}
+
+/* 表單/操作的成功、失敗訊息：綠色=成功、紅色=失敗，全站統一用這兩個 class */
+.msg-ok {
+  margin: 0;
+  color: var(--leaf);
+  font-size: 13px;
+}
+.msg-err {
+  margin: 0;
+  color: #c0392b;
+  font-size: 13px;
+}
+
+/* 訊息容器：min-height 抓「合併好幾則錯誤」時大概會佔的高度，
+   平常沒有訊息時這塊空間依然保留，按鈕位置才不會一直跳動 */
+.form-msg {
+  min-height: 40px;
+}
+
+/* ===== 商品清單 ===== */
+
+/* 每筆商品之間的垂直間距 */
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 單筆商品的外框：用淡邊框把它跟卡片背景區隔出來，不需要再加一層陰影（太重複） */
+.product-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+/* 商品名稱 + 狀態標籤 排在同一行、左右對齊 */
+.product-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.product-row__head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+}
+.product-row__unit {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* 價格輸入框＋三顆按鈕排一列，螢幕太窄時自動換行（flex-wrap） */
+.product-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 狀態小標籤：綠色代表上架、橘色代表下架，
+   跟 FarmerProfileView 審核狀態的 .tag/.tag-warn 用同一套配色邏輯 */
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+}
+.tag-warn {
+  background: #fdecc8;
+  color: #9a6a00;
+}
+
+/* 分頁控制列：上一頁／目前頁數／下一頁，置中排列 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+/* 頁碼下拉選單：跟其他小型輸入框同一種尺寸感，選了哪頁 v-model 直接跳過去 */
+.page-select {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 13px;
+  outline: none;
+}
+.page-select:focus {
+  border-color: var(--leaf);
+}
+
+/* 商品清單裡改價格用的輸入框，故意比表單其他欄位窄，因為只填一個數字 */
+.price-input {
+  width: 90px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.price-input:focus {
+  outline: none;
+  border-color: var(--leaf);
+}
+
+/* ===== 新增商品表單 ===== */
+
+/* 表單整體：一路往下排，欄位之間留固定間距 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* 每個欄位是「標籤文字 + 輸入框」上下排列 */
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.form input,
+.form select {
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
   font-size: 15px;
+  outline: none;
+  font-family: inherit;
+}
+.form input:focus,
+.form select:focus {
+  border-color: var(--leaf);
+}
+
+/* 兩欄並排（大分類/子分類、零售價/團購價），畫面太窄時改回單欄，見下面 @media */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* checkbox 那一行不用直排：勾選框和文字放同一行比較好讀。
+   用「.form .checkbox-row」而不是單純「.checkbox-row」，
+   是為了讓這行的優先權蓋過上面 .form label 設的 flex-direction: column。*/
+.form .checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.checkbox-row input {
+  width: auto;
+}
+
+/* 主要動作按鈕（存價格／新增商品）：實心主題綠，最顯眼 */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: var(--leaf);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--leaf-dark);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 次要動作按鈕（重新載入／上架／下架）：白底外框，比 .btn 低調 */
+.btn-ghost {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+
+/* 手機寬度：兩欄並排的 grid2 改成單欄，避免欄位擠在一起 */
+@media (max-width: 560px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 新增商品彈窗 =====
+   視覺語言照抄 ConfirmDialog.vue（半透明遮罩＋置中白卡片），
+   因為是 Teleport 到 body、且是 scoped 樣式，這裡要重新定義一份，
+   不能直接沿用 ConfirmDialog 內部的 .cd-xxx（scoped 樣式不會跨元件共用）。*/
+
+/* 遮罩層：鋪滿整個畫面，蓋在最上層 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(30, 30, 25, 0.45);
+}
+
+/* 彈窗本體：比 ConfirmDialog 寬，因為裡面要放整個表單；
+   加 max-height + overflow-y，螢幕太矮時表單可以在卡片內捲動，不會被切掉 */
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(30, 25, 15, 0.28);
+  padding: 24px;
+}
+
+/* 彈窗標題列：標題靠左、關閉按鈕（✕）靠右 */
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+.modal-close:hover {
+  color: var(--ink);
+}
+
+/* 淡入淡出＋卡片微縮放的過場動畫（Vue 的 Transition 會自動加/拿掉這些 class） */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active .modal-card,
+.modal-fade-leave-active .modal-card {
+  transition: transform 0.18s ease;
+}
+.modal-fade-enter-from .modal-card,
+.modal-fade-leave-to .modal-card {
+  transform: scale(0.94);
 }
 </style>

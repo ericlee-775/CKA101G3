@@ -1,19 +1,31 @@
 <script setup>
 // 會員中心「我的團購」：進行中的團購清單（獨立元件，內容都寫在這裡）
 // 資料來源：GET /api/member/groupBuy/joinedGroupBuyList
-// 回傳欄位（ShowJoinedGroupBuyDTO）：status / ddlDatetime / pickupAddress / productName / buyQty / paidAmount
-import { ref, onMounted } from 'vue'
+// 回傳欄位（ShowJoinedGroupBuyDTO）：status / ddlDatetime / pickupAddress / productName / buyQty /
+//   paidAmount / targetAmount（目標金額）/ difference（還差多少錢成團）
+//
+// 後端這支目前不會過濾狀態，一筆團購成團（status=success）之後還是會留在清單裡；
+// 但成團的訂單已經有獨立的「訂單」分頁（GroupBuyOrderList.vue，資料源是 /mySuccessOrders），
+// 所以這裡改成前端自己把 success 的濾掉，避免同一筆團購「進行中」跟「訂單」兩邊都出現。
+import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
 
 // 通知父層（MemberGroupBuysView）目前有幾筆，顯示在 tab 的數字小徽章
 const emit = defineEmits(['count'])
 
-const list = ref([])
+const rawList = ref([])
+const list = computed(() => rawList.value.filter((gb) => gb.status !== 'success'))
 const loading = ref(true)
 const error = ref('')
 
+const { page, totalPages, pageItems: pagedList } = usePagination(list, 10)
+
 // 後端 GroupBuyStatus 是英文代碼（沒加 @JsonValue，Jackson 用 enum name 序列化），
 // 前端自己對照中文與徽章顏色；tone 對應下方 CSS 的 .badge--xxx
+// success 不會出現在這裡（已經被上面的 computed 濾掉，成團會改到「訂單」分頁），
+// 保留在對照表只是以防萬一，不影響畫面。
 const STATUS_MAP = {
   open:      { label: '開團中', tone: 'green' },
   pending:   { label: '待開團', tone: 'amber' },
@@ -47,7 +59,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    list.value = (await memberGroupBuyApi.joinedGroupBuyList()) || []
+    rawList.value = (await memberGroupBuyApi.joinedGroupBuyList()) || []
     emit('count', list.value.length)
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
@@ -85,36 +97,48 @@ onMounted(load)
     </div>
 
     <!-- 團購卡片 -->
-    <article v-for="(gb, i) in list" :key="i" class="gb-card">
-      <header class="gb-head">
-        <h3 class="gb-name">{{ gb.productName }}</h3>
-        <div class="gb-badges">
-          <span v-if="isClosingSoon(gb.ddlDatetime)" class="badge badge--red">⏰ 即將截止</span>
-          <span class="badge" :class="`badge--${statusOf(gb.status).tone}`">
-            {{ statusOf(gb.status).label }}
+    <template v-else>
+      <article v-for="(gb, i) in pagedList" :key="i" class="gb-card">
+        <header class="gb-head">
+          <h3 class="gb-name">{{ gb.productName }}</h3>
+          <div class="gb-badges">
+            <span v-if="isClosingSoon(gb.ddlDatetime)" class="badge badge--red">⏰ 即將截止</span>
+            <span class="badge" :class="`badge--${statusOf(gb.status).tone}`">
+              {{ statusOf(gb.status).label }}
+            </span>
+          </div>
+        </header>
+
+        <dl class="gb-grid">
+          <div class="gb-cell">
+            <dt>我訂購</dt>
+            <dd>{{ gb.buyQty ?? '—' }} 件</dd>
+          </div>
+          <div class="gb-cell">
+            <dt>已付金額</dt>
+            <dd class="gb-money">{{ formatMoney(gb.paidAmount) }}</dd>
+          </div>
+          <div class="gb-cell">
+            <dt>截止時間</dt>
+            <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
+          </div>
+          <div class="gb-cell gb-cell--wide">
+            <dt>取貨地點</dt>
+            <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
+          </div>
+        </dl>
+
+        <!-- 開團中才有意義：離成團還差多少錢 -->
+        <div v-if="gb.status === 'open'" class="gb-progress">
+          <span>目標金額 {{ formatMoney(gb.targetAmount) }}</span>
+          <span class="gb-progress__diff">
+            {{ gb.difference > 0 ? `再 ${formatMoney(gb.difference)} 即成團` : '已達標，等待截止結算' }}
           </span>
         </div>
-      </header>
+      </article>
 
-      <dl class="gb-grid">
-        <div class="gb-cell">
-          <dt>我訂購</dt>
-          <dd>{{ gb.buyQty ?? '—' }} 件</dd>
-        </div>
-        <div class="gb-cell">
-          <dt>已付金額</dt>
-          <dd class="gb-money">{{ formatMoney(gb.paidAmount) }}</dd>
-        </div>
-        <div class="gb-cell">
-          <dt>截止時間</dt>
-          <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
-        </div>
-        <div class="gb-cell gb-cell--wide">
-          <dt>取貨地點</dt>
-          <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
-        </div>
-      </dl>
-    </article>
+      <Pagination v-model:page="page" :total-pages="totalPages" />
+    </template>
   </div>
 </template>
 
@@ -193,6 +217,24 @@ onMounted(load)
   grid-column: 1 / -1;
 }
 .gb-money {
+  font-weight: 700;
+  color: var(--leaf-dark);
+}
+
+/* 開團中的達標進度提示 */
+.gb-progress {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--leaf-soft);
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.gb-progress__diff {
   font-weight: 700;
   color: var(--leaf-dark);
 }

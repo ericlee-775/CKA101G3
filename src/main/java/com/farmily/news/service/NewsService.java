@@ -16,7 +16,7 @@ public interface NewsService {
 
     //管理員
 
-
+    byte[] getAdminNewsImage(Integer newsId);                                  // admin 封面圖(任意狀態)
 
     Page<NewsResponse> getAllNews(Integer offset, Integer limit);              // admin 全狀態列表
 

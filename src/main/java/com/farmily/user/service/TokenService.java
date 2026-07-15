@@ -1,5 +1,6 @@
 package com.farmily.user.service;
 
+import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
@@ -81,7 +82,7 @@ public class TokenService {
 
         // 不存在/已用過/已過期/用途不符，丟例外
         if (jsonStr == null) {
-            throw new IllegalArgumentException("連結無效或已過期，請重新申請");
+            throw new InvalidTokenException();
         }
 
         // JSON to Object: 把 JSON 字串還原回 AccountToken 物件

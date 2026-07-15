@@ -36,6 +36,14 @@ public class NewsServiceImpl implements NewsService {
     @Override
     @Transactional(readOnly = true)
     public byte[] getNewsImage(Integer newsId) {
+        News news = newsRepository.findByNewIdAndNewsStatus(newsId, NewStatus.VISIBLE)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "最新消息不存在: " + newsId));
+        return news.getCoverImg();
+    }
+    //後台取得封面圖 bytes（任何狀態，草稿/隱藏也能預覽）
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getAdminNewsImage(Integer newsId) {
         News news = newsRepository.findById(newsId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "最新消息不存在: " + newsId));
         return news.getCoverImg();
@@ -129,7 +137,11 @@ public class NewsServiceImpl implements NewsService {
         //改欄位
         news.setTitle(request.getTitle());
         news.setContent(request.getContent());
-        news.setPublishTime(request.getPublishTime());
+
+        if (request.getPublishTime() != null) {
+            news.setPublishTime(request.getPublishTime());
+        }
+        
         //圖片 沒有新圖 就回傳舊圖
         if (request.getCoverImg() != null) {
             news.setCoverImg(request.getCoverImg());

@@ -3,6 +3,7 @@ package com.farmily.user.model;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -59,7 +60,7 @@ public class User implements Serializable {
     private UserStatus userStatus = UserStatus.ACTIVE;
 
     @Column(name = "monthly_spending")
-    private Integer monthlySpending = 0;
+    private BigDecimal monthlySpending = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
@@ -165,11 +166,11 @@ public class User implements Serializable {
         this.userStatus = userStatus;
     }
 
-    public Integer getMonthlySpending() {
+    public BigDecimal getMonthlySpending() {
         return monthlySpending;
     }
 
-    public void setMonthlySpending(Integer monthlySpending) {
+    public void setMonthlySpending(BigDecimal monthlySpending) {
         this.monthlySpending = monthlySpending;
     }
 

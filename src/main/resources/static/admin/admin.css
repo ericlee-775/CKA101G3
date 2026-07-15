@@ -25,7 +25,8 @@
     --sidebar-w:  248px;
     --topbar-h:   62px;
     --font-sans:  'Noto Sans TC', system-ui, -apple-system, 'Microsoft JhengHei', sans-serif;
-    --font-serif: 'Noto Serif TC', 'Noto Sans TC', serif;
+    /* 後台統一使用黑體（對標側邊欄選單）：serif 別名保留相容，實際指向黑體 */
+    --font-serif: var(--font-sans);
 }
 
 /* ---------- 基礎 ---------- */

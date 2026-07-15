@@ -78,7 +78,7 @@ class ProductRepositoryTest {
 		assertEquals("這是測試用的", saveProduct.getDescription());
 		assertEquals(existingProduct.getSubCategoryVO().getSubCatClassId(),
 				saveProduct.getSubCategoryVO().getSubCatClassId());
-		assertEquals(Status.ACTIVE, saveProduct.getStatus());
+		assertEquals(ProductStatus.ACTIVE, saveProduct.getStatus());
 		assertNull(saveProduct.getProductImage());
 	}
 
@@ -115,7 +115,7 @@ class ProductRepositoryTest {
 		assertEquals(1, saveProduct.getFarmerId());
 		assertEquals(true, saveProduct.getIsGroupBuy());
 		assertEquals("這是測試用的", saveProduct.getDescription());
-		assertEquals(Status.ACTIVE, saveProduct.getStatus());
+		assertEquals(ProductStatus.ACTIVE, saveProduct.getStatus());
 		assertEquals(existingProduct.getSubCategoryVO().getSubCatClassId(),
 				saveProduct.getSubCategoryVO().getSubCatClassId());
 		assertArrayEquals("測試圖片內容".getBytes(), saveProduct.getProductImage());
@@ -192,12 +192,12 @@ class ProductRepositoryTest {
 		Integer originalGroupPrice = existingProduct.getGroupPrice();
 
 		ProductUpdatedDTO productDTO = new ProductUpdatedDTO();
-		productDTO.setStatus(Status.INACTIVE);
+		productDTO.setStatus(ProductStatus.INACTIVE);
 
 		assertTrue(productServiceImpl.updateProduct(1, productDTO, ownerId));
 
 		ProductVO updateProduct = productRepository.findById(1).orElse(null);
-		assertEquals(Status.INACTIVE, updateProduct.getStatus());
+		assertEquals(ProductStatus.INACTIVE, updateProduct.getStatus());
 		assertEquals(originalRetailPrice, updateProduct.getRetailPrice());
 		assertEquals(originalGroupPrice, updateProduct.getGroupPrice());
 

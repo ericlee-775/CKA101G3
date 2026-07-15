@@ -62,14 +62,17 @@ public interface BlogService {
     void deleteMyPhoto(BlogAuthor author, Integer photoId);
 
     /* ===== 互動 ===== */
-    // toggle：回傳 true=這次變成已按讚，false=這次取消讚
+    // toggle：回傳的 liked=true 代表這次變成已按讚，false=這次取消讚
     BlogResponse likeBlog(Integer blogId, Integer userId);
+
+    // 進頁面時查「這位會員按過沒」；userId 為 null（未登入）時 liked=false
+    BlogResponse getLikeStatus(Integer blogId, Integer userId);
 
     BlogCommentResponse addBlogComment(BlogCommentRequest blogComment);
 
     BlogComment getBlogCommentsById(Integer commentId);
 
-    void deleteComment(Integer commentId);
+    void deleteComment(Integer commentId, Integer userId);
 
     Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest);
 

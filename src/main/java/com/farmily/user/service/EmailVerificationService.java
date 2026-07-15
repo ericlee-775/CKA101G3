@@ -1,5 +1,6 @@
 package com.farmily.user.service;
 
+import com.farmily.user.exception.*;
 import com.farmily.user.model.AccountToken;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.User;
@@ -78,14 +79,14 @@ public class EmailVerificationService {
         if (accountToken.getAccountType() == AccountToken.AccountType.MEMBER) {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) {
-                throw new IllegalArgumentException("查無此帳號");
+                throw new UserNotFoundException();
             }
             user.setEmailVerified(true);
             userRepository.save(user);
         } else {
             Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
             if (farmer == null) {
-                throw new IllegalArgumentException("查無此帳號");
+                throw new UserNotFoundException();
             }
             farmer.setEmailVerified(true);
             farmerRepository.save(farmer);

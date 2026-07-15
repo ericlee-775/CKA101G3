@@ -15,7 +15,7 @@ async function loadNews() {
   error.value = ''
 
   try {
-    const offset = (page.value - 1) * pageSize + 1
+    const offset = (page.value - 1) * pageSize
     const res = await fetch(`/api/news?limit=${pageSize}&offset=${offset}`, {
       credentials: 'include',
     })
@@ -192,7 +192,7 @@ onMounted(loadNews)
 
 .news-card {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 360px 1fr;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 12px;

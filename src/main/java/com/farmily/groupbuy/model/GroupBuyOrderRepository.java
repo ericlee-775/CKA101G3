@@ -14,6 +14,9 @@ public interface GroupBuyOrderRepository extends JpaRepository<GroupBuyOrderVO, 
 	//給小農看待出貨跟已出貨
 	List<GroupBuyOrderVO>findByShippedStatusAndOrderStatus(ShippedStatus shippedStatus,OrderStatus orderstatus);
 	Optional<GroupBuyOrderVO>findByOrderIdAndGroupBuyId_Product_FarmerId(Integer OrderId,Integer farmerId);
+	Optional<GroupBuyOrderVO>findByOrderIdAndGroupBuyId_HostUser_UserId(Integer orderId,Integer userId);
+	
+	
 	@Query("""
 		    SELECT o
 		    FROM GroupBuyOrderVO o

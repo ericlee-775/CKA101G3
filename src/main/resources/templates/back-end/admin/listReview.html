@@ -4,6 +4,15 @@
       layout:decorate="~{back-end/admin/layout}">
 <head>
     <title>小農審核</title>
+    <style>
+        /* 審核中案件收合起來，點 summary 展開才看得到內容 */
+        details.review-item > summary { cursor: pointer; list-style: none; }
+        details.review-item > summary::-webkit-details-marker { display: none; }
+        details.review-item[open] > summary { border-bottom: 1px solid #eee; }
+        /* 退件鈕本身是 summary，去掉預設三角，外觀維持按鈕樣式 */
+        .reject-box > summary { list-style: none; }
+        .reject-box > summary::-webkit-details-marker { display: none; }
+    </style>
 </head>
 <body>
 
@@ -16,67 +25,89 @@
     <div class="table-card mb-4">
         <table class="table table-bordered mb-0">
             <thead class="thead-light">
-            <tr><th>計數</th><th>審核編號</th><th>農場名稱</th><th>Email</th><th>輪次</th><th>送審時間</th><th>操作</th></tr>
+            <tr><th>審核編號</th><th>農場名稱</th><th>Email</th><th>輪次</th><th>送審時間</th><th>操作</th></tr>
             </thead>
             <tbody>
-            <tr th:each="r, stat : ${pendingData}">
-                <td th:text="${stat.count}"></td>
+            <tr th:each="r : ${pendingData}">
                 <td th:text="${r.reviewId}"></td>
                 <td th:text="${r.farmName}"></td>
                 <td th:text="${r.farmerEmail}"></td>
                 <td th:text="${r.reviewRound}"></td>
                 <td th:text="${r.submittedAt != null ? #temporals.format(r.submittedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
                 <td>
-                    <form method="post" th:action="@{/admin/reviews/{id}/start(id=${r.reviewId})}">
-                        <button class="btn btn-sm btn-primary">開始審核</button>
+                    <form method="post" th:action="@{/admin/reviews/{id}/start(id=${r.reviewId})}"
+                          onsubmit="return confirm('確定認領此審核案件？認領後將由您負責後續審核。');">
+                        <button class="btn btn-sm btn-primary">認領審核</button>
                     </form>
                 </td>
             </tr>
-            <tr th:if="${pendingData.isEmpty()}"><td colspan="7" class="text-center text-muted">目前沒有待審案件</td></tr>
+            <tr th:if="${pendingData.isEmpty()}"><td colspan="6" class="text-center text-muted">目前沒有待審案件</td></tr>
             </tbody>
         </table>
     </div>
 
     <!-- ===== 審核中清單 ===== -->
     <div class="section-title"><span class="bar"></span>審核中（REVIEWING）</div>
-    <div th:each="r : ${reviewingData}" class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">
+
+    <!-- 每個案件收合起來，點開才看得到內容；文件與審核操作僅限負責（認領）此案件的管理員 -->
+    <details th:each="r : ${reviewingData}" class="card mb-3 review-item">
+        <summary class="card-body d-flex align-items-center">
+            <span class="font-weight-bold">
                 #<span th:text="${r.reviewId}"></span>
                 <span th:text="${r.submittedFarmName}"></span>
+            </span>
+            <span class="text-muted ml-2">
                 （<span th:text="${r.farmerEmail}"></span>，第 <span th:text="${r.reviewRound}"></span> 輪）
-            </h5>
-            <p class="mb-1 text-muted">送審地址：
+            </span>
+            <!-- 認領狀態標示 -->
+            <span th:if="${r.adminId == currentAdminId}" class="badge badge-primary ml-2">您負責中</span>
+            <span th:unless="${r.adminId == currentAdminId}" class="badge badge-secondary ml-2"
+                  th:text="'由 ' + ${r.adminName} + ' 審核中'"></span>
+        </summary>
+
+        <div class="card-body pt-2">
+            <p class="mb-2 text-muted">送審地址：
                 <span th:text="${r.submittedCityName}"></span>
                 <span th:text="${r.submittedDistName}"></span>
                 <span th:text="${r.submittedFarmAddress}"></span>
             </p>
 
-            <!-- 證明文件圖片：有上傳才顯示，點擊可放大 -->
-            <div class="mb-2">
-                <img th:if="${r.hasCertLand}"     width="160" class="cert-img mr-2"
-                     th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
-                <img th:if="${r.hasCertProduct}"  width="160" class="cert-img mr-2"
-                     th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
-                <img th:if="${r.hasCertIdentity}" width="160" class="cert-img mr-2"
-                     th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+            <!-- 只有負責（認領）此案件的管理員才能檢視文件並操作 -->
+            <div th:if="${r.adminId == currentAdminId}">
+                <!-- 證明文件圖片：有上傳才顯示，點擊可放大 -->
+                <div class="mb-2">
+                    <img th:if="${r.hasCertLand}"     width="160" class="cert-img mr-2"
+                         th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
+                    <img th:if="${r.hasCertProduct}"  width="160" class="cert-img mr-2"
+                         th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
+                    <img th:if="${r.hasCertIdentity}" width="160" class="cert-img mr-2"
+                         th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+                </div>
+
+                <!-- 核准 -->
+                <form method="post" class="d-inline"
+                      th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
+                    <button class="btn btn-success btn-sm">核准</button>
+                </form>
+
+                <!-- 退件：點開才顯示退件理由（選擇退件後才填理由）-->
+                <details class="d-inline-block ml-2 reject-box">
+                    <summary class="btn btn-danger btn-sm">退件</summary>
+                    <form method="post" class="form-inline mt-2"
+                          th:action="@{/admin/reviews/{id}/reject(id=${r.reviewId})}">
+                        <input type="text" name="rejectReason" class="form-control form-control-sm mr-1"
+                               placeholder="請填寫退件理由" required/>
+                        <button class="btn btn-danger btn-sm">確認退件</button>
+                    </form>
+                </details>
             </div>
 
-            <!-- 核准 -->
-            <form method="post" class="d-inline"
-                  th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
-                <button class="btn btn-success btn-sm">核准</button>
-            </form>
-
-            <!-- 退件（需填理由）-->
-            <form method="post" class="form-inline d-inline ml-2"
-                  th:action="@{/admin/reviews/{id}/reject(id=${r.reviewId})}">
-                <input type="text" name="rejectReason" class="form-control form-control-sm mr-1"
-                       placeholder="退件理由" required/>
-                <button class="btn btn-danger btn-sm">退件</button>
-            </form>
+            <!-- 非認領者：不提供文件與操作 -->
+            <p th:unless="${r.adminId == currentAdminId}" class="text-muted mb-0">
+                此案件由其他管理員負責，您無法檢視文件或審核。
+            </p>
         </div>
-    </div>
+    </details>
     <p th:if="${reviewingData.isEmpty()}" class="text-muted">目前沒有審核中案件</p>
 
 </div>

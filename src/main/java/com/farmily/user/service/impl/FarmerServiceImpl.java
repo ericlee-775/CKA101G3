@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.PasswordChangedEvent;
 import com.farmily.user.model.CityDistrict;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
@@ -8,8 +9,8 @@ import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.EmailUniquenessChecker;
-import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.FarmerService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,18 +30,21 @@ public class FarmerServiceImpl implements FarmerService {
     private final CityDistrictRepository cityDistrictRepository;
     private final EmailUniquenessChecker emailUniquenessChecker;
     private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationService emailVerificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
 
-    public FarmerServiceImpl(FarmerRepository farmerRepository, FarmerReviewRepository farmerReviewRepository,
-                             CityDistrictRepository cityDistrictRepository, EmailUniquenessChecker emailUniquenessChecker,
-                             PasswordEncoder passwordEncoder, EmailVerificationService emailVerificationService) {
+    public FarmerServiceImpl(FarmerRepository farmerRepository,
+                             FarmerReviewRepository farmerReviewRepository,
+                             CityDistrictRepository cityDistrictRepository,
+                             EmailUniquenessChecker emailUniquenessChecker,
+                             PasswordEncoder passwordEncoder,
+                             ApplicationEventPublisher eventPublisher) {
         this.farmerRepository = farmerRepository;
         this.farmerReviewRepository = farmerReviewRepository;
         this.cityDistrictRepository = cityDistrictRepository;
         this.emailUniquenessChecker = emailUniquenessChecker;
         this.passwordEncoder = passwordEncoder;
-        this.emailVerificationService = emailVerificationService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 小農註冊申請
@@ -121,14 +125,14 @@ public class FarmerServiceImpl implements FarmerService {
         return toResponse(farmer);
     }
 
-    // 查資料
+    // 查自己資料
     @Override
     @Transactional(readOnly = true)
     public FarmerProfileResponse getMyProfile(Integer farmerId) {
         return toResponse(findFarmer(farmerId));
     }
 
-    // 修改資料 (非重審)
+    // 修改自己資料 (非重審)
     @Override
     public FarmerProfileResponse updateContactInfo(Integer farmerId, FarmerProfileUpdateRequest req) {
         Farmer farmer = findFarmer(farmerId);
@@ -141,7 +145,7 @@ public class FarmerServiceImpl implements FarmerService {
         return toResponse(farmerRepository.save(farmer));
     }
 
-    // 修改資料 (需重審)
+    // 修改自己資料 (需重審)
     @Override
     public FarmerProfileResponse updateReviewRequiredInfo(Integer farmerId, FarmerResubmitRequest req) {
         // 撈出小農和審核物件
@@ -181,7 +185,7 @@ public class FarmerServiceImpl implements FarmerService {
         return FarmerProfileResponse.from(farmer, savedReview);
     }
 
-    // 修改密碼
+    // 修改自己密碼
     @Override
     public void changePassword(Integer farmerId, ChangePasswordRequest pw) {
         Farmer farmer = findFarmer(farmerId);
@@ -195,6 +199,9 @@ public class FarmerServiceImpl implements FarmerService {
         }
         farmer.setPassword(passwordEncoder.encode(pw.getNewPassword()));
         farmerRepository.save(farmer);
+
+        // 用事件監聽器確保密碼變更成功(交易成功 commit)後寄通知信
+        eventPublisher.publishEvent(new PasswordChangedEvent(farmer.getEmail()));
     }
 
 

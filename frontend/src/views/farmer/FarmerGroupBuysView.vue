@@ -6,19 +6,26 @@
 //      - 每筆都有「詳細資料」按鈕 → GET /api/farmer/groupBuy/list/{groupBuyId}
 //      - 開團中的多一個「進度」按鈕 → GET /api/farmer/groupBuy/progress/{groupBuyId}
 //   2) 團購訂單：GET /api/farmer/groupBuy/orderList，依 shippedStatus 分「待出貨／已送達」
-//      - 待出貨可「標記已送達」（POST /api/farmer/groupBuy/orderShipped/{orderId}）
+//      - 每筆都有配送狀態下拉選單，選完按「更新」送 POST /api/farmer/groupBuy/orderShipped/{orderId}
+//        （後端目前不論送什麼值，實際都會直接改成 DELIVERED，這裡還是照選單的值送出，
+//        等後端之後改成真的照 body 判斷時前端不用再改）
 //      - 每筆都有「詳細資料」按鈕 → GET /api/farmer/groupBuy/order/{orderId}（含團購主聯絡方式）
 //
-// 注意：/list/{groupBuyId} 原本直接回傳 JPA entity（GroupBuyVO）造成循環參照序列化爆掉，已修好，
-// 現在回傳的是跟 GroupBuyFarmerDTO 一樣的扁平欄位（沒有巢狀的 product/hostUser），下面 modal 內容依此對應。
-// /orderList、/order/{orderId}、會員端 /mySuccessOrders 三支原本是 gb_order 資料表少了 shipping_address
-// 欄位，SQL 400；shipping_address 已修好，但目前換成同一張表少了 tracking_num 欄位，一樣是 400，
-// 這三支功能還是打不通。不能動後端程式碼，前端用一般的 loading/error 狀態顯示，不會白畫面或整頁掛掉，
-// 等後端補上 tracking_num 欄位就會自動恢復正常，不需要再改前端。
+// 注意事項：
+//   - /list/{groupBuyId} 原本直接回傳 JPA entity（GroupBuyVO）造成循環參照序列化爆掉，已修好，
+//     現在回傳的是跟 GroupBuyFarmerDTO 一樣的扁平欄位（沒有巢狀的 product/hostUser）。
+//   - /orderList、/order/{orderId} 原本 gb_order 資料表少欄位（先是 shipping_address，後來換成
+//     tracking_num）造成 SQL 400，都已修好。
+//   - ShippedStatus / OrderStatus / PaidStatus 這三個 enum 後端是用「全大寫」序列化
+//     （跟 GroupBuyStatus / RequestStatus 的全小寫不同），對照表要用大寫 key，
+//     混用會讓畫面直接顯示英文代碼原文（例如曾經在畫面上看到兩個 "PENDING"）。
 import { ref, computed, onMounted } from 'vue'
 import farmerGroupBuyApi from '@/api/farmerGroupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
+import { shippedStatusInfo, orderStatusInfo, paidStatusInfo } from '@/utils/orderStatus'
 import { confirm } from '@/composables/useConfirm'
+import { usePagination } from '@/composables/usePagination'
+import Pagination from '@/components/Pagination.vue'
 
 // ========== 上方主分頁：審核 / 訂單 ==========
 const MAIN_TABS = [
@@ -47,9 +54,17 @@ const REVIEW_TABS = [
   { key: 'rejected', label: '已拒絕' },
 ]
 const reviewSubTab = ref('pending')
+// 「開團中」頁籤名副其實：通過審核後如果已經成團/未成團/被取消（status 不再是 open），
+// 就不該再留在這裡——已成團的會改到「團購訂單」區塊看（orderList 有資料之後才看得到）。
 const filteredReviewList = computed(() =>
-  reviewList.value.filter((gb) => gb.requestStatus === reviewSubTab.value)
+  reviewList.value.filter((gb) =>
+    reviewSubTab.value === 'approved'
+      ? gb.requestStatus === 'approved' && gb.status === 'open'
+      : gb.requestStatus === reviewSubTab.value
+  )
 )
+const { page: reviewPage, totalPages: reviewTotalPages, pageItems: pagedReviewList } =
+  usePagination(filteredReviewList, 10)
 
 async function loadReviewList() {
   reviewLoading.value = true
@@ -148,14 +163,17 @@ const orderList = ref([])
 const orderLoading = ref(true)
 const orderError = ref('')
 
+// ShippedStatus enum 是全大寫（PENDING / DELIVERED），頁籤 key 要對到大寫代碼。
 const ORDER_TABS = [
-  { key: 'pending', label: '待出貨' },
-  { key: 'delivered', label: '已送達' },
+  { key: 'PENDING', label: '待出貨' },
+  { key: 'DELIVERED', label: '已送達' },
 ]
-const orderSubTab = ref('pending')
+const orderSubTab = ref('PENDING')
 const filteredOrderList = computed(() =>
   orderList.value.filter((o) => o.shippedStatus === orderSubTab.value)
 )
+const { page: orderPage, totalPages: orderTotalPages, pageItems: pagedOrderList } =
+  usePagination(filteredOrderList, 10)
 
 // 訂單本身沒有商品名稱，用審核清單（同樣是這位小農的資料）依 groupBuyId 對照出商品名稱顯示。
 const productNameByGroupBuyId = computed(() =>
@@ -178,19 +196,38 @@ const shippingBusyIds = ref(new Set())
 function isShippingBusy(id) {
   return shippingBusyIds.value.has(id)
 }
-async function markDelivered(order) {
-  const ok = await confirm({
-    title: '標記已送達',
-    message: `確定訂單 #${order.orderId} 已送達嗎？此動作無法復原。`,
-    confirmText: '標記已送達',
-  })
-  if (!ok) return
 
-  const next = new Set(shippingBusyIds.value)
-  next.add(order.orderId)
-  shippingBusyIds.value = next
+// 下拉選單目前選的配送狀態，用 orderId 當 key；沒選過就先帶入該筆目前的狀態。
+const shippedSelection = ref({})
+function selectedShipped(order) {
+  return shippedSelection.value[order.orderId] ?? order.shippedStatus
+}
+function setSelectedShipped(order, value) {
+  shippedSelection.value = { ...shippedSelection.value, [order.orderId]: value }
+}
+
+// 送出下拉選單選的配送狀態。
+// 注意：後端 ship() 目前不論 body 傳什麼，一律直接改成 DELIVERED（沒有真的照選的值判斷），
+// 這裡還是照選單的值送出，等後端之後改成真的照 body 判斷時，前端不用再改。
+async function updateShippedStatus(order) {
+  const next = selectedShipped(order)
+  if (next === order.shippedStatus) return
+
+  const ok = await confirm({
+    title: '更新配送狀態',
+    message: `確定要把訂單 #${order.orderId} 的配送狀態改成「${shippedStatusInfo(next).text}」嗎？`,
+    confirmText: '確認更新',
+  })
+  if (!ok) {
+    setSelectedShipped(order, order.shippedStatus)
+    return
+  }
+
+  const busy = new Set(shippingBusyIds.value)
+  busy.add(order.orderId)
+  shippingBusyIds.value = busy
   try {
-    await farmerGroupBuyApi.shipOrder(order.orderId)
+    await farmerGroupBuyApi.shipOrder(order.orderId, next)
     await loadOrderList()
   } catch (e) {
     orderError.value = e.message || '更新出貨狀態失敗，請稍後再試。'
@@ -288,7 +325,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <template v-for="gb in filteredReviewList" :key="gb.groupBuyId">
+            <template v-for="gb in pagedReviewList" :key="gb.groupBuyId">
               <tr>
                 <td class="col-name">{{ gb.productName }}</td>
                 <td>{{ gb.hostUserName || '—' }}</td>
@@ -358,6 +395,7 @@ onMounted(() => {
             </template>
           </tbody>
         </table>
+        <Pagination v-model:page="reviewPage" :total-pages="reviewTotalPages" />
       </div>
     </section>
 
@@ -384,6 +422,7 @@ onMounted(() => {
       <p v-else-if="filteredOrderList.length === 0" class="state">這個分類目前沒有訂單。</p>
 
       <div v-else class="table-wrap">
+        <p class="ship-hint">📦 配達完成記得更改配送狀態為已送達</p>
         <table class="gb-table">
           <thead>
             <tr>
@@ -396,27 +435,36 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="o in filteredOrderList" :key="o.orderId">
+            <tr v-for="o in pagedOrderList" :key="o.orderId">
               <td class="col-name">#{{ o.orderId }}</td>
               <td>{{ productNameByGroupBuyId[o.groupBuyId] || `團購 #${o.groupBuyId}` }}</td>
               <td>{{ o.totalQuantity ?? '—' }}</td>
               <td>{{ formatPrice(o.totalAmount) }}</td>
               <td>{{ formatDate(o.createdAt) }}</td>
               <td class="col-actions">
-                <button type="button" class="btn btn--ghost" @click="openOrderDetail(o)">詳細資料</button>
+                <select
+                  class="ship-select"
+                  :value="selectedShipped(o)"
+                  :disabled="isShippingBusy(o.orderId)"
+                  @change="setSelectedShipped(o, $event.target.value)"
+                >
+                  <option value="PENDING">待出貨</option>
+                  <option value="DELIVERED">已送達</option>
+                </select>
                 <button
-                  v-if="o.shippedStatus === 'pending'"
                   type="button"
                   class="btn btn--approve"
-                  :disabled="isShippingBusy(o.orderId)"
-                  @click="markDelivered(o)"
+                  :disabled="isShippingBusy(o.orderId) || selectedShipped(o) === o.shippedStatus"
+                  @click="updateShippedStatus(o)"
                 >
-                  標記已送達
+                  更新
                 </button>
+                <button type="button" class="btn btn--ghost" @click="openOrderDetail(o)">詳細資料</button>
               </td>
             </tr>
           </tbody>
         </table>
+        <Pagination v-model:page="orderPage" :total-pages="orderTotalPages" />
       </div>
     </section>
 
@@ -468,10 +516,10 @@ onMounted(() => {
                 <div class="modal-meta-row"><dt>團購價</dt><dd>{{ formatPrice(modal.data.groupPrice) }}</dd></div>
                 <div class="modal-meta-row"><dt>總金額</dt><dd>{{ formatPrice(modal.data.totalAmount) }}</dd></div>
                 <div class="modal-meta-row"><dt>取貨地點</dt><dd>{{ modal.data.shippingAddress || '—' }}</dd></div>
-                <div class="modal-meta-row"><dt>出貨狀態</dt><dd>{{ modal.data.shippedStatus ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>出貨狀態</dt><dd>{{ shippedStatusInfo(modal.data.shippedStatus).text }}</dd></div>
                 <div class="modal-meta-row"><dt>出貨時間</dt><dd>{{ formatDate(modal.data.shippedAt) }}</dd></div>
-                <div class="modal-meta-row"><dt>訂單狀態</dt><dd>{{ modal.data.orderStatus ?? '—' }}</dd></div>
-                <div class="modal-meta-row"><dt>撥款狀態</dt><dd>{{ modal.data.paidStatus ?? '—' }}</dd></div>
+                <div class="modal-meta-row"><dt>訂單狀態</dt><dd>{{ orderStatusInfo(modal.data.orderStatus).text }}</dd></div>
+                <div class="modal-meta-row"><dt>撥款狀態</dt><dd>{{ paidStatusInfo(modal.data.paidStatus).text }}</dd></div>
                 <div class="modal-meta-row"><dt>建立時間</dt><dd>{{ formatDate(modal.data.createdAt) }}</dd></div>
                 <div class="modal-meta-row"><dt>收貨時間</dt><dd>{{ formatDate(modal.data.receivedAt) }}</dd></div>
                 <div class="modal-meta-row"><dt>完成時間</dt><dd>{{ formatDate(modal.data.completedAt) }}</dd></div>
@@ -587,6 +635,27 @@ onMounted(() => {
 /* ---------- 表格 ---------- */
 .table-wrap {
   overflow-x: auto;
+}
+.ship-hint {
+  margin: 0 0 14px;
+  padding: 8px 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ship-select {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+.ship-select:focus {
+  outline: none;
+  border-color: var(--leaf);
 }
 .gb-table {
   width: 100%;

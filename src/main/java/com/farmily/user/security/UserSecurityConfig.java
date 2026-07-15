@@ -81,20 +81,31 @@ public class UserSecurityConfig {
 		return provider;
 	}
 
-	// ===== 管理員「頁面」過濾鏈：負責 /admin/**（Thymeleaf 後台）=====
-	// 放在最前面 (Order 0)，且不走 commonSetup（因為它會關 CSRF、未登入回 401，這些是給 Vue 用）
-	@Bean
-	@Order(0)
-	public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider)
-			throws Exception {
-		return http.securityMatcher("/admin/**").authenticationProvider(adminAuthenticationProvider)
-				.authorizeHttpRequests(
-						req -> req.requestMatchers("/admin/login").permitAll().requestMatchers("/admin/admins/**")
-								.hasAuthority("PERM_ADMIN").requestMatchers("/admin/farmers/**", "/admin/reviews/**")
-								.hasAnyAuthority("PERM_ADMIN", "PERM_FARMER").requestMatchers("/admin/members/**")
-								.hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+    // ===== 管理員「頁面」過濾鏈：負責 /admin/**（Thymeleaf 後台）=====
+    // 放在最前面 (Order 0)，且不走 commonSetup（因為它會關 CSRF、未登入回 401，這些是給 Vue 用）
+    @Bean
+    @Order(0)
+    public SecurityFilterChain adminPageChain(HttpSecurity http, AuthenticationProvider adminAuthenticationProvider) throws Exception {
+        return http
+                .securityMatcher("/admin/**", "/api/admin/**")
+                .authenticationProvider(adminAuthenticationProvider)
+                .authorizeHttpRequests(req -> req
 
-								.anyRequest().hasRole("ADMIN"))
+						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
+                        .requestMatchers("/admin/login").permitAll()
+                        .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
+						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
+
+						.requestMatchers("/admin/news/**").hasAuthority("PERM_NEWS")
+						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
+						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
+						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
+						.requestMatchers("/api/admin/groupBuy/**").hasAuthority("PERM_GROUP_BUY")
+
+						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
+						.anyRequest().hasRole("ADMIN"))
+
 
 				// formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
 				.formLogin(form -> form.loginPage("/admin/login").loginProcessingUrl("/admin/login")
@@ -150,8 +161,18 @@ public class UserSecurityConfig {
 				// 團購
 				.requestMatchers(HttpMethod.GET, "/api/groupBuy/**").permitAll()
 
-				// 體驗活動（列表/詳情/場次/評論/圖片）公開瀏覽，不需登入
-				.requestMatchers(HttpMethod.GET, "/api/farm-trips/**").permitAll()
+                        //體驗活動（公開：活動列表/詳情/場次/評論/圖片）
+                        .requestMatchers(HttpMethod.GET, "/api/farm-trips/**").permitAll()
+
+                        //產地地圖（公開：查全部農場 / 單一農場）
+                        .requestMatchers(HttpMethod.GET, "/api/farms", "/api/farms/**").permitAll()
+
+                        //Blog （列表/詳情/封面/留言/照片）
+                        .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
+
+                        //最新消息（公開：列表/詳情/封面圖）
+                        .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
+
 
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
@@ -161,7 +182,11 @@ public class UserSecurityConfig {
 				.requestMatchers("/api/city-districts", "/api/city-districts/**").permitAll()
 
 				// 公開：Email 驗證 / 忘記密碼 (未登入也要能用)
-				.requestMatchers("/api/auth/**").permitAll().anyRequest().authenticated()).build();
+				.requestMatchers("/api/auth/**").permitAll()
+				.requestMatchers("/api/ai/**").permitAll()
+
+						.anyRequest().authenticated())
+				.build();
 	}
 
 	// CSRF 保護

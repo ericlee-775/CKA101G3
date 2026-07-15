@@ -18,8 +18,11 @@ import CartView from '@/views/shop/CartView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
 import GroupBuyDetailView from '@/views/shop/GroupBuyDetailView.vue'
 import BlogsView from '@/views/shop/BlogsView.vue'
+import BlogDetailView from '@/views/shop/BlogDetailView.vue'
 import FarmTripsView from '@/views/shop/FarmTripsView.vue'
+import FarmTripDetailView from '@/views/shop/FarmTripDetailView.vue'
 import FarmMapView from '@/views/shop/FarmMapView.vue'
+import FarmDetailView from '@/views/shop/FarmDetailView.vue'
 import FarmGameView from '@/views/shop/FarmGameView.vue'
 import AboutView from '@/views/shop/AboutView.vue'
 // 帳號相關：登入 / 註冊 / 密碼 / Email 驗證 / 小農申請
@@ -88,8 +91,12 @@ const router = createRouter({
         // 跟上面那個網址共用同一個 GroupBuyDetailView 元件，內部依 route 參數判斷該打哪支 API。
         { path: 'group-buys/product/:productId', name: 'group-buy-host', component: GroupBuyDetailView },
         { path: 'blogs',       name: 'blogs',      component: BlogsView },
+        { path: 'blogs/:blogId', name: 'blog-detail', component: BlogDetailView },
         { path: 'farm-trips',  name: 'farm-trips', component: FarmTripsView },
+        // 體驗活動詳情頁：/farm-trips/:farmTripId（獨立元件，資料走 /api/farm-trips/{id} 與 /sessions、/comments）
+        { path: 'farm-trips/:farmTripId', name: 'farm-trip-detail', component: FarmTripDetailView },
         { path: 'farm-map',    name: 'farm-map',   component: FarmMapView },
+        { path: 'farmily/:farmerId', name: 'farm-detail', component: FarmDetailView },
         { path: 'farm-game',   name: 'farm-game',  component: FarmGameView },
         { path: 'about',       name: 'about',      component: AboutView },
 
@@ -129,10 +136,12 @@ const router = createRouter({
             { path: 'group-buys',    name: 'member-group-buys',    component: MemberGroupBuysView },
             // 我的收藏（商品收藏 / 團購收藏，程式碼寫在 components/member/Favorite*.vue）
             { path: 'favorites',     name: 'member-favorites',     component: MemberFavoritesView },
-            // 以下三頁各自獨立成元件，功能開發中先放佔位內容
+            // 我的訂單
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
-            { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },
+            // 我的通知 
             { path: 'notifications', name: 'member-notifications', component: MemberNotificationsView },
+            // 以下三頁各自獨立成元件，功能開發中先放佔位內容
+            { path: 'coupons',       name: 'member-coupons',       component: MemberCouponsView },
           ],
         },
       ],
