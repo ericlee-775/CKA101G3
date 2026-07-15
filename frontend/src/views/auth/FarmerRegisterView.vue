@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
@@ -18,12 +18,63 @@ const districtId = ref('')        // 行政區 id
 const password = ref('')
 const confirm = ref('')
 
+// 經緯度（選填）：自動定位填入；拒絕/失敗留空亦可送出
+const locLat = ref('')            // locLat
+const locLong = ref('')           // locLong
+const geoStatus = ref('')         // '' | detecting | ok | denied | unsupported
+
+// 呼叫瀏覽器定位；允許→填入座標，拒絕/失敗→留空（不擋送出）
+function detectLocation() {
+  if (!('geolocation' in navigator)) {
+    geoStatus.value = 'unsupported'
+    return
+  }
+  geoStatus.value = 'detecting'
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // 對齊後端 @Digits(fraction = 8)：固定 8 位小數
+      locLat.value = pos.coords.latitude.toFixed(8)
+      locLong.value = pos.coords.longitude.toFixed(8)
+      geoStatus.value = 'ok'
+    },
+    () => {
+      geoStatus.value = 'denied'   // 使用者拒絕或定位失敗：座標留空
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
+}
+
+const geoHint = computed(() => {
+  switch (geoStatus.value) {
+    case 'detecting': return '定位中…請允許瀏覽器存取位置'
+    case 'ok': return '已自動填入目前位置座標，可手動微調'
+    case 'denied': return '未取得定位權限，經緯度可留空，不影響送出申請'
+    case 'unsupported': return '此瀏覽器不支援定位，經緯度可留空'
+    default: return ''
+  }
+})
+
 // 證明文件（三張皆必填）：農地、產品、身分
 const certLand = ref(null)        // certFileLand
 const certProduct = ref(null)     // certFileProduct
 const certIdentity = ref(null)    // certFileIdentity
 
 const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
+
+// 各檔案 input 的 DOM 參照：移除文件時用來清空原生 input，允許重選同一檔
+const certLandEl = ref(null)
+const certProductEl = ref(null)
+const certIdentityEl = ref(null)
+const certInputEls = { land: certLandEl, product: certProductEl, identity: certIdentityEl }
+
+// 各證明文件的預覽圖 URL（由 URL.createObjectURL 產生，移除/替換/離開時需 revoke 釋放）
+const certPreviews = reactive({ land: '', product: '', identity: '' })
+
+// 設定預覽圖：先釋放舊 URL 再產生新的（file 為 null 則只清空）
+function setPreview(key, file) {
+  if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  certPreviews[key] = file ? URL.createObjectURL(file) : ''
+}
 
 // 使用者在該欄位選檔：驗證通過才存入對應 ref，並清掉舊錯誤
 function onCertChange(key, event) {
@@ -32,17 +83,36 @@ function onCertChange(key, event) {
   const file = event.target.files && event.target.files[0]
   if (!file) {
     target.value = null
+    setPreview(key, null)
     return
   }
   const msg = validateCertFile(file)
   if (msg) {
     error.value = msg
     target.value = null
+    setPreview(key, null)
     event.target.value = ''   // 驗證失敗清空，允許重選同一檔
     return
   }
   target.value = file
+  setPreview(key, file)
 }
+
+// 移除已選檔案：清掉 ref、預覽圖與原生 input，允許重新上傳同一檔
+function onCertRemove(key) {
+  error.value = ''
+  certRefs[key].value = null
+  setPreview(key, null)
+  const el = certInputEls[key].value
+  if (el) el.value = ''
+}
+
+// 離開頁面時釋放所有預覽圖 URL，避免記憶體洩漏
+onBeforeUnmount(() => {
+  Object.keys(certPreviews).forEach((key) => {
+    if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  })
+})
 
 // 縣市 / 行政區下拉資料（來自 /api/city-districts）
 const districtList = ref([])      // 全部行政區的扁平清單
@@ -60,6 +130,8 @@ onMounted(async () => {
     // 下拉載入失敗不擋註冊，只是無法選區
     districtList.value = []
   }
+  // 進頁即自動偵測位置（會跳出瀏覽器授權詢問）；拒絕不影響其他欄位
+  detectLocation()
 })
 
 // 不重複的縣市清單
@@ -109,6 +181,17 @@ async function handleRegister() {
     error.value = '請選擇所在縣市與行政區'
     return
   }
+  // 經緯度為選填：有填才驗範圍（對齊後端 -90~90 / -180~180），留空直接略過不擋送出
+  if (locLat.value !== '' &&
+      (isNaN(Number(locLat.value)) || Number(locLat.value) < -90 || Number(locLat.value) > 90)) {
+    error.value = '緯度需介於 -90 ~ 90，或留空'
+    return
+  }
+  if (locLong.value !== '' &&
+      (isNaN(Number(locLong.value)) || Number(locLong.value) < -180 || Number(locLong.value) > 180)) {
+    error.value = '經度需介於 -180 ~ 180，或留空'
+    return
+  }
   // 後端 @Pattern ^09\d{8}$：手機需 09 開頭共 10 碼（先去掉空白/連字號再驗）
   const phoneNorm = phone.value.replace(/[\s-]/g, '')
   if (!/^09\d{8}$/.test(phoneNorm)) {
@@ -146,6 +229,9 @@ async function handleRegister() {
     fd.append('farmDesc', farmDesc.value)
     // districtId 為必填（後端 @NotNull），前面已驗證有值
     fd.append('districtId', Number(districtId.value))
+    // 經緯度選填：有值才送，留空後端沿用 null
+    if (locLat.value !== '') fd.append('locLat', locLat.value)
+    if (locLong.value !== '') fd.append('locLong', locLong.value)
     fd.append('certFileLand', certLand.value)
     fd.append('certFileProduct', certProduct.value)
     fd.append('certFileIdentity', certIdentity.value)
@@ -209,6 +295,31 @@ async function handleRegister() {
           <input v-model="farmAddress" type="text" placeholder="門牌詳細地址" />
         </label>
 
+        <!-- 經緯度（選填）：自動定位填入，拒絕存取可留空 -->
+        <div class="geo-group">
+          <div class="geo-head">
+            <span>座標（經緯度，選填）</span>
+            <button type="button" class="geo-btn" @click="detectLocation"
+                    :disabled="geoStatus === 'detecting'">
+              {{ geoStatus === 'detecting' ? '定位中…' : '自動定位' }}
+            </button>
+          </div>
+          <div class="auth-grid">
+            <label>
+              <span>緯度 (Lat)</span>
+              <input v-model="locLat" type="text" inputmode="decimal" placeholder="自動偵測或留空" />
+            </label>
+            <label>
+              <span>經度 (Long)</span>
+              <input v-model="locLong" type="text" inputmode="decimal" placeholder="自動偵測或留空" />
+            </label>
+          </div>
+          <small v-if="geoHint" class="geo-hint"
+                 :class="{ 'geo-err': geoStatus === 'denied' || geoStatus === 'unsupported' }">
+            {{ geoHint }}
+          </small>
+        </div>
+
         <label>
           <span>農場介紹</span>
           <textarea v-model="farmDesc" rows="3" placeholder="簡單介紹你的農場與產品"></textarea>
@@ -219,18 +330,30 @@ async function handleRegister() {
           <p class="cert-title">證明文件（皆須上傳，JPG / PNG，單張 ≤ 5MB）</p>
           <label class="cert-item">
             <span>農地證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
-            <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+            <input ref="certLandEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+            <small v-if="certLand" class="cert-name">
+              已選：{{ certLand.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('land')">移除</button>
+            </small>
+            <img v-if="certPreviews.land" :src="certPreviews.land" class="cert-preview" alt="農地證明預覽" />
           </label>
           <label class="cert-item">
             <span>產品證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
-            <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+            <input ref="certProductEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+            <small v-if="certProduct" class="cert-name">
+              已選：{{ certProduct.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('product')">移除</button>
+            </small>
+            <img v-if="certPreviews.product" :src="certPreviews.product" class="cert-preview" alt="產品證明預覽" />
           </label>
           <label class="cert-item">
             <span>身分證明</span>
-            <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
-            <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+            <input ref="certIdentityEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+            <small v-if="certIdentity" class="cert-name">
+              已選：{{ certIdentity.name }}
+              <button type="button" class="cert-remove" @click.prevent="onCertRemove('identity')">移除</button>
+            </small>
+            <img v-if="certPreviews.identity" :src="certPreviews.identity" class="cert-preview" alt="身分證明預覽" />
           </label>
         </div>
 
@@ -316,6 +439,8 @@ async function handleRegister() {
 .auth-form input,
 .auth-form select,
 .auth-form textarea {
+  width: 100%;
+  box-sizing: border-box;   /* 含 padding 一起算寬，避免撐破容器 */
   padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -338,6 +463,52 @@ async function handleRegister() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+/* grid 子項預設 min-width:auto 會被輸入框最小寬撐開而溢出，改成可縮小 */
+.auth-grid > label {
+  min-width: 0;
+}
+
+/* 經緯度（選填）區塊 */
+.geo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.geo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.geo-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--leaf);
+  border-radius: 8px;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.geo-btn:hover {
+  background: #fff;
+}
+.geo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.geo-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.geo-hint.geo-err {
+  color: #b06a00;
 }
 
 /* 證明文件上傳區 */
@@ -370,8 +541,31 @@ async function handleRegister() {
   background: #fff;
 }
 .cert-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--leaf-dark);
   font-size: 12px;
+}
+.cert-remove {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cert-remove:hover {
+  border-color: #c0392b;
+}
+.cert-preview {
+  margin-top: 6px;
+  max-width: 160px;
+  max-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .auth-error {

@@ -1,5 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 目前登入者（還沒接登入，先手動指定，查我的報名用它）
 const userId = ref(1)
@@ -10,6 +13,11 @@ const listLoading = ref(true)
 const listError = ref('')
 function hideImg(e) { e.target.style.display = 'none' }
 
+function goFarm(farmerId) {
+  if (farmerId == null) return
+  router.push({ name: 'farm-detail', params: { farmerId } })
+}
+
 // ---- 我的報名 ----
 const myOrders = ref([])
 const myOrdersMsg = ref('')
@@ -17,6 +25,19 @@ const myOrdersMsg = ref('')
 // 活動類型 enum 轉中文
 const TYPE_LABEL = { FARM_EXPERIENCE: '農場體驗營', FIELD_VISIT: '產地參訪' }
 function typeLabel(t) { return TYPE_LABEL[t] || t || '' }
+
+// ---- 子類別篩選 ----
+const activeType = ref(null)   // null = 全部
+const TYPE_TABS = [
+  { value: null,              label: '全部',     icon: '🌿' },
+  { value: 'FARM_EXPERIENCE', label: '農場體驗營', icon: '🏕️' },
+  { value: 'FIELD_VISIT',     label: '產地參訪',   icon: '🚜' },
+]
+const filteredTrips = computed(() =>
+  activeType.value === null
+    ? trips.value
+    : trips.value.filter(t => t.farmTripType === activeType.value)
+)
 
 function formatPrice(p) {
   if (p == null) return '—'
@@ -81,13 +102,42 @@ onMounted(loadTrips)
 
     <!-- ============ 活動列表 ============ -->
     <section>
+      <!-- 頁面說明 -->
+      <div class="page-note">
+        <p>
+          捲起袖子、走進產地，當一天小農！本頁彙整各地小農親手舉辦的農遊體驗，
+          標示價格皆為<strong>參考價</strong>，實際費用以活動當天為準。
+        </p>
+        <p>
+          看到喜歡的場次就直接線上<strong>預約</strong>，<strong>無需事先付款</strong>；
+          活動當天到場後，再把費用交給小農就好。
+        </p>
+      </div>
+
+      <!-- 子類別篩選 -->
+      <div class="type-tabs">
+        <button
+          v-for="tab in TYPE_TABS"
+          :key="tab.label"
+          class="type-tab"
+          :class="{ active: activeType === tab.value }"
+          @click="activeType = tab.value"
+        >
+          <span class="type-icon">{{ tab.icon }}</span>
+          <span>{{ tab.label }}</span>
+        </button>
+      </div>
+
+      <!-- 子類別篩選 -->
       <p v-if="listLoading">載入中…</p>
       <p v-else-if="listError" class="error">{{ listError }}</p>
       <p v-else-if="trips.length === 0">目前沒有上架中的活動。</p>
 
+      <p v-else-if="filteredTrips.length === 0" class="muted">這個類別目前沒有活動。</p>
+
       <div v-else class="grid">
         <router-link
-          v-for="t in trips"
+          v-for="t in filteredTrips"
           :key="t.farmTripId"
           class="card"
           :to="{ name: 'farm-trip-detail', params: { farmTripId: t.farmTripId } }"
@@ -95,6 +145,9 @@ onMounted(loadTrips)
           <img class="thumb" :src="`/api/farm-trips/${t.farmTripId}/image`" alt="" @error="hideImg" />
           <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
           <h3>{{ t.farmTripTitle }}</h3>
+          <p class="farm-name" v-if="t.farmName">
+            🏡 <span class="farm-link" @click.stop.prevent="goFarm(t.farmerId)">{{ t.farmName }}</span>
+          </p>          
           <p class="muted">📍 {{ t.location }}</p>
           <p class="star">{{ stars(t.starNumbers) }}</p>
           <p class="price">參考價 {{ formatPrice(t.referPrice) }}</p>
@@ -122,6 +175,78 @@ onMounted(loadTrips)
 </template>
 
 <style scoped>
+
+.farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
+.farm-link { cursor: pointer; text-decoration: underline; }
+.farm-link:hover { color: var(--leaf); }
+
+.page-note {
+  position: relative;
+  background: linear-gradient(135deg, #fbfaf4 0%, var(--leaf-soft) 100%);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 38px 28px 34px 32px;
+  margin-top: 24px;
+  line-height: 1.95;
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+/* 左側細緻漸層裝飾線，取代原本較厚重的粗邊 */
+.page-note::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0px;
+  background: linear-gradient(to bottom, var(--leaf), var(--leaf-dark));
+}
+
+/* 左上角的大引號，低透明度當作典雅的浮水印 */
+/* 左上角的葉子小圖示 */
+.page-note::after {
+  content: "🌿";
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* 右下角的葉子小圖示（掛在最後一段文字上） */
+.page-note p:last-child::after {
+  content: "🌿";
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.9;
+  pointer-events: none;
+  transform: scaleX(-1);   /* 水平翻轉，和左上角的葉子左右對稱 */
+}
+
+.page-note p {
+  margin: 6px 0;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.page-note strong {
+  color: var(--leaf-dark);
+  font-weight: 600;
+}
+
+.type-tabs { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.type-tab {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 8px 18px; cursor: pointer; font-size: 15px; color: var(--ink); transition: all .15s;
+}
+.type-tab:hover { border-color: var(--leaf); }
+.type-tab.active { background: var(--leaf); color: #fff; border-color: var(--leaf); }
+.type-icon { font-size: 18px; }
+
 .page { padding: 32px clamp(18px, 4vw, 56px); color: var(--ink); }
 .topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 h1 { color: var(--ink); }

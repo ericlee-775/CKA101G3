@@ -11,6 +11,7 @@ import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.FarmerService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional
@@ -204,6 +207,51 @@ public class FarmerServiceImpl implements FarmerService {
         eventPublisher.publishEvent(new PasswordChangedEvent(farmer.getEmail()));
     }
 
+
+    // 查自己所有審核輪次紀錄（新到舊）；遮蔽承辦管理員資訊，不外洩給小農
+    @Override
+    @Transactional(readOnly = true)
+    public List<FarmerReviewResponse> listMyReviews(Integer farmerId) {
+        List<FarmerReview> reviews = farmerReviewRepository.findByFarmer_FarmerIdOrderByReviewRoundDesc(farmerId);
+
+        List<FarmerReviewResponse> result = new ArrayList<>();
+        for (FarmerReview review : reviews) {
+            FarmerReviewResponse dto = FarmerReviewResponse.from(review);
+            dto.maskAdminInfo();   // 小農端不得得知承辦管理員
+            result.add(dto);
+        }
+        return result;
+    }
+
+    // 取自己某輪審核的證明文件 bytes；先驗證該 review 屬於本人，否則拒絕（防止猜 reviewId 看到他人文件）
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getMyCertFile(Integer farmerId, Integer reviewId, String type) {
+        FarmerReview review = farmerReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("查無此審核案件"));
+
+        // farmerId 來自已登入者，保證非 null，放在 equals 前面避免 PK 意外為 null 時 NPE
+        if (review.getFarmer() == null || !farmerId.equals(review.getFarmer().getFarmerId())) {
+            throw new AccessDeniedException("無法檢視他人的證明文件");
+        }
+
+        String t = (type == null) ? "" : type.toLowerCase();
+        byte[] bytes;
+        if ("land".equals(t)) {
+            bytes = review.getCertFileLand();
+        } else if ("product".equals(t)) {
+            bytes = review.getCertFileProduct();
+        } else if ("identity".equals(t)) {
+            bytes = review.getCertFileIdentity();
+        } else {
+            throw new IllegalArgumentException("不支援的文件類型: " + type);
+        }
+
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("此文件未上傳");
+        }
+        return bytes;
+    }
 
     // 自定義方法：組裝每次審核 (n+1) 的資料，回傳一個物件（register/resubmit 共用）
     private FarmerReview newReviewSnapshot(
