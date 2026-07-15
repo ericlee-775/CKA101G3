@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import cartStore from '@/stores/cart'
 import { confirm } from '@/composables/useConfirm'
 // 「暫無圖片」佔位圖（放在 src/assets，打包後 Vite 會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 
 const FALLBACK_IMAGE = noImage
+const router = useRouter()
 
 // 直接讀 store 的購物車內容與統計數字
 const items = computed(() => cartStore.state.items)
@@ -74,9 +76,13 @@ async function clearCart() {
   if (ok) cartStore.clear()
 }
 
-// 結帳流程／後端 API 尚未串接，先給提示。
+// 後端 API 串接結帳預覽頁
 function checkout() {
-  window.alert('結帳功能開發中，敬請期待！')
+  if (items.value.length === 0){
+    window.alert('購物車是空的，先去逛逛全部商品!')
+    return
+  }
+  router.push({ name: 'checkout' })
 }
 
 // 進頁面時把目前購物車裡商品的圖片抓回來

@@ -13,8 +13,13 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackages = "com.farmily.user")    // 只管 user 模組的 controller
@@ -54,14 +59,24 @@ public class GlobalExceptionHandler {
 
     // Bean Validation 拋出例外 - 驗證失敗（JSON @RequestBody）
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<String> handleValidation(MethodArgumentNotValidException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("驗證失敗");
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(fieldErrors(e.getBindingResult()));
     }
 
     // 框架拋出例外 - 驗證失敗（multipart @ModelAttribute，例如小農申請含證明文件圖片時）
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<String> handleBind(BindException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("驗證失敗");
+    public ResponseEntity<Map<String, String>> handleBind(BindException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(fieldErrors(e.getBindingResult()));
+    }
+
+    // 把 Bean Validation 的欄位錯誤整理成 { 欄位名: 錯誤訊息 }，前端可逐欄顯示
+    private Map<String, String> fieldErrors(BindingResult bindingResult) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError fe : bindingResult.getFieldErrors()) {
+            // 同一欄位多個錯誤時保留第一個
+            errors.putIfAbsent(fe.getField(), fe.getDefaultMessage());
+        }
+        return errors;
     }
 
     // 框架拋出例外 - 上傳檔案過大（吃 application.properties 的 multipart 上限）

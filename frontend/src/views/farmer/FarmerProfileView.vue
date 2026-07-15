@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
-import authApi from '@/api/auth'
 import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
@@ -13,6 +12,20 @@ const router = useRouter()
 
 const profile = ref(null)
 const loadError = ref('')
+
+// 我的審核紀錄與已上傳文件（唯讀）
+const reviews = ref([])
+const reviewsError = ref('')
+const certUrl = (reviewId, type) => farmerApi.certUrl(reviewId, type)
+
+// 時間格式化（yyyy-MM-dd HH:mm）；無值回 '—'
+function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 // 縣市 / 行政區
 const districtList = ref([])
@@ -72,7 +85,19 @@ onMounted(async () => {
     districtList.value = []
   }
   await loadProfile()
+  await loadReviews()
 })
+
+// 載入自己的審核紀錄（失敗只提示，不影響其他區塊）
+async function loadReviews() {
+  reviewsError.value = ''
+  try {
+    reviews.value = await farmerApi.getMyReviews()
+  } catch (e) {
+    reviews.value = []
+    reviewsError.value = e.message || '審核紀錄載入失敗'
+  }
+}
 
 async function loadProfile() {
   try {
@@ -101,10 +126,20 @@ function onCityChange() {
 async function saveContact() {
   contactMsg.value = ''
   contactErr.value = ''
+  // 對齊後端：手機格式（有填才驗）、農場介紹長度
+  const phone = contact.value.farmerPhoneNum.replace(/[\s-]/g, '')
+  if (phone && !/^09\d{8}$/.test(phone)) {
+    contactErr.value = '手機號碼格式錯誤（需為 09 開頭共 10 碼）'
+    return
+  }
+  if (contact.value.farmDesc.length > 2000) {
+    contactErr.value = '農場介紹最多 2000 字'
+    return
+  }
   savingContact.value = true
   try {
     const updated = await farmerApi.updateContact({
-      farmerPhoneNum: contact.value.farmerPhoneNum,
+      farmerPhoneNum: phone,
       farmDesc: contact.value.farmDesc,
     })
     profile.value = updated
@@ -123,6 +158,8 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
+  if (apply.value.farmName.length > 50) { applyErr.value = '農場名稱最多 50 字'; return }
+  if (apply.value.farmAddress.length > 100) { applyErr.value = '農場地址最多 100 字'; return }
   const ok = await confirm({
     title: '重新送審',
     message: '修改這些欄位會重新送審，期間狀態會變為待審核。確定要送出嗎？',
@@ -147,6 +184,7 @@ async function resubmit() {
     certProduct.value = null
     certIdentity.value = null
     applyMsg.value = '已重新送審，請等待管理員審核'
+    await loadReviews()   // 送審後多一輪，刷新審核紀錄
   } catch (e) {
     applyErr.value = e.message || '送審失敗'
   } finally {
@@ -157,8 +195,12 @@ async function resubmit() {
 async function changePassword() {
   pwMsg.value = ''
   pwErr.value = ''
-  if (pw.value.newPassword.length < 8) {
-    pwErr.value = '新密碼至少需 8 個字元'
+  if (pw.value.newPassword.length < 8 || pw.value.newPassword.length > 60) {
+    pwErr.value = '新密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(pw.value.newPassword) || !/\d/.test(pw.value.newPassword)) {
+    pwErr.value = '新密碼需同時包含英文字母與數字'
     return
   }
   if (pw.value.newPassword !== pw.value.confirm) {
@@ -179,17 +221,6 @@ async function changePassword() {
     savingPw.value = false
   }
 }
-
-async function logout() {
-  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
-  try {
-    await authApi.logout()
-  } catch {
-    // ignore
-  }
-  authStore.clear()
-  router.push('/farmer/login')
-}
 </script>
 
 <template>
@@ -197,7 +228,6 @@ async function logout() {
     <div class="profile-wrap">
       <header class="profile-head">
         <h1>🌾 小農中心</h1>
-        <button class="btn-ghost" @click="logout">登出</button>
       </header>
 
       <p v-if="loadError" class="msg-err">{{ loadError }}</p>
@@ -212,6 +242,35 @@ async function logout() {
             <div><span class="label">審核狀態</span><span>{{ profile.reviewStatus || '—' }}</span></div>
             <div><span class="label">審核輪次</span><span>{{ profile.reviewRound ?? '—' }}</span></div>
           </div>
+        </section>
+
+        <!-- 審核紀錄與已上傳文件（唯讀）：含歷次重新送審 -->
+        <section class="card">
+          <h2>審核紀錄與文件</h2>
+          <p v-if="reviewsError" class="msg-err">{{ reviewsError }}</p>
+          <p v-else-if="!reviews.length" class="empty-note">尚無審核紀錄</p>
+          <ul v-else class="review-list">
+            <li v-for="r in reviews" :key="r.reviewId" class="review-item">
+              <div class="review-head">
+                <span class="round">第 {{ r.reviewRound }} 輪</span>
+                <span class="badge" :class="'badge--' + (r.reviewStatus || '').toLowerCase()">{{ r.reviewStatus }}</span>
+                <span class="review-date">{{ formatDateTime(r.submittedAt) }}</span>
+              </div>
+              <p v-if="r.rejectReason" class="reject-reason">退件理由：{{ r.rejectReason }}</p>
+              <div class="cert-thumbs">
+                <a v-if="r.hasCertLand" class="cert-thumb" :href="certUrl(r.reviewId, 'land')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'land')" alt="農地證明" /><span>農地證明</span>
+                </a>
+                <a v-if="r.hasCertProduct" class="cert-thumb" :href="certUrl(r.reviewId, 'product')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'product')" alt="產品證明" /><span>產品證明</span>
+                </a>
+                <a v-if="r.hasCertIdentity" class="cert-thumb" :href="certUrl(r.reviewId, 'identity')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'identity')" alt="身分證明" /><span>身分證明</span>
+                </a>
+                <span v-if="!r.hasCertLand && !r.hasCertProduct && !r.hasCertIdentity" class="empty-note">此輪無文件</span>
+              </div>
+            </li>
+          </ul>
         </section>
 
         <!-- 立即生效：聯絡資訊 -->
@@ -418,18 +477,6 @@ async function logout() {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.btn-ghost {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-.btn-ghost:hover {
-  border-color: var(--leaf);
-  color: var(--leaf);
-}
 .cert-group {
   display: flex;
   flex-direction: column;
@@ -476,5 +523,92 @@ async function logout() {
   margin: 0;
   color: var(--leaf);
   font-size: 13px;
+}
+/* ===== 審核紀錄與文件（唯讀） ===== */
+.empty-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.review-head .round {
+  font-weight: 600;
+  color: var(--ink);
+}
+.review-head .review-date {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+.reject-reason {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #c0392b;
+}
+.cert-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.cert-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.cert-thumb img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+/* 審核狀態配色：待審(黃) / 審核中(藍) / 核准(綠) / 退件(紅) */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+}
+.badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge--reviewing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.badge--approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 </style>

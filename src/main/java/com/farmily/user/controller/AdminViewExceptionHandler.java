@@ -34,10 +34,10 @@ public class AdminViewExceptionHandler {
         return "back-end/admin/opError";
     }
 
-    // 表單欄位格式不符（例：變更密碼時新密碼未達 DTO 的 @Size(min = 8)）
+    // 表單欄位格式不符的最後防線（有接 BindingResult 的端點會自行處理，不會走到這）
     @ExceptionHandler(BindException.class)
     public String handleBind(BindException e, Model model) {
-        model.addAttribute("errorMessage", "輸入格式不符（新密碼至少 8 碼）");
+        model.addAttribute("errorMessage", "輸入格式不符，請檢查後重新輸入");
         return "back-end/admin/opError";
     }
 

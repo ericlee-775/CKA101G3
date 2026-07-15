@@ -2,6 +2,8 @@ package com.farmily.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 // 新增其他管理員時，前端要送的資料
@@ -12,9 +14,12 @@ public class AdminCreateRequest {
     private String email;
 
     @NotBlank
+    @Size(min = 8, max = 60, message = "密碼長度需 8~60 字")
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "密碼需同時包含英文字母與數字")
     private String password;
 
     @NotBlank
+    @Size(max = 50, message = "名稱最多 50 字")
     private String name;
 
     // 要指派給他的權限代碼

@@ -81,12 +81,25 @@ function onCityChange() {
 async function saveProfile() {
   profileMsg.value = ''
   profileErr.value = ''
+  // 對齊後端 UserUpdateRequest：長度上限、手機格式、生日須為過去
+  if (form.value.userName.length > 100) { profileErr.value = '姓名最多 100 字'; return }
+  if (form.value.userNickname.length > 100) { profileErr.value = '暱稱最多 100 字'; return }
+  if (form.value.userAddress.length > 100) { profileErr.value = '地址最多 100 字'; return }
+  const phone = form.value.userPhoneNum.replace(/[\s-]/g, '')
+  if (phone && !/^09\d{8}$/.test(phone)) {
+    profileErr.value = '手機號碼格式錯誤（需為 09 開頭共 10 碼）'
+    return
+  }
+  if (form.value.birthday) {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    if (new Date(form.value.birthday) >= today) { profileErr.value = '生日必須是過去日期'; return }
+  }
   savingProfile.value = true
   try {
     const updated = await memberApi.updateMe({
       userName: form.value.userName,
       userNickname: form.value.userNickname,
-      userPhoneNum: form.value.userPhoneNum,
+      userPhoneNum: phone,
       userAddress: form.value.userAddress,
       birthday: form.value.birthday || null,
       districtId: form.value.districtId ? Number(form.value.districtId) : null,
@@ -104,8 +117,12 @@ async function saveProfile() {
 async function changePassword() {
   pwMsg.value = ''
   pwErr.value = ''
-  if (pw.value.newPassword.length < 8) {
-    pwErr.value = '新密碼至少需 8 個字元'
+  if (pw.value.newPassword.length < 8 || pw.value.newPassword.length > 60) {
+    pwErr.value = '新密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(pw.value.newPassword) || !/\d/.test(pw.value.newPassword)) {
+    pwErr.value = '新密碼需同時包含英文字母與數字'
     return
   }
   if (pw.value.newPassword !== pw.value.confirm) {
