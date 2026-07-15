@@ -29,7 +29,7 @@ public class AdminCouponController {
 	}
 	@PostMapping
     public String create(@RequestParam(defaultValue = "false") boolean sendMail,
-    						@RequestParam String couponId,
+    						 @RequestParam String couponId,
                          @RequestParam String couponInfo,
                          @RequestParam(required = false)
                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime issueStartDate,

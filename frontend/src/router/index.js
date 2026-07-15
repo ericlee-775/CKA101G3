@@ -24,7 +24,6 @@ import FarmTripsView from '@/views/shop/FarmTripsView.vue'
 import FarmTripDetailView from '@/views/shop/FarmTripDetailView.vue'
 import FarmMapView from '@/views/shop/FarmMapView.vue'
 import FarmDetailView from '@/views/shop/FarmDetailView.vue'
-import FarmGameView from '@/views/shop/FarmGameView.vue'
 import AboutView from '@/views/shop/AboutView.vue'
 // 帳號相關：登入 / 註冊 / 密碼 / Email 驗證 / 小農申請
 import LoginView from '@/views/auth/LoginView.vue'
@@ -38,7 +37,6 @@ import VerifyEmailView from '@/views/auth/VerifyEmailView.vue'
 import ResendVerificationView from '@/views/auth/ResendVerificationView.vue'
 // 一般會員中心：個人資料 / 訂單 / 優惠券 / 通知
 import MemberProfileView from '@/views/member/MemberProfileView.vue'
-import MemberProductsView from '@/views/member/MemberProductsView.vue'
 import MemberGroupBuysView from '@/views/member/MemberGroupBuysView.vue'
 import MemberFavoritesView from '@/views/member/MemberFavoritesView.vue'
 import MemberOrdersView from '@/views/member/MemberOrdersView.vue'
@@ -99,7 +97,6 @@ const router = createRouter({
         { path: 'farm-trips/:farmTripId', name: 'farm-trip-detail', component: FarmTripDetailView },
         { path: 'farm-map',    name: 'farm-map',   component: FarmMapView },
         { path: 'farmily/:farmerId', name: 'farm-detail', component: FarmDetailView },
-        { path: 'farm-game',   name: 'farm-game',  component: FarmGameView },
         { path: 'about',       name: 'about',      component: AboutView },
 
         // 一般會員登入 / 註冊
@@ -132,8 +129,6 @@ const router = createRouter({
             { path: 'blogs/new',      name: 'member-blogs-new',    component: MemberBlogEditView },
             { path: 'blogs/:id/edit', name: 'member-blogs-edit',   component: MemberBlogEditView },
             { path: 'blogs/:id',      name: 'member-blogs-detail', component: MemberBlogDetailView },
-            // 我的商品（程式碼寫在 components/member/MyProducts.vue）
-            { path: 'products',      name: 'member-products',      component: MemberProductsView },
             // 我的團購（先清空成預設佔位，程式碼寫在 components/member/MyGroupBuys.vue）
             { path: 'group-buys',    name: 'member-group-buys',    component: MemberGroupBuysView },
             // 我的收藏（商品收藏 / 團購收藏，程式碼寫在 components/member/Favorite*.vue）

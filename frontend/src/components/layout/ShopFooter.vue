@@ -25,7 +25,6 @@ const year = new Date().getFullYear()
         <router-link to="/products">全部商品</router-link>
         <router-link to="/group-buys">團購</router-link>
         <router-link to="/farm-map">產地地圖</router-link>
-        <router-link to="/farm-game">小農遊戲</router-link>
       </nav>
 
       <!-- 關於欄 -->
