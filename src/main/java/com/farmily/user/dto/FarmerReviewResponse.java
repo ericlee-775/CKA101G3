@@ -7,7 +7,7 @@ import com.farmily.user.model.FarmerReview;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// 回傳給管理員看的審核資料包成 dto
+// 回傳給管理員看的審核資料包成 dto、給小農看審核紀錄遮蔽管理員資訊
 public class FarmerReviewResponse {
 
     private Integer reviewId;
@@ -115,6 +115,13 @@ public class FarmerReviewResponse {
     }
     public void setFarmerStatus(String farmerStatus) {
         this.farmerStatus = farmerStatus;
+    }
+
+    // 遮蔽承辦管理員資訊：小農端查看自己的審核紀錄時，不得得知是哪位管理員審核（避免外洩）
+    public void maskAdminInfo() {
+        this.adminId = null;
+        this.adminName = null;
+        this.adminEmail = null;
     }
 
     public static FarmerReviewResponse from(FarmerReview r){
