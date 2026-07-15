@@ -105,12 +105,12 @@ onMounted(loadTrips)
       <!-- 頁面說明 -->
       <div class="page-note">
         <p>
-          本頁彙整各地小農自行舉辦的農遊體驗活動，讓你走進產地、親手參與農事。
-          頁面上顯示的價格皆為小農提供的<strong>參考價</strong>，實際費用以活動當天為準。
+          捲起袖子、走進產地，當一天小農！本頁彙整各地小農親手舉辦的農遊體驗，
+          標示價格皆為<strong>參考價</strong>，實際費用以活動當天為準。
         </p>
         <p>
-          你可以直接在本頁線上<strong>預約</strong>想參加的場次，
-          預約時<strong>無需事先付款</strong>；待體驗活動當天到現場後，再將費用直接付給小農即可。
+          看到喜歡的場次就直接線上<strong>預約</strong>，<strong>無需事先付款</strong>；
+          活動當天到場後，再把費用交給小農就好。
         </p>
       </div>
 
@@ -181,12 +181,62 @@ onMounted(loadTrips)
 .farm-link:hover { color: var(--leaf); }
 
 .page-note {
-  background: var(--leaf-soft); border-left: 4px solid var(--leaf);
-  border-radius: 12px; padding: 16px 20px; margin-top: 20px;
-  line-height: 1.8; color: var(--ink-soft);
+  position: relative;
+  background: linear-gradient(135deg, #fbfaf4 0%, var(--leaf-soft) 100%);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 38px 28px 34px 32px;
+  margin-top: 24px;
+  line-height: 1.95;
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
-.page-note p { margin: 4px 0; }
-.page-note strong { color: var(--leaf-dark); }
+/* 左側細緻漸層裝飾線，取代原本較厚重的粗邊 */
+.page-note::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0px;
+  background: linear-gradient(to bottom, var(--leaf), var(--leaf-dark));
+}
+
+/* 左上角的大引號，低透明度當作典雅的浮水印 */
+/* 左上角的葉子小圖示 */
+.page-note::after {
+  content: "🌿";
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* 右下角的葉子小圖示（掛在最後一段文字上） */
+.page-note p:last-child::after {
+  content: "🌿";
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.9;
+  pointer-events: none;
+  transform: scaleX(-1);   /* 水平翻轉，和左上角的葉子左右對稱 */
+}
+
+.page-note p {
+  margin: 6px 0;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.page-note strong {
+  color: var(--leaf-dark);
+  font-weight: 600;
+}
+
 .type-tabs { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 .type-tab {
   display: flex; align-items: center; gap: 8px;
