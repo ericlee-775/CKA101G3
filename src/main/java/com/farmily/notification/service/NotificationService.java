@@ -1,8 +1,9 @@
 package com.farmily.notification.service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -123,10 +124,10 @@ public class NotificationService {
 	
 	// send a same notification to multiple/different users (same typeCode, content, targetType, targetId
 	@Transactional
-	public void sendMultipleNotif(List<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) {
+	public void sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) {
 		
 		// build a list to store all notifications
-		List<NotificationVO> list = new ArrayList<>();
+		Set<NotificationVO> set = new HashSet<>();
 		
 		
 		// get the content template (只需要查一次)
@@ -147,11 +148,11 @@ public class NotificationService {
 			notif.setTargetType(targetType);
 			notif.setTargetId(targetId);
 			notif.setContent(content);
-			list.add(notif);
+			set.add(notif);
 		}
 		
 		// store the list, all notifications, to DB
-		repository.saveAll(list);
+		repository.saveAll(set);
 	}
 	
 	
@@ -215,7 +216,7 @@ public class NotificationService {
 	//  	Integer recipientId, String targetType, Integer targetId, Map<String, String> variables)
 	
 	// 商品訂單成立，通知小農/會員
-	public void sendProdOrderCreated(Integer farmerId, Integer userId, Integer orderId) {
+	public void sendProdOrderCreated(Set<Integer> farmerIds, Integer userId, Integer orderId) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
 		// 給消費者 (會員)
 		req.setTypeCode("order_created");
@@ -226,14 +227,9 @@ public class NotificationService {
 		req.setVariables(Map.of("order_id", orderId.toString()));
 		sendOneNotif(req);
 		
-		// 給小農
-		req.setTypeCode("order_farmer_new");
-		req.setRecipientType(NotificationRecipientType.farmer);
-		req.setRecipientId(farmerId);
-		req.setTargetType("order");
-		req.setTargetId(orderId);
-		req.setVariables(Map.of("order_id", String.valueOf(orderId)));
-		sendOneNotif(req);
+		// 給小農們 
+		// sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) 
+		sendMultipleNotif(farmerIds, NotificationRecipientType.farmer, "order_farmer_new", "order", orderId, Map.of("order_id", String.valueOf(orderId)));
 	}
 	
 	

@@ -52,14 +52,16 @@ public class MemberProductOrderController {
 	
 	
 	// 確認收貨
-	@PatchMapping("/{orderId}/received")
+	@PatchMapping("/{orderId}/farmers/{farmerId}/received")
 	public ResponseEntity<Void> received(
 			@AuthenticationPrincipal MemberUserDetails me,
-			@PathVariable Integer orderId){
+			@PathVariable Integer orderId,
+			@PathVariable Integer farmerId){
 		// updateReceived(Integer orderId)
-		oSvc.updateReceived(me.getUserId(), orderId);
+		oSvc.updateReceived(me.getUserId(), orderId, farmerId);
 		return ResponseEntity.ok().build();
 	}
+	
 	
 	// 顯示訂單列表
 	@GetMapping
