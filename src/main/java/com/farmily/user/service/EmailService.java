@@ -6,6 +6,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import com.farmily.coupon.model.CouponVO;
+
 // 負責處理信件內容 (驗證+重設密碼)
 @Service
 public class EmailService {
@@ -110,6 +112,15 @@ public class EmailService {
 
         mailSender.send(message);
     }
-
-    
+    //Coupon~~mail
+    @Async
+    public void sendCouponEmail(String toEmail,String userName,CouponVO coupon) {
+    		//建立SimpleMailMessage物件
+    		SimpleMailMessage message = new SimpleMailMessage();
+    		message.setFrom(fromEmail);
+    		message.setTo(toEmail);
+    		message.setSubject("優惠卷通知");
+    		message.setText(userName+"有新的優惠卷"+"券號是:"+coupon.getCouponId()+"折抵金額：" + coupon.getAmount()+ "最低消費：" + coupon.getMinSpending());
+    		mailSender.send(message);
+    	}    
 }
