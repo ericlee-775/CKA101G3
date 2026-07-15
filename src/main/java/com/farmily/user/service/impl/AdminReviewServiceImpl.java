@@ -160,18 +160,19 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     public byte[] getCertFile(Integer reviewId, String type, Integer adminId) {
         FarmerReview review = findReview(reviewId);
 
+        // adminId 來自已登入管理員，保證非 null，放在 equals 前面避免 NPE
         Admin owner = review.getAdmin();
-        if (owner == null || !owner.getAdminId().equals(adminId)) {
+        if (owner == null || !adminId.equals(owner.getAdminId())) {
             throw new AccessDeniedException("此案件由其他管理員負責，您無法檢視文件");
         }
 
         String t = (type == null) ? "" : type.toLowerCase();
         byte[] bytes;
-        if (t.equals("land")) {
+        if ("land".equals(t)) {
             bytes = review.getCertFileLand();
-        } else if (t.equals("product")) {
+        } else if ("product".equals(t)) {
             bytes = review.getCertFileProduct();
-        } else if (t.equals("identity")) {
+        } else if ("identity".equals(t)) {
             bytes = review.getCertFileIdentity();
         } else {
             throw new IllegalArgumentException("不支援的文件類型: " + type);

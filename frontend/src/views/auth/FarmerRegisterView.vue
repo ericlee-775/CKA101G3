@@ -18,6 +18,42 @@ const districtId = ref('')        // 行政區 id
 const password = ref('')
 const confirm = ref('')
 
+// 經緯度（選填）：自動定位填入；拒絕/失敗留空亦可送出
+const locLat = ref('')            // locLat
+const locLong = ref('')           // locLong
+const geoStatus = ref('')         // '' | detecting | ok | denied | unsupported
+
+// 呼叫瀏覽器定位；允許→填入座標，拒絕/失敗→留空（不擋送出）
+function detectLocation() {
+  if (!('geolocation' in navigator)) {
+    geoStatus.value = 'unsupported'
+    return
+  }
+  geoStatus.value = 'detecting'
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // 對齊後端 @Digits(fraction = 8)：固定 8 位小數
+      locLat.value = pos.coords.latitude.toFixed(8)
+      locLong.value = pos.coords.longitude.toFixed(8)
+      geoStatus.value = 'ok'
+    },
+    () => {
+      geoStatus.value = 'denied'   // 使用者拒絕或定位失敗：座標留空
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
+}
+
+const geoHint = computed(() => {
+  switch (geoStatus.value) {
+    case 'detecting': return '定位中…請允許瀏覽器存取位置'
+    case 'ok': return '已自動填入目前位置座標，可手動微調'
+    case 'denied': return '未取得定位權限，經緯度可留空，不影響送出申請'
+    case 'unsupported': return '此瀏覽器不支援定位，經緯度可留空'
+    default: return ''
+  }
+})
+
 // 證明文件（三張皆必填）：農地、產品、身分
 const certLand = ref(null)        // certFileLand
 const certProduct = ref(null)     // certFileProduct
@@ -60,6 +96,8 @@ onMounted(async () => {
     // 下拉載入失敗不擋註冊，只是無法選區
     districtList.value = []
   }
+  // 進頁即自動偵測位置（會跳出瀏覽器授權詢問）；拒絕不影響其他欄位
+  detectLocation()
 })
 
 // 不重複的縣市清單
@@ -109,6 +147,17 @@ async function handleRegister() {
     error.value = '請選擇所在縣市與行政區'
     return
   }
+  // 經緯度為選填：有填才驗範圍（對齊後端 -90~90 / -180~180），留空直接略過不擋送出
+  if (locLat.value !== '' &&
+      (isNaN(Number(locLat.value)) || Number(locLat.value) < -90 || Number(locLat.value) > 90)) {
+    error.value = '緯度需介於 -90 ~ 90，或留空'
+    return
+  }
+  if (locLong.value !== '' &&
+      (isNaN(Number(locLong.value)) || Number(locLong.value) < -180 || Number(locLong.value) > 180)) {
+    error.value = '經度需介於 -180 ~ 180，或留空'
+    return
+  }
   // 後端 @Pattern ^09\d{8}$：手機需 09 開頭共 10 碼（先去掉空白/連字號再驗）
   const phoneNorm = phone.value.replace(/[\s-]/g, '')
   if (!/^09\d{8}$/.test(phoneNorm)) {
@@ -146,6 +195,9 @@ async function handleRegister() {
     fd.append('farmDesc', farmDesc.value)
     // districtId 為必填（後端 @NotNull），前面已驗證有值
     fd.append('districtId', Number(districtId.value))
+    // 經緯度選填：有值才送，留空後端沿用 null
+    if (locLat.value !== '') fd.append('locLat', locLat.value)
+    if (locLong.value !== '') fd.append('locLong', locLong.value)
     fd.append('certFileLand', certLand.value)
     fd.append('certFileProduct', certProduct.value)
     fd.append('certFileIdentity', certIdentity.value)
@@ -208,6 +260,31 @@ async function handleRegister() {
           <span>農場地址</span>
           <input v-model="farmAddress" type="text" placeholder="門牌詳細地址" />
         </label>
+
+        <!-- 經緯度（選填）：自動定位填入，拒絕存取可留空 -->
+        <div class="geo-group">
+          <div class="geo-head">
+            <span>座標（經緯度，選填）</span>
+            <button type="button" class="geo-btn" @click="detectLocation"
+                    :disabled="geoStatus === 'detecting'">
+              {{ geoStatus === 'detecting' ? '定位中…' : '自動定位' }}
+            </button>
+          </div>
+          <div class="auth-grid">
+            <label>
+              <span>緯度 (Lat)</span>
+              <input v-model="locLat" type="text" inputmode="decimal" placeholder="自動偵測或留空" />
+            </label>
+            <label>
+              <span>經度 (Long)</span>
+              <input v-model="locLong" type="text" inputmode="decimal" placeholder="自動偵測或留空" />
+            </label>
+          </div>
+          <small v-if="geoHint" class="geo-hint"
+                 :class="{ 'geo-err': geoStatus === 'denied' || geoStatus === 'unsupported' }">
+            {{ geoHint }}
+          </small>
+        </div>
 
         <label>
           <span>農場介紹</span>
@@ -316,6 +393,8 @@ async function handleRegister() {
 .auth-form input,
 .auth-form select,
 .auth-form textarea {
+  width: 100%;
+  box-sizing: border-box;   /* 含 padding 一起算寬，避免撐破容器 */
   padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -338,6 +417,52 @@ async function handleRegister() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+/* grid 子項預設 min-width:auto 會被輸入框最小寬撐開而溢出，改成可縮小 */
+.auth-grid > label {
+  min-width: 0;
+}
+
+/* 經緯度（選填）區塊 */
+.geo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.geo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.geo-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--leaf);
+  border-radius: 8px;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.geo-btn:hover {
+  background: #fff;
+}
+.geo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.geo-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.geo-hint.geo-err {
+  color: #b06a00;
 }
 
 /* 證明文件上傳區 */

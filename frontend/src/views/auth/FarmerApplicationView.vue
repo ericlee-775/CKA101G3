@@ -185,7 +185,7 @@ async function resubmit() {
         <h2>目前狀態</h2>
         <div class="info-grid">
           <div><span class="label">農場名稱</span><span>{{ status.submittedFarmName || status.farmName || '—' }}</span></div>
-          <div><span class="label">審核狀態</span><span class="badge">{{ status.reviewStatus }}</span></div>
+          <div><span class="label">審核狀態</span><span class="badge" :class="'badge--' + (status.reviewStatus || '').toLowerCase()">{{ status.reviewStatus }}</span></div>
           <div><span class="label">審核輪次</span><span>{{ status.reviewRound ?? '—' }}</span></div>
           <div><span class="label">送審時間</span><span>{{ formatDateTime(status.submittedAt) }}</span></div>
         </div>
@@ -373,6 +373,23 @@ async function resubmit() {
   color: var(--leaf-dark);
   font-size: 13px;
   font-weight: 600;
+}
+/* 依審核狀態配色：待審(黃) / 審核中(藍) / 核准(綠) / 退件(紅) */
+.badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge--reviewing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.badge--approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 .reject-box {
   margin-top: 14px;
