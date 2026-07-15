@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import EditorialHero from '@/components/home/EditorialHero.vue'
+import FarmerCta from '@/components/home/FarmerCta.vue'
 
 // 首頁的三個賣點（特色區用 v-for 渲染）
 const features = ref([
@@ -57,12 +58,8 @@ const products = ref([
       </div>
     </section>
 
-    <!-- ========== 行動呼籲 CTA ========== -->
-    <section class="cta">
-      <h2>加入 Farmily，享受產地直送</h2>
-      <p>註冊會員，第一筆訂單即享免運優惠。</p>
-      <router-link class="btn btn-primary" to="/register">免費註冊</router-link>
-    </section>
+    <!-- ========== 小農招募廣告（深墨綠面板，對農夫說話） ========== -->
+    <FarmerCta />
   </main>
 </template>
 
@@ -70,32 +67,9 @@ const products = ref([
 /* 首頁專屬的大地色紙感背景（其他頁面維持白底,不上色） */
 .home {
   background: var(--paper);
-}
-
-/* ========== 共用按鈕 ========== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 26px;
-  border-radius: 999px;
-  font-size: 15px;
-  text-decoration: none;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-}
-.btn-sm {
-  padding: 8px 0;
-  width: 100%;
-  font-size: 14px;
-}
-.btn-primary {
-  background: var(--leaf);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: var(--leaf-dark);
+  /* 底部留白:讓小農招募面板和深色 footer 之間隔一段紙色,
+     兩塊深綠才不會黏在一起。用 padding 而非 margin(margin 會露出 body 白底) */
+  padding-bottom: 72px;
 }
 
 /* ========== 三大特色 ========== */
@@ -206,25 +180,6 @@ const products = ref([
   color: var(--leaf);
   font-weight: 700;
   font-size: 17px;
-}
-
-/* ========== 行動呼籲 ========== */
-.cta {
-  max-width: 1100px;
-  margin: 64px auto 0;
-  padding: 48px clamp(18px, 4vw, 56px);
-  text-align: center;
-  background: var(--leaf-soft);
-  border-radius: 18px;
-}
-.cta h2 {
-  margin: 0 0 10px;
-  color: var(--ink);
-  font-size: 26px;
-}
-.cta p {
-  margin: 0 0 24px;
-  color: var(--ink-soft);
 }
 
 /* ========== 響應式 ========== */

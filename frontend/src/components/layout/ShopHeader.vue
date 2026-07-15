@@ -133,18 +133,25 @@ async function logout() {
 
 <template>
   <header class="site-header">
-    <!-- 品牌區：點 logo 回首頁。只保留「一張 logo + 名稱 + 標語」，乾淨不重複 -->
-    <router-link class="brand" to="/" aria-label="Farmily 首頁">
-      <img
-        class="brand-logo"
-        src="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent"
-        alt="Farmily logo"
-      />
-      <span class="brand-text">
-        <strong>Farmily</strong>
-        <small>新鮮直送・產地到餐桌</small>
-      </span>
-    </router-link>
+    <!-- 品牌區：logo 回首頁；印章是獨立按鈕（<a> 不能巢狀），點了進「關於我們」 -->
+    <div class="brand-group">
+      <router-link class="brand" to="/" aria-label="Farmily 首頁">
+        <img
+          class="brand-logo"
+          src="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent"
+          alt="Farmily logo"
+        />
+        <span class="brand-text">
+          <strong>Farmily</strong>
+          <small>新鮮直送・產地到餐桌</small>
+        </span>
+      </router-link>
+      <!-- 你儂我農朱印：hover 微轉下壓像蓋章，點擊看品牌故事 -->
+      <router-link class="brand-seal" to="/about" aria-label="你儂我農——關於我們" title="關於我們">
+        <span>你</span><span>儂</span>
+        <span>我</span><span>農</span>
+      </router-link>
+    </div>
 
     <!-- 手機版選單按鈕：點一下切換 isMenuOpen -->
     <button
@@ -275,15 +282,22 @@ async function logout() {
 }
 
 /* ========== 品牌區 ========== */
+.brand-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   text-decoration: none;             /* 拿掉 router-link 預設底線 */
 }
+/* icon 高度對齊「Farmily + tagline」兩行文字的總高（約 19*1.2 + 12*1.2 ≈ 38px），
+   視覺重心才穩，不會 icon 比字大一截 */
 .brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
 }
 .brand-text {
@@ -295,9 +309,61 @@ async function logout() {
   font-size: 19px;
   color: var(--ink);
 }
+/* 田字格朱印：紅底 + 白格露出紅色十字線，四字分置四角。
+   是個連結（關於我們）：hover 微轉下壓像蓋章，提示可以點 */
+.brand-seal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.5px;
+  width: 42px;
+  height: 42px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: #a94438;               /* 磚紅/胭脂紅：比朱紅沉,像老印泥 */
+  border-radius: 5px;
+  flex: none;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.brand-seal span {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: #a94438;
+}
+/* hover：先微微抬起再斜著壓下去，像在紙上蓋章；:active 再壓深一點 */
+.brand-seal:hover {
+  animation: seal-stamp 0.35s ease forwards;
+  box-shadow: 0 2px 8px rgba(169, 68, 56, 0.35);
+}
+.brand-seal:active {
+  transform: rotate(-4deg) scale(0.9);
+  animation: none;
+}
+@keyframes seal-stamp {
+  0%   { transform: rotate(0) scale(1); }
+  40%  { transform: rotate(-8deg) scale(1.08) translateY(-2px); }
+  100% { transform: rotate(-4deg) scale(0.97) translateY(1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-seal:hover,
+  .brand-seal:active {
+    animation: none;
+    transform: none;
+  }
+}
+/* tagline 淡化：墨綠 60% 透明度，讓 Farmily 更跳出來 */
 .brand-text small {
   font-size: 12px;
-  color: var(--muted);
+  font-weight: 400;
+  color: var(--muted);               /* 不支援 color-mix 的舊瀏覽器退回原色 */
+  color: color-mix(in srgb, var(--leaf-dark) 60%, transparent);
   letter-spacing: 0.04em;
 }
 
@@ -809,6 +875,11 @@ async function logout() {
   .mobile-menu {
     display: inline-grid;
     place-items: center;
+  }
+  /* 行動版空間有限：不論捲動與否都只留 icon + Farmily */
+  .brand-text small,
+  .brand-seal {
+    display: none;
   }
   .main-nav {
     grid-column: 1 / -1;             /* 換到下一整行 */
