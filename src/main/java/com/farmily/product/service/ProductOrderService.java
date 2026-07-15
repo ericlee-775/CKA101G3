@@ -480,9 +480,9 @@ public class ProductOrderService {
 		if (couponId != null && !couponId.isBlank()) {
 			discountAmount = couponSvc.useCoupon(userId, couponId, totalAmount);
 			order.setCouponId(couponId);
-			order.setDiscountAmount(discountAmount);
 		}
-		
+	
+		order.setDiscountAmount(discountAmount);
 		finalPayment = totalAmount - discountAmount;
 		order.setFinalPayment(finalPayment);
 

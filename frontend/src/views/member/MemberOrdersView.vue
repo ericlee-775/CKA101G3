@@ -73,17 +73,20 @@ async function toggleOrderItems(orderId){
   }
 
   // 展開這張訂單的明細
-  openOrderId.value = orderId
   itemsError.value = ''
-
+  
   // 若明細已經在快取
-  if (groups[orderId]) return
+  if (groups[orderId]) {
+    openOrderId.value = orderId
+    return
+  }
 
   // 沒快取，api 取得明細
   itemsLoading.value = true
   try {
     const res = await memberOrdersApi.listItems(orderId)
     groups[orderId] = res || []
+    openOrderId.value = orderId
   } catch (e){
     itemsError.value = e.message || '載入明細失敗'
     openOrderId.value = null // 失敗就收合列表
@@ -100,6 +103,8 @@ function goPage(p){
 
 
 async function markReceived(orderId, group){
+
+  if (group.shippedStatus !== 'shipping') { return }
   const ok = await confirm({
     title: '確認收貨',
     message: `確定已經收到 ${group.farmerName || '此小農'} 的全部商品嗎?`,
@@ -107,7 +112,6 @@ async function markReceived(orderId, group){
     danger: true,
   })
   if (!ok) return
-  if (group.shippedStatus !== 'shipping') { return }
 
   receivingKey.value = `${orderId}-${group.farmerId}`   // 鎖定收貨按鈕
 
@@ -119,7 +123,7 @@ async function markReceived(orderId, group){
   } catch(e){
     alert(e.message || '操作失敗')
   } finally {
-    receivingId.value = null
+    receivingKey.value = null
   }
 }
 
@@ -129,7 +133,7 @@ async function markReceived(orderId, group){
   <section class="order-page">
     <header class="order-page-head">
       <h1>🧾 我的訂單</h1>
-      <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p>
+      <!-- <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p> -->
     </header>
 
     <p v-if="loading" class="state-box">載入中...</p>
@@ -212,7 +216,7 @@ async function markReceived(orderId, group){
                     <span>{{ item.productName }}</span>
                   </td>
                   <td>{{ fmm(item.price) }}</td>
-                  <td>{{ fmm(item.quantity) }}</td>
+                  <td>{{ item.quantity }}</td>
                   <td>{{ fmm(item.itemSubtotal) }}</td>
                 </tr>
               </tbody>

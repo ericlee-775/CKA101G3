@@ -50,13 +50,13 @@ async function loadCheckout(){
   }
 }
 
-// 找出目前選中的那張券物件（用來顯示折抵多少）
+// 找出目前選中的那張券物件 (用來顯示折抵多少)
 const selectedCoupon = computed(() =>
   info.value?.usableCoupons?.find(c => c.couponId === form.coupon) || null
 )
-// 折抵金額（沒選券就是 0）
+// 折抵金額 (沒選券就是 0)
 const discount = computed(() => selectedCoupon.value?.amount ?? 0)
-// 實付 = 總額 − 折抵（不會小於 0）
+// 實付 = 總額 − 折抵 (不會小於 0)
 const finalPayment = computed(() =>
   Math.max(0, (info.value?.totalAmount ?? 0) - discount.value)
 )
@@ -212,7 +212,7 @@ function onImgError(e){
         <select class="input" v-model="form.coupon">
           <option value="">不使用優惠券</option>
           <option v-for="c in info.usableCoupons" :key="c.couponId" :value="c.couponId">
-            {{ c.couponInfo }}（折 NT$ {{ c.amount }}，滿 {{ c.minSpending }} 可用）
+            {{ c.couponInfo }}（滿 {{ c.minSpending }}，折 {{ fmm(c.amount) }}）
           </option>
         </select>
         <p v-if="form.coupon && form.coupon === info.recommendedCouponId" class="hint">
