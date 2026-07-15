@@ -192,6 +192,7 @@ public class GroupBuyService {
 	}
 
 	// 團購主確認收貨用
+	@Transactional
 	public void confirmReceipt(Integer orderId, Integer userId) {
 		GroupBuyOrderVO orderVO = groupBuyOrderRepository.findByOrderIdAndGroupBuyId_HostUser_UserId(orderId, userId)
 				.orElseThrow(() -> new RuntimeException("查無此訂單，或你不是此團購的團購主"));
@@ -199,7 +200,7 @@ public class GroupBuyService {
 			throw new RuntimeException("此訂單已經確認收貨");
 		}
 
-		if (orderVO.getShippedStatus() != ShippedStatus.PENDING) {
+		if (orderVO.getShippedStatus() == ShippedStatus.PENDING) {
 			throw new RuntimeException("商品尚未出貨，無法確認收貨");
 		}
 		Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -211,6 +212,14 @@ public class GroupBuyService {
 
 		groupBuyOrderRepository.save(orderVO);
 	}
+	
+
+	//給小農看團購總收益
+	@Transactional(readOnly=true)
+	public Long getGroupBuyTotalRevenue(Integer farmerId) {
+		return groupBuyOrderRepository.sumTotalAmountByPaidStatusAndFarmerId(PaidStatus.PAID,farmerId);
+	}
+	
 
 	// 給小農審核團購申請用
 	@Transactional
