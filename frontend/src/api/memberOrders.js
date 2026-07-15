@@ -9,7 +9,7 @@ export const memberOrdersApi = {
     
     listItems: (orderId) => http.get(`${BASE}/${orderId}/items`),
 
-    received: (orderId) => http.patch(`${BASE}/${orderId}/received`),
+    received: (orderId) => http.patch(`${BASE}/${orderId}/farmers/${farmerId}/received`),
     
     checkoutInfo: () => http.get(`${BASE}/checkout-info`),
     

@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import memberOrdersApi from '@/api/memberOrders'
 import { confirm } from '@/composables/useConfirm'
+import noImage from '@/assets/no-image.svg'
 
 const orders = ref([])
 const loading = ref(true)
@@ -10,22 +11,17 @@ const page = ref(0)
 const totalPages = ref(0)
 
 const openOrderId = ref(null) // 目前展開的是哪一張訂單 (null=全部收合)
-const items = reactive({}) // 快取已載過的訂單明細 (物件)
+const groups = reactive({}) // 快取已載過的訂單明細 (物件，已按小農分好組)
 const itemsLoading = ref(false)
 const itemsError = ref('')
 
-const receivingId = ref(null)  // 正在處理確認收貨的訂單 id
+const receivingKey = ref(null)  // 正在處理確認收貨的 orderId-farmerId
 
 // 狀態代碼轉換
 const SHIPPED_STATUS = {
   pending: { label: '待出貨', tone: 'amber' },
-  shipping: { label: '已出貨', tone: 'blue' },
+  shipping: { label: '配送中', tone: 'blue' },
   delivered: { label: '已送達', tone: 'green' },
-}
-
-const ORDER_STATUS = {
-  pending: { label: '處理中', tone: 'amber' },
-  confirmed: { label: '已完成', tone: 'green' },
 }
 
 // 預防沒有對應的狀態標籤 (預設灰色)
@@ -41,6 +37,13 @@ function fmdt(dt){
 
 // 金額轉換
 const fmm = (n) => (n == null ? '-' : `NT$ ${Number(n).toLocaleString('zh-TW')}`)
+
+// 圖片載入失敗時用預設圖
+function onImagError(e){
+  if (e.target.dataset.fallback) { return }
+  e.target.dataset.fallback = "1"
+  e.target.src = noImage
+}
 
 async function loadOrders(){
   loading.value = true
@@ -74,13 +77,13 @@ async function toggleOrderItems(orderId){
   itemsError.value = ''
 
   // 若明細已經在快取
-  if (items[orderId]) return
+  if (groups[orderId]) return
 
   // 沒快取，api 取得明細
   itemsLoading.value = true
   try {
     const res = await memberOrdersApi.listItems(orderId)
-    items[orderId] = res || []
+    groups[orderId] = res || []
   } catch (e){
     itemsError.value = e.message || '載入明細失敗'
     openOrderId.value = null // 失敗就收合列表
@@ -96,25 +99,27 @@ function goPage(p){
 }
 
 
-async function markReceived(o){
+async function markReceived(orderId, group){
   const ok = await confirm({
     title: '確認收貨',
-    message: `確定已經收到訂單 #${o.orderId} 的商品嗎? 確認後將完成此筆訂單`,
+    message: `確定已經收到 ${group.farmerName || '此小農'} 的全部商品嗎?`,
     confirmText: '確認收貨',
     danger: true,
   })
   if (!ok) return
+  if (group.shippedStatus !== 'shipping') { return }
 
-  receivingId.value = o.orderId
-  if (o.shippedStatus === 'shipping'){
-    try {
-      await memberOrdersApi.received(o.orderId)
-      await loadOrders()
-    } catch(e){
-      alert(e.message || '操作失敗')
-    } finally {
-      receivingId.value = null
-    }
+  receivingKey.value = `${orderId}-${group.farmerId}`   // 鎖定收貨按鈕
+
+  try {
+    await memberOrdersApi.received(orderId, group.farmerId)
+    delete groups[orderId]  // 清除這張訂單的明細快取
+    openOrderId.value = null    // 先收合
+    await toggleOrderItems(orderId)  // 再展開重 load 新的送達狀態
+  } catch(e){
+    alert(e.message || '操作失敗')
+  } finally {
+    receivingId.value = null
   }
 }
 
@@ -124,6 +129,7 @@ async function markReceived(o){
   <section class="order-page">
     <header class="order-page-head">
       <h1>🧾 我的訂單</h1>
+      <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p>
     </header>
 
     <p v-if="loading" class="state-box">載入中...</p>
@@ -145,15 +151,7 @@ async function markReceived(o){
         <header class="order-head">
           <div>
             <span class="order-id">訂單編號 #{{ o.orderId }}</span>
-            <time class="order-date">{{ fmdt(o.createdAt) }}</time>
-          </div>
-          <div class="order-badges">
-            <span class="badge" :class="`badge--${badgeOf(SHIPPED_STATUS, o.shippedStatus).tone}`">
-              {{ badgeOf(SHIPPED_STATUS, o.shippedStatus).label }}
-            </span>
-            <span class="badge" :class="`badge--${badgeOf(ORDER_STATUS, o.orderStatus).tone}`">
-              {{ badgeOf(ORDER_STATUS, o.orderStatus).label }}
-            </span>
+            <time class="order-date" :datetime="o.createdAt">{{ fmdt(o.createdAt) }}</time>
           </div>
         </header>
 
@@ -172,23 +170,11 @@ async function markReceived(o){
             <dt>實付金額</dt>
             <dd class="order-money">{{ fmm(o.finalPayment) }}</dd>
           </div>
-          <div class="order-cell">
-            <dt>出貨時間</dt>
-            <dd>{{ fmdt(o.shippedAt) }}</dd>
-          </div>
-          <div class="order-cell">
-            <dt>收貨時間</dt>
-            <dd>{{ fmdt(o.receivedAt) }}</dd>
-          </div>
         </dl>
 
         <footer class="order-foot">
           <button class="btn-ghost" @click="toggleOrderItems(o.orderId)">
             {{ openOrderId === o.orderId ? '收合明細 ▲' : '查看明細 ▼' }}
-          </button>
-
-          <button v-if="o.shippedStatus === 'shipped'" class="btn-primary" :disabled="receivingId === o.orderId" @click="markReceived(o)">
-            {{ receivingId === o.orderId ? '處理中...' : '確認收貨' }}
           </button>
         </footer>
 
@@ -196,27 +182,46 @@ async function markReceived(o){
           <p v-if="itemsLoading" class="hint">明細載入中...</p>
           <p v-else-if="itemsError" class="msg-err">{{ itemsError }}</p>
 
-          <table v-else class="item-table">
-            <thead>
-              <tr>
-                <th>商品</th>
-                <th>單價</th>
-                <th>數量</th>
-                <th>小計</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in items[o.orderId]" :key="item.productId">
-                <td class="item-name">
-                  <img :src="`/api/products/${item.productId}/image`" alt="" class="item-img" />
-                  <span>{{ item.productName }}</span>
-                </td>
-                <td>{{ fmm(item.price) }}</td>
-                <td>x {{ item.quantity }}</td>
-                <td>{{ fmm(item.price * item.quantity) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-else v-for="g in groups[o.orderId]" :key="g.farmerId" class="farmer-group">
+            <header class="farmer-head">
+              <span class="farmer-name">🧑‍🌾 {{ g.farmerName || `小農 #${g.farmerId}` }}</span>
+              <span class="badge" :class="`badge--${badgeOf(SHIPPED_STATUS, g.shippedStatus).tone}`">
+                {{ badgeOf(SHIPPED_STATUS, g.shippedStatus).label }}
+              </span>
+            </header>
+
+            <table class="item-table">
+              <thead>
+                <tr>
+                  <th>商品</th>
+                  <th>單價</th>
+                  <th>數量</th>
+                  <th>小計</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in g.items" :key="item.productId">
+                  <td class="item-name">
+                    <img :src="`/api/products/${item.productId}/image`" @error="onImagError" alt="" class="item-img" />
+                    <span>{{ item.productName }}</span>
+                  </td>
+                  <td>{{ fmm(item.price) }}</td>
+                  <td>{{ fmm(item.quantity) }}</td>
+                  <td>{{ fmm(item.itemSubtotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <footer class="farmer-foot">
+              <span class="farmer-subtotal">農場小計 {{ g.subtotal }}</span>
+              <button v-if="g.shippedStatus === 'shipping'" 
+                class="btn-primary" :disabled="receivingKey === `${o.orderId}-${g.farmerId}`"
+                @click="markReceived(o.orderId, g)"
+              >
+                {{ receivingKey === `${o.orderId}-${g.farmerId}` ? '處理中...' : '確認收貨' }}
+              </button>
+            </footer>
+          </div>
         </div>
       </article>
     </div>
@@ -264,7 +269,15 @@ async function markReceived(o){
 .order-foot { display: flex; gap: 8px; justify-content: flex-end; }
 
 /* 明細展開區 */
-.item-panel  { border-top: 1px dashed var(--line); padding-top: 12px; }
+.item-panel  { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ★改：新增小農分組樣式 */
+.farmer-group { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--paper); }
+.farmer-head  { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.farmer-name  { font-weight: 600; font-size: 14px; color: var(--leaf-dark); }
+.farmer-foot  { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.farmer-subtotal { font-size: 14px; color: var(--ink-soft); }
+
 .item-table  { width: 100%; border-collapse: collapse; font-size: 14px; }
 .item-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding-bottom: 6px; }
 .item-table td { padding: 8px 0; border-top: 1px solid var(--line); color: var(--ink-soft); }
@@ -289,44 +302,6 @@ async function markReceived(o){
 .pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 4px; }
 .pager-info { color: var(--ink-soft); font-size: 14px; }
 
-.soon-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 64px 24px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  text-align: center;
-}
-.soon-icon {
-  font-size: 44px;
-  line-height: 1;
-}
-.soon-card h1 {
-  margin: 0;
-  font-size: 22px;
-  color: var(--ink);
-}
-.soon-card p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--muted);
-}
-.soon-btn {
-  margin-top: 10px;
-  padding: 9px 20px;
-  border-radius: 999px;
-  border: 1px solid var(--leaf);
-  color: var(--leaf);
-  font-size: 14px;
-  text-decoration: none;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-.soon-btn:hover {
-  background: var(--leaf);
-  color: #fff;
-}
+/* ★改：刪除 .soon-card / .soon-icon / .soon-btn 等佔位頁殘留樣式（頁面已無這些元素，留著是死碼） */
 </style>
+

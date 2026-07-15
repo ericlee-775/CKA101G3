@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
-import com.farmily.product.dto.ProductOrderItemResponseDTO;
+import com.farmily.product.dto.ProductOrderMemberGroupDTO;
 import com.farmily.product.dto.ProductOrderRequestDTO;
 import com.farmily.product.dto.ProductOrderResponseDTO;
 import com.farmily.product.service.ProductOrderService;
@@ -76,11 +76,11 @@ public class MemberProductOrderController {
 	
 	// 顯示訂單明細
 	@GetMapping("/{orderId}/items")
-	public ResponseEntity<List<ProductOrderItemResponseDTO>> getOrderItems(
+	public ResponseEntity<List<ProductOrderMemberGroupDTO>> getOrderItems(
 			@AuthenticationPrincipal MemberUserDetails me,
 			@PathVariable Integer orderId){
-		// List<ProductOrderItemResponseDTO> getOrderItem(Integer userId, Integer orderId)
-		List<ProductOrderItemResponseDTO> list = oSvc.getOrderItems(me.getUserId(), orderId);
+		// List<ProductOrderMemberGroupDTO> getOrderItems(Integer userId, Integer orderId){
+		List<ProductOrderMemberGroupDTO> list = oSvc.getOrderItems(me.getUserId(), orderId);
 		
 		return ResponseEntity.ok(list);
 	}
