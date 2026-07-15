@@ -15,6 +15,7 @@ import FarmilyView from '@/views/shop/Farmily.vue'
 import ProductsView from '@/views/shop/ProductsView.vue'
 import ProductView from '@/views/shop/ProductView.vue'
 import CartView from '@/views/shop/CartView.vue'
+import CheckoutView from '@/views/shop/CheckoutView.vue'
 import GroupBuysView from '@/views/shop/GroupBuysView.vue'
 import GroupBuyDetailView from '@/views/shop/GroupBuyDetailView.vue'
 import BlogsView from '@/views/shop/BlogsView.vue'
@@ -83,6 +84,7 @@ const router = createRouter({
         // 商品詳情頁：/products/:productId（圖片 + 描述等，資料走 /api/products/{id} 與 /photo）
         { path: 'products/:productId', name: 'product-detail', component: ProductView },
         { path: 'cart',        name: 'cart',       component: CartView },
+        { path: 'checkout',    name: 'checkout',       component: CheckoutView, meta: {requiresAuth: 'MEMBER'} },
         { path: 'group-buys',  name: 'group-buys', component: GroupBuysView },
         // 團購詳情頁：/group-buys/:groupBuyId（資料走 /api/groupBuy/{id}，這筆團購已經存在）
         { path: 'group-buys/:groupBuyId', name: 'group-buy-detail', component: GroupBuyDetailView },
