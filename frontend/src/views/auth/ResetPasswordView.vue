@@ -27,9 +27,13 @@ async function handleSubmit() {
     error.value = '請輸入新密碼'
     return
   }
-  // 後端 @Size(min = 8)
-  if (newPassword.value.length < 8) {
-    error.value = '密碼至少需 8 個字元'
+  // 後端 @Size(8~60) + @Pattern：長度 8~60 且需同時含英文與數字
+  if (newPassword.value.length < 8 || newPassword.value.length > 60) {
+    error.value = '密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(newPassword.value) || !/\d/.test(newPassword.value)) {
+    error.value = '密碼需同時包含英文字母與數字'
     return
   }
   if (newPassword.value !== confirm.value) {
