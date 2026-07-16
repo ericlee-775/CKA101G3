@@ -78,7 +78,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         return result;
     }
 
-    // 開始審核 PENDING 案件
+    // 開始審核 PENDING 案件 - REVIEWING
     @Override
     public FarmerReviewResponse reviewing(Integer reviewId, Integer adminId) {
         FarmerReview review = findReview(reviewId);
@@ -92,8 +92,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     }
 
     // 核准過審：把這一輪 submitted_XXX 寫回 Farmer，並啟用帳號
+    // notes：管理員內部備註（選填），僅後台可見，不會外洩給小農
     @Override
-    public FarmerReviewResponse approve(Integer reviewId, Integer adminId) {
+    public FarmerReviewResponse approve(Integer reviewId, Integer adminId, String notes) {
         FarmerReview review = findReview(reviewId);
         ensureReviewing(review);       // 若 APPROVED/REJECTED 就擋下
 
@@ -115,6 +116,8 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         review.setReviewStatus(FarmerReview.ReviewStatus.APPROVED);
         review.setReviewedAt(LocalDateTime.now());
         review.setAdmin(findAdmin(adminId));                  // 記錄是誰審的
+        // 管理員內部備註（選填）：null/空白時存 null，避免存入空字串
+        review.setNotes((notes != null && !notes.isBlank()) ? notes.trim() : null);
 
         FarmerReviewResponse result = FarmerReviewResponse.from(farmerReviewRepository.save(review));
 

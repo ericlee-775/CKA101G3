@@ -22,6 +22,7 @@ public class FarmerReviewResponse {
     private LocalDateTime submittedAt;
     private LocalDateTime reviewedAt;
     private String rejectReason;
+    private String notes;                 // 管理員核准時的內部備註（僅後台可見，maskAdminInfo 會遮蔽）
     private String submittedFarmName;     // 本輪提交快照
     private String submittedFarmAddress;
     private String submittedCityName;
@@ -77,6 +78,9 @@ public class FarmerReviewResponse {
     public String getRejectReason() {
         return rejectReason;
     }
+    public String getNotes() {
+        return notes;
+    }
     public String getSubmittedFarmName() {
         return submittedFarmName;
     }
@@ -118,10 +122,12 @@ public class FarmerReviewResponse {
     }
 
     // 遮蔽承辦管理員資訊：小農端查看自己的審核紀錄時，不得得知是哪位管理員審核（避免外洩）
+    // notes 為管理員內部備註，同樣不得外洩給小農
     public void maskAdminInfo() {
         this.adminId = null;
         this.adminName = null;
         this.adminEmail = null;
+        this.notes = null;
     }
 
     public static FarmerReviewResponse from(FarmerReview r){
@@ -148,6 +154,7 @@ public class FarmerReviewResponse {
         dto.submittedAt = r.getSubmittedAt();
         dto.reviewedAt = r.getReviewedAt();
         dto.rejectReason = r.getRejectReason();
+        dto.notes = r.getNotes();
         dto.submittedFarmName = r.getSubmittedFarmName();
         dto.submittedFarmAddress = r.getSubmittedFarmAddress();
         if (r.getSubmittedDistrict() != null) {
