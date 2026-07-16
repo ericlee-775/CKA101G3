@@ -48,11 +48,11 @@ const displayName = computed(() => {
 // 會員中心選單（跟 MemberLayout 的側邊選單一致，但不含「通知」→ 通知走小鈴鐺）
 const accountMenu = [
   { label: '個人資料', icon: '👤', to: '/member/me' },
-  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
+  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
   { label: '我的團購', icon: '👥', to: '/member/group-buys' },
   { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
-  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
   { label: '已報名活動', icon: '🌱', to: '/member/farm-trips' },
+  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
 ]
 
