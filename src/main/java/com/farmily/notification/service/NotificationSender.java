@@ -218,10 +218,9 @@ public class NotificationSender {
 	
 	
 	// ====================== 體驗活動 ======================
-	
 	// 體驗活動審核通過	trip_request_approved, 小農 farmerId
 	@Transactional
-	public void sednTripRequestApproved(Integer farmerId, Integer farmTripId) {
+	public void sendTripRequestApproved(Integer farmerId, Integer farmTripId) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
 		req.setTypeCode("trip_request_approved");			
 		req.setRecipientType(NotificationRecipientType.farmer);
@@ -302,6 +301,98 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
+	
+	// ====================== 專欄部落格 ======================
+	// 專欄文章被檢舉	blog_report_pending, 一般會員 userId
+	@Transactional
+	public void sendBlogReportPending(Integer userId, Integer blogId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_report_pending");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId)));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章被檢舉維持顯示	blog_report_visible, 一般會員 userId
+	@Transactional
+	public void sendBlogReportVisible(Integer userId, Integer blogId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_report_visible");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId)));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章被檢舉隱藏	blog_report_hidden, 一般會員 userId
+	@Transactional
+	public void sendBlogReportHidden(Integer userId, Integer blogId, String reportReason) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_report_hidden");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId), "report_reason", reportReason));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章評論	blog_comment, 一般會員 userId
+	@Transactional
+	public void sendBlogComment(Integer userId, Integer blogId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_comment");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId)));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章評論被檢舉	blog_comment_report, 一般會員 userId
+	@Transactional
+	public void sendBlogCommentReport(Integer userId, Integer blogId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_comment_report");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId)));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章評論被檢舉維持顯示	blog_comment_report_visible, 一般會員 userId
+	@Transactional
+	public void sendBlogCommentReportVisible(Integer userId, Integer blogId) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_comment_report_visible");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId)));
+		nSvc.sendOneNotif(req);
+	}
+	
+	// 專欄文章評論被檢舉隱藏	blog_comment_report_hidden, 一般會員 userId
+	@Transactional
+	public void sendBlogCommentReportHidden(Integer userId, Integer blogId, String reportReason) {
+		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
+		req.setTypeCode("blog_comment_report_hidden");			
+		req.setRecipientType(NotificationRecipientType.user);
+		req.setRecipientId(userId);
+		req.setTargetType("blog");
+		req.setTargetId(blogId);
+		req.setVariables(Map.of("blog_id", String.valueOf(blogId), "report_reason", reportReason));
+		nSvc.sendOneNotif(req);
+	}
 	
 	
 	
