@@ -279,6 +279,7 @@ watch(() => route.params.productId, loadProduct)
             {{ product.subCatClassName }}
           </p>
           <h1 class="info__name">{{ product.productName }}</h1>
+          <p v-if="product.farmName" class="info__farm">🏡 {{ product.farmName }}</p>
 
           <div class="info__prices">
             <p class="info__price">
@@ -542,8 +543,13 @@ watch(() => route.params.productId, loadProduct)
 .info__name {
   font-size: 28px;
   color: var(--ink);
-  margin: 0 0 16px;
+  margin: 0 0 8px;
   line-height: 1.3;
+}
+.info__farm {
+  color: var(--leaf-dark);
+  font-size: 14px;
+  margin: 0 0 16px;
 }
 .info__prices {
   margin-bottom: 12px;

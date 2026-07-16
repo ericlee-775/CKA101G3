@@ -163,7 +163,10 @@ watch(farmerId, loadFarmDetail)
       <section class="section-block">
         <div class="section-head">
           <h2>農場商品</h2>
-          <RouterLink v-if="products.length" :to="{ name: 'products' }">查看全部商品</RouterLink>
+          <RouterLink
+            v-if="products.length"
+            :to="{ name: 'products', query: { farmerId: farmerId, farmName: farm.farmName } }"
+          >查看全部商品</RouterLink>
         </div>
 
         <p v-if="relatedErrors.products" class="section-error">{{ relatedErrors.products }}</p>
@@ -176,7 +179,7 @@ watch(farmerId, loadFarmDetail)
             :to="{ name: 'product-detail', params: { productId: product.productId } }"
           >
             <h3>{{ product.productName }}</h3>
-            <p>{{ product.description }}</p>
+            <p>{{ product.unitPricingMeasure }}</p>
             <strong>{{ formatPrice(product.retailPrice) }}</strong>
           </RouterLink>
         </div>
