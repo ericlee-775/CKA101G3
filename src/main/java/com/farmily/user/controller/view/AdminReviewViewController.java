@@ -3,7 +3,10 @@ package com.farmily.user.controller.view;
 import com.farmily.user.dto.FarmerReviewResponse;
 import com.farmily.user.security.AdminUserDetails;
 import com.farmily.user.service.AdminReviewService;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,12 +26,33 @@ public class AdminReviewViewController {
         this.adminReviewService = adminReviewService;
     }
 
-    // 查所有「待審 PENDING」與「審核中 Reviewing」案件清單
+    // 每頁筆數（審核歷史分頁）
+    private static final int HISTORY_PAGE_SIZE = 10;
+
+    // 查所有「待審 PENDING」與「審核中 Reviewing」案件清單；審核歷史支援複合查詢 + 分頁
     @GetMapping
-    public String list(@AuthenticationPrincipal AdminUserDetails me,
+    public String list(@RequestParam(value = "hKw", required = false) String hKw,
+                       @RequestParam(value = "hStatus", required = false) String hStatus,
+                       @RequestParam(value = "hFrom", required = false)
+                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hFrom,
+                       @RequestParam(value = "hTo", required = false)
+                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hTo,
+                       @RequestParam(value = "hPage", defaultValue = "0") int hPage,
+                       @AuthenticationPrincipal AdminUserDetails me,
                        ModelMap model) {
         model.addAttribute("pendingData", adminReviewService.listPending());
         model.addAttribute("reviewingData", adminReviewService.listReviewing());
+
+        // 審核歷史：複合查詢 + 分頁
+        Page<FarmerReviewResponse> history =
+                adminReviewService.listHistory(hKw, hStatus, hFrom, hTo, hPage, HISTORY_PAGE_SIZE);
+        model.addAttribute("history", history);
+        // 回填查詢條件，供表單與分頁連結沿用
+        model.addAttribute("hKw", hKw);
+        model.addAttribute("hStatus", hStatus);
+        model.addAttribute("hFrom", hFrom);
+        model.addAttribute("hTo", hTo);
+
         model.addAttribute("currentAdminId", me.getAdminId());
         return "back-end/admin/listReview";
     }

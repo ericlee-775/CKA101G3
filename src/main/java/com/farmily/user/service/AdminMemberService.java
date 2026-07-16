@@ -1,6 +1,7 @@
 package com.farmily.user.service;
 
 import com.farmily.user.dto.UserProfileResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -9,6 +10,9 @@ public interface AdminMemberService {
 
     // 列出所有會員
     List<UserProfileResponse> listAll();
+
+    // 複合查詢 + 分頁：keyword 比對 email / 姓名 / 電話（可空）；status 比對會員狀態（可空）
+    Page<UserProfileResponse> search(String keyword, String status, int page, int size);
 
     // 查單一會員
     UserProfileResponse getById(Integer userId);

@@ -2,17 +2,18 @@ package com.farmily.user.controller.view;
 
 import com.farmily.user.dto.UserProfileResponse;
 import com.farmily.user.service.AdminMemberService;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
 // 會員管理（Thymeleaf）
 @Controller
 @RequestMapping("/admin/members")
 public class AdminMemberViewController {
+
+    private static final int PAGE_SIZE = 10;
 
     private final AdminMemberService adminMemberService;
 
@@ -20,11 +21,16 @@ public class AdminMemberViewController {
         this.adminMemberService = adminMemberService;
     }
 
-    // 查所有會員
+    // 查所有會員（複合查詢 + 分頁）
     @GetMapping
-    public String listAll(ModelMap model) {
-        List<UserProfileResponse> list = adminMemberService.listAll();
-        model.addAttribute("memberListData", list);
+    public String listAll(@RequestParam(value = "kw", required = false) String kw,
+                          @RequestParam(value = "status", required = false) String status,
+                          @RequestParam(value = "page", defaultValue = "0") int page,
+                          ModelMap model) {
+        Page<UserProfileResponse> members = adminMemberService.search(kw, status, page, PAGE_SIZE);
+        model.addAttribute("members", members);
+        model.addAttribute("kw", kw);       // 回填查詢條件供表單與分頁連結沿用
+        model.addAttribute("status", status);
         return "back-end/admin/listAllMember";
     }
 

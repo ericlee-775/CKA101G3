@@ -6,6 +6,10 @@ import com.farmily.user.model.User;
 import com.farmily.user.repository.SpendingTierRepository;
 import com.farmily.user.repository.UserRepository;
 import com.farmily.user.service.AdminMemberService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +47,27 @@ public class AdminMemberServiceImpl implements AdminMemberService {
             result.add(UserProfileResponse.from(u, tierName));
         }
         return result;
+    }
+
+    // 複合查詢 + 分頁：keyword 比對 email / 姓名 / 電話；status 比對會員狀態；消費級距於分頁後在記憶體補上
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserProfileResponse> search(String keyword, String status, int page, int size) {
+        // 預設依會員編號由小到大排序
+        Pageable pageable = PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.ASC, "user_id"));
+        Page<User> users = userRepository.searchMembers(blankToNull(keyword), blankToNull(status), pageable);
+
+        // 消費級距表只查 1 次，於本頁會員在記憶體比對，避免 N+1
+        List<SpendingTier> tiers = spendingTierRepository.findAll();
+        return users.map(u -> {
+            BigDecimal amount = u.getMonthlySpending() != null ? u.getMonthlySpending() : BigDecimal.ZERO;
+            return UserProfileResponse.from(u, resolveTierName(tiers, amount));
+        });
+    }
+
+    // 空白字串視為 null（不套用該條件）
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
     }
 
     // 在記憶體用金額比對出級距名稱（找不到回傳 null）

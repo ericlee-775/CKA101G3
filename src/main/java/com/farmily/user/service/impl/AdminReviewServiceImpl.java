@@ -12,11 +12,17 @@ import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.AdminReviewService;
 import com.farmily.user.service.EmailVerificationService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +82,44 @@ public class AdminReviewServiceImpl implements AdminReviewService {
             result.add(FarmerReviewResponse.from(review));
         }
         return result;
+    }
+
+    // 審核歷史：已核准 / 已退件（跨所有小農）複合查詢 + 分頁（reviewedAt 新到舊）
+    // 顯示邏輯與 reviewHistory 一致：文件僅負責管理員可見，退件理由 / 備註所有管理員皆可見
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FarmerReviewResponse> listHistory(String keyword, String status, LocalDate from, LocalDate to,
+                                                  int page, int size) {
+        // 狀態篩選：指定 APPROVED / REJECTED 則只查該狀態，否則兩者皆列
+        List<String> statuses;
+        if (FarmerReview.ReviewStatus.APPROVED.name().equalsIgnoreCase(status)) {
+            statuses = List.of(FarmerReview.ReviewStatus.APPROVED.name());
+        } else if (FarmerReview.ReviewStatus.REJECTED.name().equalsIgnoreCase(status)) {
+            statuses = List.of(FarmerReview.ReviewStatus.REJECTED.name());
+        } else {
+            statuses = List.of(FarmerReview.ReviewStatus.APPROVED.name(),
+                               FarmerReview.ReviewStatus.REJECTED.name());
+        }
+
+        // 預設依審核編號由小到大排序（原生查詢排序需用資料表欄位名 review_id）
+        Pageable pageable = PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.ASC, "review_id"));
+
+        return farmerReviewRepository.searchHistory(
+                statuses, blankToNull(keyword), startOfDay(from), endOfDay(to), pageable
+        ).map(FarmerReviewResponse::from);
+    }
+
+    // 空白字串視為 null（不套用關鍵字條件）
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
+    }
+
+    // 日期轉當日起訖時間（含整日）；null 則不套用
+    private static LocalDateTime startOfDay(LocalDate d) {
+        return d == null ? null : d.atStartOfDay();
+    }
+    private static LocalDateTime endOfDay(LocalDate d) {
+        return d == null ? null : d.atTime(LocalTime.MAX);
     }
 
     // 開始審核 PENDING 案件 - REVIEWING

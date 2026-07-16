@@ -1,6 +1,9 @@
 package com.farmily.user.service;
 
 import com.farmily.user.dto.FarmerReviewResponse;
+import org.springframework.data.domain.Page;
+
+import java.time.LocalDate;
 import java.util.List;
 
 // 管理員對小農審核操作
@@ -11,6 +14,13 @@ public interface AdminReviewService {
 
     // 列出審核中清單
     List<FarmerReviewResponse> listReviewing();
+
+    // 審核歷史複合查詢 + 分頁（已核准 APPROVED / 已退件 REJECTED，跨所有小農）
+    //   keyword：農場名 / Email 關鍵字（可空）
+    //   status：APPROVED / REJECTED（可空 → 兩者皆列）
+    //   from / to：審核日期區間（可空）
+    Page<FarmerReviewResponse> listHistory(String keyword, String status, LocalDate from, LocalDate to,
+                                           int page, int size);
 
     // 某小農所有審核紀錄
     List<FarmerReviewResponse> listByFarmer(Integer farmerId);
