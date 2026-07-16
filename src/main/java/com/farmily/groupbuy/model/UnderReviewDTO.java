@@ -22,7 +22,16 @@ public class UnderReviewDTO {
 	
 	private Timestamp replyDatetime;
 	
+	private Timestamp requestDatetime;
 	
+
+	public Timestamp getRequestDatetime() {
+		return requestDatetime;
+	}
+
+	public void setRequestDatetime(Timestamp requestDatetime) {
+		this.requestDatetime = requestDatetime;
+	}
 
 	public Integer getGroupBuyId() {
 		return groupBuyId;
@@ -97,7 +106,7 @@ public class UnderReviewDTO {
 	}
 
 	public UnderReviewDTO(Integer groupBuyId,String productName, Integer groupPrice, RequestStatus requestStatus, Integer targetAmount,
-			Timestamp openDatetime, Timestamp ddlDatetime, String rejectReason,Timestamp replyDatetime) {
+			Timestamp openDatetime, Timestamp ddlDatetime, String rejectReason,Timestamp replyDatetime,Timestamp requestDatetime) {
 		super();
 		this.groupBuyId=groupBuyId;
 		this.productName = productName;
@@ -108,6 +117,7 @@ public class UnderReviewDTO {
 		this.ddlDatetime = ddlDatetime;
 		this.rejectReason = rejectReason;
 		this.replyDatetime=replyDatetime;
+		this.requestDatetime=requestDatetime;
 	}
 
 	public UnderReviewDTO() {

@@ -8,7 +8,12 @@
 //
 // 商品圖片：UnderReviewDTO 沒有 productId，只有 groupBuyId，做法跟訂單清單一樣，
 // 先打公開的 GET /api/groupBuy/{groupBuyId} 換出 productId，再打商品圖片端點。
-import { ref, onMounted } from 'vue'
+//
+// 排序：依 requestDatetime（申請時間）由新到舊排序，越新的申請排越前面。
+//
+// 已通過的申請可以點擊卡片直接進去該團購的詳情頁參加（此時團購已經是 open 狀態）；
+// 待審核／已拒絕的不能點，因為還沒有正式開團，或已經確定不會開團。
+import { ref, computed, onMounted } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 import groupBuyApi from '@/api/groupBuy'
 import { usePagination } from '@/composables/usePagination'
@@ -17,7 +22,11 @@ import noImage from '@/assets/no-image.svg'
 
 const emit = defineEmits(['count'])
 
-const list = ref([])
+const rawList = ref([])
+// 依申請時間新到舊排序；沒有 requestDatetime 的（理論上不會發生）放最後，不讓 undefined 排序出錯。
+const list = computed(() =>
+  [...rawList.value].sort((a, b) => new Date(b.requestDatetime || 0) - new Date(a.requestDatetime || 0))
+)
 const loading = ref(true)
 const error = ref('')
 
@@ -72,8 +81,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    list.value = (await memberGroupBuyApi.myRequests()) || []
-    emit('count', list.value.length)
+    rawList.value = (await memberGroupBuyApi.myRequests()) || []
+    emit('count', rawList.value.length)
     loadImages()
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
@@ -110,9 +119,18 @@ onMounted(load)
       <router-link class="state-btn" to="/group-buys">去看看可以發起哪些團購 →</router-link>
     </div>
 
-    <!-- 申請卡片 -->
+    <!-- 申請卡片：已通過的可以點卡片直接進去該團購參加，其他狀態不能點 -->
     <template v-else>
-      <article v-for="(req, i) in pagedList" :key="i" class="gb-card">
+      <component
+        :is="req.requestStatus === 'approved' ? 'RouterLink' : 'div'"
+        v-for="req in pagedList"
+        :key="req.groupBuyId"
+        class="gb-card"
+        :class="{ 'gb-card--clickable': req.requestStatus === 'approved' }"
+        v-bind="req.requestStatus === 'approved'
+          ? { to: { name: 'group-buy-detail', params: { groupBuyId: req.groupBuyId } } }
+          : {}"
+      >
         <div class="gb-card__body">
           <header class="gb-head">
             <img class="gb-img" :src="requestImage(req)" alt="" loading="lazy" />
@@ -148,8 +166,10 @@ onMounted(load)
               <dd class="gb-reject-reason">{{ req.rejectReason || '—' }}</dd>
             </div>
           </dl>
+
+          <p v-if="req.requestStatus === 'approved'" class="gb-join-hint">前往團購頁面加入 →</p>
         </div>
-      </article>
+      </component>
 
       <Pagination v-model:page="page" :total-pages="totalPages" />
     </template>
@@ -180,6 +200,16 @@ onMounted(load)
 .gb-card__body {
   padding: 18px 20px;
 }
+/* 已通過的申請可以點卡片進去參加，用游標＋更明顯的 hover 提示是可互動的 */
+.gb-card--clickable {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.gb-card--clickable:hover {
+  border-left-color: var(--leaf-dark);
+}
 
 .gb-head {
   display: flex;
@@ -189,12 +219,14 @@ onMounted(load)
   margin-bottom: 14px;
 }
 .gb-img {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 10px;
   object-fit: cover;
   background: var(--line);
   flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 5px rgba(30, 25, 15, 0.1);
 }
 .gb-name {
   margin: 0;
@@ -242,6 +274,12 @@ onMounted(load)
 }
 .gb-reject-reason {
   color: #b03434;
+}
+.gb-join-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--leaf-dark);
 }
 
 @media (max-width: 560px) {

@@ -32,9 +32,6 @@ public class AdminGroupBuyController {
 		return ResponseEntity.ok(list);
 	}
 	
-	//測試直接讓團購成團
-	
-	
 	
 	//給管理員看的單筆訂單資料
 	@GetMapping("/order/{orderId}")

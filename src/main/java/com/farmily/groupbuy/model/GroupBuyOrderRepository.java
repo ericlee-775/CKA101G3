@@ -16,6 +16,20 @@ public interface GroupBuyOrderRepository extends JpaRepository<GroupBuyOrderVO, 
 	Optional<GroupBuyOrderVO>findByOrderIdAndGroupBuyId_Product_FarmerId(Integer OrderId,Integer farmerId);
 	Optional<GroupBuyOrderVO>findByOrderIdAndGroupBuyId_HostUser_UserId(Integer orderId,Integer userId);
 	
+	//加總小農的團購總收益
+	@Query("""
+			SELECT COALESCE(SUM(o.totalAmount),0)
+			FROM GroupBuyOrderVO o 
+			WHERE o.paidStatus = :paidStatus
+			AND o.groupBuyId.product.farmerId = :farmerId
+			""")
+	Long sumTotalAmountByPaidStatusAndFarmerId(
+												@Param("paidStatus")PaidStatus paidStatus,
+												@Param("farmerId")Integer farmerId);
+
+	
+	
+	
 	
 	@Query("""
 		    SELECT o
@@ -31,6 +45,8 @@ public interface GroupBuyOrderRepository extends JpaRepository<GroupBuyOrderVO, 
 		        @Param("joinStatus") JoinStatus joinStatus,
 		        @Param("status") GroupBuyStatus status
 		);
+	
+	
 	
 }
 

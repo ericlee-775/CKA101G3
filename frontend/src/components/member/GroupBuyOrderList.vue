@@ -19,7 +19,7 @@
 import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 import authStore from '@/stores/auth'
-import { shippedStatusInfo, orderStatusInfo } from '@/utils/orderStatus'
+import { shippedStatusInfo } from '@/utils/orderStatus'
 import { usePagination } from '@/composables/usePagination'
 import Pagination from '@/components/Pagination.vue'
 import noImage from '@/assets/no-image.svg'
@@ -146,67 +146,66 @@ onMounted(load)
     <!-- 訂單卡片 -->
     <template v-else>
       <article v-for="order in pagedOrders" :key="order.orderId" class="order-card">
-        <div class="order-img-wrap">
-          <img class="order-img" :src="orderImage(order)" alt="" loading="lazy" />
-        </div>
-        <div class="order-body">
-          <header class="order-head">
-            <div class="order-id-group">
-              <span class="order-id">訂單編號 #{{ order.orderId }}</span>
-              <time class="order-date">{{ formatDate(order.createdAt) }}</time>
-            </div>
-            <div class="order-badges">
-              <!-- 只顯示出貨狀態（待出貨／已送達） -->
-              <span class="badge" :class="`badge--${toneOf(shippedStatusInfo(order.shippedStatus))}`">
-                {{ shippedStatusInfo(order.shippedStatus).text }}
-              </span>
-            </div>
-          </header>
-
-          <dl class="order-grid">
-            <div class="order-cell">
-              <dt>我訂購</dt>
-              <dd>{{ order.buyQty ?? '—' }} 件</dd>
-            </div>
-            <div class="order-cell">
-              <dt>成團價</dt>
-              <dd>{{ formatMoney(order.groupPrice) }}</dd>
-            </div>
-            <div class="order-cell">
-              <dt>我付的金額</dt>
-              <dd class="order-money">{{ formatMoney(order.paidAmount) }}</dd>
-            </div>
-            <div class="order-cell">
-              <dt>訂單狀態</dt>
-              <dd>{{ orderStatusInfo(order.orderStatus).text }}</dd>
-            </div>
-            <div class="order-cell order-cell--wide">
-              <dt>取貨地點</dt>
-              <dd>📍 {{ order.shippingAddress || '—' }}</dd>
-            </div>
-          </dl>
-
-          <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
-          <div class="host-contact">
-            <h4>團購主聯絡方式</h4>
-            <p>{{ order.hostUserName || '—' }}</p>
-            <p>📞 {{ order.hostUserPhone || '—' }}</p>
-            <p>✉️ {{ order.hostUserEmail || '—' }}</p>
-            <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+        <!-- 訂單編號/日期/出貨狀態自成一列，不再跟圖片擠在同一條水平線上 -->
+        <header class="order-head">
+          <div class="order-id-group">
+            <span class="order-id">訂單編號 #{{ order.orderId }}</span>
+            <time class="order-date">{{ formatDate(order.createdAt) }}</time>
           </div>
+          <div class="order-badges">
+            <!-- 只顯示出貨狀態（待出貨／已送達） -->
+            <span class="badge" :class="`badge--${toneOf(shippedStatusInfo(order.shippedStatus))}`">
+              {{ shippedStatusInfo(order.shippedStatus).text }}
+            </span>
+          </div>
+        </header>
 
-          <!-- 確認收貨：只有團購主看得到按鈕，確認過一次就不能再按 -->
-          <div v-if="isHost(order)" class="order-footer">
-            <button
-              v-if="order.orderStatus !== 'COMPLETED'"
-              type="button"
-              class="confirm-btn"
-              :disabled="isConfirming(order.orderId)"
-              @click="confirmReceipt(order)"
-            >
-              確認收貨
-            </button>
-            <span v-else class="confirmed-text">✓ 已確認收貨</span>
+        <div class="order-main">
+          <div class="order-img-wrap">
+            <img class="order-img" :src="orderImage(order)" alt="" loading="lazy" />
+          </div>
+          <div class="order-body">
+            <dl class="order-grid">
+              <div class="order-cell">
+                <dt>我訂購</dt>
+                <dd>{{ order.buyQty ?? '—' }} 件</dd>
+              </div>
+              <div class="order-cell">
+                <dt>成團價</dt>
+                <dd>{{ formatMoney(order.groupPrice) }}</dd>
+              </div>
+              <div class="order-cell">
+                <dt>我付的金額</dt>
+                <dd class="order-money">{{ formatMoney(order.paidAmount) }}</dd>
+              </div>
+              <div class="order-cell order-cell--wide">
+                <dt>取貨地點</dt>
+                <dd>📍 {{ order.shippingAddress || '—' }}</dd>
+              </div>
+            </dl>
+
+            <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
+            <div class="host-contact">
+              <h4>團購主聯絡方式</h4>
+              <p>{{ order.hostUserName || '—' }}</p>
+              <p>📞 {{ order.hostUserPhone || '—' }}</p>
+              <p>✉️ {{ order.hostUserEmail || '—' }}</p>
+              <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+            </div>
+
+            <!-- 確認收貨：只有團購主看得到按鈕，確認過一次就不能再按 -->
+            <div v-if="isHost(order)" class="order-footer">
+              <button
+                v-if="order.orderStatus !== 'COMPLETED'"
+                type="button"
+                class="confirm-btn"
+                :disabled="isConfirming(order.orderId)"
+                @click="confirmReceipt(order)"
+              >
+                確認收貨
+              </button>
+              <span v-else class="confirmed-text">✓ 已確認收貨</span>
+            </div>
           </div>
         </div>
       </article>
@@ -225,8 +224,6 @@ onMounted(load)
 
 /* ===== 訂單卡片 ===== */
 .order-card {
-  display: flex;
-  padding: 0;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -238,9 +235,33 @@ onMounted(load)
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
+
+/* 訂單編號/日期/狀態自己一整列，在圖片＋內容那一列的上面，不會擠在同一條水平線上 */
+.order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--leaf-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+/* 圖片＋內容 */
+.order-main {
+  display: flex;
+  gap: 16px;
+  padding: 16px 20px;
+}
 .order-img-wrap {
-  flex: 0 0 120px;
+  flex: 0 0 100px;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--line);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(30, 25, 15, 0.1);
 }
 .order-img {
   width: 100%;
@@ -251,17 +272,6 @@ onMounted(load)
 .order-body {
   flex: 1;
   min-width: 0;
-}
-
-.order-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 20px;
-  background: var(--leaf-soft);
-  border-bottom: 1px solid var(--line);
 }
 .order-id-group {
   display: flex;
@@ -296,13 +306,12 @@ onMounted(load)
 .badge--amber { background: #fdf1dc; color: #9a6b15; }
 .badge--gray  { background: #eeeeea; color: #75806f; }
 
-/* 欄位小格子 */
+/* 欄位小格子（.order-main 已經有 padding，這裡不用再加） */
 .order-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px 16px;
   margin: 0;
-  padding: 16px 20px;
 }
 .order-cell dt {
   font-size: 12px;
@@ -325,7 +334,7 @@ onMounted(load)
 
 /* ===== 團購主聯絡方式 ===== */
 .host-contact {
-  margin: 0 20px 16px;
+  margin: 14px 0 0;
   padding: 14px 16px;
   background: var(--leaf-soft);
   border-radius: 12px;
@@ -350,7 +359,7 @@ onMounted(load)
 .order-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 0 20px 18px;
+  margin-top: 14px;
 }
 .confirm-btn {
   padding: 8px 20px;
@@ -377,12 +386,12 @@ onMounted(load)
 }
 
 @media (max-width: 560px) {
-  .order-card {
+  .order-main {
     flex-direction: column;
   }
   .order-img-wrap {
     flex-basis: auto;
-    height: 140px;
+    width: 100%;
   }
   .order-grid {
     grid-template-columns: repeat(2, 1fr);

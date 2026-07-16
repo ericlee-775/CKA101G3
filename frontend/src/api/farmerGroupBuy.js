@@ -27,6 +27,9 @@ export const farmerGroupBuyApi = {
   // 注意：後端目前不論送什麼值，實際都會直接改成 DELIVERED（ship() 沒有讀 body），
   // 這裡仍照下拉選單選的值送出，等後端之後照 body 真的判斷狀態時前端不用再改。
   shipOrder: (orderId, shippedStatus) => http.post(`${BASE}/orderShipped/${orderId}`, { shippedStatus }),
+
+  // 團購總收益（已撥款訂單的總金額加總）→ 純數字，不是包在物件裡
+  totalRevenue: () => http.get(`${BASE}/totalRevenue`),
 }
 
 export default farmerGroupBuyApi
