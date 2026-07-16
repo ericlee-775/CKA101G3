@@ -41,7 +41,6 @@ public class MemberNotificationController {
 		Page<NotificationResponseDTO> notifList = null;
 		if (targetType == null) {
 			notifList = nSvc.getNotifByRecipient(recipientType, recipientId, page);
-			
 		}
 		// targetType != null, 分類顯示
 		else {
@@ -54,9 +53,11 @@ public class MemberNotificationController {
 	
 	// 已讀鈕
 	@PatchMapping("/{notifId}/read")
-	public ResponseEntity<Void> updateStatus(@PathVariable Integer notifId) {
+	public ResponseEntity<Void> updateStatus(
+			@AuthenticationPrincipal MemberUserDetails user, 
+			@PathVariable Integer notifId) {
 		// markOneAsRead(Integer notificationId)
-		nSvc.markOneAsRead(notifId);
+		nSvc.markOneAsRead(notifId, NotificationRecipientType.user , user.getUserId());
 		return ResponseEntity.ok().build();
 		
 	}
