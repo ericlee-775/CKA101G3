@@ -85,11 +85,17 @@
                          th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
                 </div>
 
-                <!-- 核准 -->
-                <form method="post" class="d-inline"
-                      th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
-                    <button class="btn btn-success btn-sm">核准</button>
-                </form>
+                <!-- 核准：點開可填「內部備註」（選填，僅後台可見、不外洩給小農）後確認 -->
+                <details class="d-inline-block reject-box">
+                    <summary class="btn btn-success btn-sm">核准</summary>
+                    <form method="post" class="form-inline mt-2"
+                          th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
+                        <input type="text" name="notes" maxlength="500"
+                               class="form-control form-control-sm mr-1"
+                               placeholder="內部備註（選填，僅後台可見）"/>
+                        <button class="btn btn-success btn-sm">確認核准</button>
+                    </form>
+                </details>
 
                 <!-- 退件：點開才顯示退件理由（選擇退件後才填理由）-->
                 <details class="d-inline-block ml-2 reject-box">

@@ -1,16 +1,18 @@
 <script setup>
-// 會員中心「我的團購」：進行中的團購清單（獨立元件，內容都寫在這裡）
+// 會員中心「我的團購」→「團購追蹤」：我參加的團購（獨立元件，內容都寫在這裡）
 // 資料來源：GET /api/member/groupBuy/joinedGroupBuyList
 // 回傳欄位（ShowJoinedGroupBuyDTO）：status / ddlDatetime / pickupAddress / productName / buyQty /
-//   paidAmount / targetAmount（目標金額）/ difference（還差多少錢成團）
+//   paidAmount / targetAmount（目標金額）/ difference（還差多少錢成團）/ productId（拿來抓商品圖）
 //
 // 後端這支目前不會過濾狀態，一筆團購成團（status=success）之後還是會留在清單裡；
 // 但成團的訂單已經有獨立的「訂單」分頁（GroupBuyOrderList.vue，資料源是 /mySuccessOrders），
-// 所以這裡改成前端自己把 success 的濾掉，避免同一筆團購「進行中」跟「訂單」兩邊都出現。
+// 所以這裡改成前端自己把 success 的濾掉，避免同一筆團購兩邊都出現；未成團（failed）的會留下來，
+// 卡片下方顯示「金額未達標」提示。
 import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 import { usePagination } from '@/composables/usePagination'
 import Pagination from '@/components/Pagination.vue'
+import noImage from '@/assets/no-image.svg'
 
 // 通知父層（MemberGroupBuysView）目前有幾筆，顯示在 tab 的數字小徽章
 const emit = defineEmits(['count'])
@@ -55,12 +57,36 @@ function isClosingSoon(ddl) {
   return diff > 0 && diff < 3 * 24 * 60 * 60 * 1000
 }
 
+// 商品圖片：DTO 有 productId，直接打商品圖片端點。
+const FALLBACK_IMAGE = noImage
+const imageUrls = ref({})
+async function loadImages() {
+  for (const gb of list.value) {
+    fetchImage(gb.productId)
+  }
+}
+async function fetchImage(productId) {
+  if (productId == null || imageUrls.value[productId]) return
+  try {
+    const res = await fetch(`/api/products/${productId}/image`)
+    if (!res.ok) return
+    const blob = await res.blob()
+    imageUrls.value[productId] = URL.createObjectURL(blob)
+  } catch {
+    // 沒圖就維持預設圖。
+  }
+}
+function groupBuyImage(gb) {
+  return imageUrls.value[gb.productId] || FALLBACK_IMAGE
+}
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
     rawList.value = (await memberGroupBuyApi.joinedGroupBuyList()) || []
     emit('count', list.value.length)
+    loadImages()
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
   } finally {
@@ -89,51 +115,62 @@ onMounted(load)
       <button class="state-btn" type="button" @click="load">重新載入</button>
     </div>
 
-    <!-- 沒有進行中的團購 -->
+    <!-- 沒有可追蹤的團購 -->
     <div v-else-if="list.length === 0" class="state-box">
       <span class="state-icon">👥</span>
-      <p>目前沒有進行中的團購</p>
+      <p>目前沒有可追蹤的團購</p>
       <router-link class="state-btn" to="/group-buys">去看看大家在揪什麼 →</router-link>
     </div>
 
     <!-- 團購卡片 -->
     <template v-else>
       <article v-for="(gb, i) in pagedList" :key="i" class="gb-card">
-        <header class="gb-head">
-          <h3 class="gb-name">{{ gb.productName }}</h3>
-          <div class="gb-badges">
-            <span v-if="isClosingSoon(gb.ddlDatetime)" class="badge badge--red">⏰ 即將截止</span>
-            <span class="badge" :class="`badge--${statusOf(gb.status).tone}`">
-              {{ statusOf(gb.status).label }}
-            </span>
+        <div class="gb-main">
+          <div class="gb-img-wrap">
+            <img class="gb-img" :src="groupBuyImage(gb)" :alt="gb.productName" loading="lazy" />
           </div>
-        </header>
+          <div class="gb-body">
+            <header class="gb-head">
+              <h3 class="gb-name">{{ gb.productName }}</h3>
+              <div class="gb-badges">
+                <span v-if="isClosingSoon(gb.ddlDatetime)" class="badge badge--red">⏰ 即將截止</span>
+                <span class="badge" :class="`badge--${statusOf(gb.status).tone}`">
+                  {{ statusOf(gb.status).label }}
+                </span>
+              </div>
+            </header>
 
-        <dl class="gb-grid">
-          <div class="gb-cell">
-            <dt>我訂購</dt>
-            <dd>{{ gb.buyQty ?? '—' }} 件</dd>
-          </div>
-          <div class="gb-cell">
-            <dt>已付金額</dt>
-            <dd class="gb-money">{{ formatMoney(gb.paidAmount) }}</dd>
-          </div>
-          <div class="gb-cell">
-            <dt>截止時間</dt>
-            <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
-          </div>
-          <div class="gb-cell gb-cell--wide">
-            <dt>取貨地點</dt>
-            <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
-          </div>
-        </dl>
+            <dl class="gb-grid">
+              <div class="gb-cell">
+                <dt>我訂購</dt>
+                <dd>{{ gb.buyQty ?? '—' }} 件</dd>
+              </div>
+              <div class="gb-cell">
+                <dt>已付金額</dt>
+                <dd class="gb-money">{{ formatMoney(gb.paidAmount) }}</dd>
+              </div>
+              <div class="gb-cell">
+                <dt>截止時間</dt>
+                <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
+              </div>
+              <div class="gb-cell gb-cell--wide">
+                <dt>取貨地點</dt>
+                <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
+              </div>
+            </dl>
 
-        <!-- 開團中才有意義：離成團還差多少錢 -->
-        <div v-if="gb.status === 'open'" class="gb-progress">
-          <span>目標金額 {{ formatMoney(gb.targetAmount) }}</span>
-          <span class="gb-progress__diff">
-            {{ gb.difference > 0 ? `再 ${formatMoney(gb.difference)} 即成團` : '已達標，等待截止結算' }}
-          </span>
+            <!-- 開團中才有意義：離成團還差多少錢 -->
+            <div v-if="gb.status === 'open'" class="gb-progress">
+              <span>目標金額 {{ formatMoney(gb.targetAmount) }}</span>
+              <span class="gb-progress__diff">
+                {{ gb.difference > 0 ? `再 ${formatMoney(gb.difference)} 即成團` : '已達標，等待截止結算' }}
+              </span>
+            </div>
+            <!-- 未成團：金額沒達標，這團不會成立 -->
+            <div v-else-if="gb.status === 'failed'" class="gb-failed">
+              金額未達標，此團購未成團
+            </div>
+          </div>
         </div>
       </article>
 
@@ -151,17 +188,42 @@ onMounted(load)
 
 /* ===== 團購卡片 ===== */
 .gb-card {
-  padding: 18px 20px;
   background: #fff;
   border: 1px solid var(--line);
   border-left: 4px solid var(--leaf);
   border-radius: 14px;
   box-shadow: var(--shadow);
+  overflow: hidden;
   transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 .gb-card:hover {
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
+}
+.gb-main {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+}
+.gb-img-wrap {
+  flex: 0 0 90px;
+  aspect-ratio: 1 / 1;
+  align-self: center;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--line);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(30, 25, 15, 0.1);
+}
+.gb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gb-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .gb-head {
@@ -239,7 +301,26 @@ onMounted(load)
   color: var(--leaf-dark);
 }
 
+/* 未成團提示 */
+.gb-failed {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
 @media (max-width: 560px) {
+  .gb-main {
+    flex-direction: column;
+  }
+  .gb-img-wrap {
+    flex-basis: auto;
+    width: 100%;
+    align-self: stretch;
+  }
   .gb-grid {
     grid-template-columns: repeat(2, 1fr);
   }

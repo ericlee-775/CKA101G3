@@ -53,6 +53,7 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
             throw new IllegalArgumentException("查無審核紀錄");
         }
         FarmerReviewResponse res = FarmerReviewResponse.from(latest);
+        res.maskAdminInfo();   // 小農端（含公開查詢進度）不能看到承辦管理員與內部備註
 
         // 小農端只看到「待審」：REVIEWING 對外顯示成 PENDING（只在這個小農呼叫點轉換，不動共用 from()）
         if ("REVIEWING".equals(res.getReviewStatus())) {

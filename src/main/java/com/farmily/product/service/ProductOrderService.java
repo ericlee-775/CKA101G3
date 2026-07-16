@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.farmily.coupon.dto.MyCouponDTO;
 import com.farmily.coupon.model.CouponStatus;
 import com.farmily.coupon.service.CouponDetailService;
-import com.farmily.notification.service.NotificationService;
+import com.farmily.notification.service.NotificationSender;
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
 import com.farmily.product.dto.ProductOrderCheckoutItemDTO;
 import com.farmily.product.dto.ProductOrderFarmerGroupDTO;
@@ -57,7 +57,7 @@ public class ProductOrderService {
 	private ProductShoppingCartService cartSvc;
 
 	@Autowired
-	private NotificationService nSvc;
+	private NotificationSender nSender;
 	
 	@Autowired
 	private ProductRepository prodRepo;
@@ -76,6 +76,10 @@ public class ProductOrderService {
 	@Transactional
 	public void updateShippedStatus(Integer farmerId, Integer orderId) {
 		
+		// 取得這筆訂單
+		ProductOrderVO order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此訂單"));
+		
 		// 取得此筆訂單中屬於該小農的明細
 		List<ProductOrderItemVO> items = orderItemRepo.findByOrder_OrderIdAndFarmerIdOrderByOrderItemIdDesc(orderId, farmerId);
 		
@@ -93,6 +97,11 @@ public class ProductOrderService {
 			i.setShippedStatus(ShippedStatus.shipping);
 			i.setShippedAt(now);
 		}
+		
+		Integer userId = order.getUserId();
+		
+		// 發送通知 (會員) sendProdOrderShipped(Integer userId, Integer orderId, String shippedAt)
+		nSender.sendProdOrderShipped(userId, orderId, now);
 	}
 	
 	
@@ -128,12 +137,13 @@ public class ProductOrderService {
 				throw new IllegalStateException("尚未出貨，無法確認收貨");
 			}
 			if (i.getShippedStatus() == ShippedStatus.delivered) {
-				throw new IllegalStateException("訂單已確認貨，無法再次操作");
+				throw new IllegalStateException("已確認收貨，無法再次操作");
 			}
 			
 			i.setShippedStatus(ShippedStatus.delivered);
 			i.setReceivedAt(now);
 			i.setPayoutStatus(PayoutStatus.paid);
+			
 		}
 
 		// 檢查此筆訂單是否已全部確認收貨，更新整筆訂單狀態
@@ -142,6 +152,13 @@ public class ProductOrderService {
 			order.setOrderStatus(OrderStatus.completed);
 			order.setCompletedAt(now);
 		}
+		
+
+		// 發送確認收貨通知 (會員) sendProdOrderReceived(Integer userId, Integer orderId, String receivedAt)
+		nSender.sendProdOrderReceived(userId, orderId, now);
+		
+		// 發送撥款通知 (小農) sendProdOrderPayout(Integer farmerId, Integer orderId)
+		nSender.sendProdOrderPayout(farmerId, orderId);
 			
 	}
 
@@ -316,7 +333,7 @@ public class ProductOrderService {
 	
 
 	// 取得 checkout-info 訂單預覽頁
-	@Transactional (readOnly = true)
+	@Transactional
 	public ProductOrderCheckoutInfoDTO getCheckoutInfo(User u) {
 		Integer userId = u.getUserId();
 		ProductOrderCheckoutInfoDTO dto = new ProductOrderCheckoutInfoDTO();
@@ -491,7 +508,7 @@ public class ProductOrderService {
 		ProductOrderVO o = orderRepo.save(order);
 		
 		// 發送通知 (小農/會員) sendProdOrderCreated(Set<Integer> farmerIds, Integer userId, Integer orderId)
-		nSvc.sendProdOrderCreated(farmers, userId, o.getOrderId());
+		nSender.sendProdOrderCreated(farmers, userId, o.getOrderId());
 		System.out.println("訂單 " + o.getOrderId() +  " 建立成功!");
 		
 		// 清除購物車商品

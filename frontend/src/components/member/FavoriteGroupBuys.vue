@@ -206,8 +206,13 @@ onMounted(load)
 .gb-img-wrap {
   flex: 0 0 120px;
   aspect-ratio: 1 / 1;
-  align-self: flex-start;
+  align-self: center;
+  margin: 16px 0 16px 16px;
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--line);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(30, 25, 15, 0.1);
 }
 .gb-img {
   width: 100%;
@@ -314,7 +319,8 @@ onMounted(load)
   }
   .gb-img-wrap {
     flex-basis: auto;
-    width: 100%;
+    width: auto;
+    margin: 16px 16px 0;
     align-self: stretch;
   }
   .gb-grid {

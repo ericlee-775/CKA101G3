@@ -21,6 +21,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import groupBuyApi from '@/api/groupBuy'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
+import { listFarms } from '@/api/farm'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 import authStore from '@/stores/auth'
 import noImage from '@/assets/no-image.svg'
@@ -35,6 +36,22 @@ const isHostOnly = computed(() => route.name === 'group-buy-host')
 const groupBuy = ref(null)
 const loading = ref(true)
 const error = ref('')
+
+// 農場：DTO 只給 farmName，沒有 farmerId，但農場詳情頁需要 farmerId。
+// 做法是抓 GET /api/farms 全部農場清單，用 farmName 對照出 farmerId。
+// 對照不到（例如同名農場、或清單抓失敗）就不給連結，農場名稱純顯示文字。
+const farmerId = ref(null)
+async function resolveFarmerId(farmName) {
+  farmerId.value = null
+  if (!farmName) return
+  try {
+    const farms = await listFarms()
+    const matched = farms.find((f) => f.farmName === farmName)
+    if (matched) farmerId.value = matched.farmerId
+  } catch {
+    // 抓不到農場清單就不給連結，不影響團購頁其他內容。
+  }
+}
 
 const FALLBACK_IMAGE = noImage
 const imageUrl = ref('')
@@ -78,12 +95,14 @@ async function loadHostOnlyProduct(productId) {
     groupBuyId: null,
     productName: product.productName,
     groupPrice: product.groupPrice,
+    retailPrice: product.retailPrice,
     description: product.description,
     targetAmount: null,
     openDatetime: null,
     ddlDatetime: null,
     pickupAddress: null,
     status: null,
+    farmName: null,
   }
 }
 
@@ -91,6 +110,7 @@ async function loadGroupBuy() {
   loading.value = true
   error.value = ''
   groupBuy.value = null
+  farmerId.value = null
   revokeImageUrl()
   imageUrl.value = ''
   // 重新進頁面時，把之前展開的表單/訊息都收掉，避免顯示上一筆團購的殘留狀態。
@@ -107,6 +127,7 @@ async function loadGroupBuy() {
     } else {
       groupBuy.value = await groupBuyApi.getOne(route.params.groupBuyId)
       await loadImage(groupBuy.value.productId)
+      resolveFarmerId(groupBuy.value.farmName)
     }
   } catch (e) {
     error.value = e.status === 404 || /查無|找不到/.test(e.message || '')
@@ -142,6 +163,12 @@ const minDdlStr = computed(() => {
   base.setDate(base.getDate() + 5)
   return toDateInputValue(base)
 })
+// 達標金額的最低門檻：後端規定不得低於「團購價 × 2」。前端先擋一次並顯示提示，
+// 後端 hostRequest() 也會再驗一次（低於時回「達標金額不得低於{n}元」），兩邊都擋。
+const minTargetAmount = computed(() => {
+  const gp = Number(groupBuy.value?.groupPrice)
+  return gp > 0 ? gp * 2 : null
+})
 
 function toggleHostForm() {
   showHostForm.value = !showHostForm.value
@@ -167,6 +194,10 @@ async function submitHostCreate() {
   }
   if (ddlDatetime < minDdlStr.value) {
     hostMsg.value = '截止時間至少要在開團時間 5 天後。'
+    return
+  }
+  if (minTargetAmount.value != null && targetAmount < minTargetAmount.value) {
+    hostMsg.value = `達標金額不得低於 ${formatPrice(minTargetAmount.value)}。`
     return
   }
 
@@ -283,6 +314,17 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
 
         <h1 class="info__name">{{ groupBuy.productName }}</h1>
 
+        <!-- 農場名稱：對照得出 farmerId 就做成連結導到農場頁，對照不到就純顯示文字 -->
+        <p v-if="groupBuy.farmName" class="info__farm">
+          🌾
+          <RouterLink
+            v-if="farmerId != null"
+            class="info__farm-link"
+            :to="{ name: 'farm-detail', params: { farmerId } }"
+          >{{ groupBuy.farmName }}</RouterLink>
+          <span v-else>{{ groupBuy.farmName }}</span>
+        </p>
+
         <p class="info__price">
           團購價 {{ formatPrice(groupBuy.groupPrice) }}
           <span v-if="groupBuy.retailPrice != null" class="info__retail">原價 {{ formatPrice(groupBuy.retailPrice) }}</span>
@@ -325,7 +367,10 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
             {{ showHostForm ? '取消' : '我要發起團購' }}
           </button>
           <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
-            <label>達標金額 <input type="number" min="1" v-model.number="hostForm.targetAmount" /></label>
+            <label>
+              達標金額<span v-if="minTargetAmount != null" class="action-form__hint">（不得低於 {{ formatPrice(minTargetAmount) }}）</span>
+              <input type="number" :min="minTargetAmount || 1" v-model.number="hostForm.targetAmount" />
+            </label>
             <label>開團時間 <input type="date" :min="todayStr" v-model="hostForm.openDatetime" /></label>
             <label>截止時間 <input type="date" :min="minDdlStr" v-model="hostForm.ddlDatetime" /></label>
             <label>取貨地址 <input type="text" v-model="hostForm.pickupAddress" /></label>
@@ -444,6 +489,19 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
   font-size: 26px;
   color: var(--ink);
   margin: 12px 0 16px;
+}
+.info__farm {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.info__farm-link {
+  color: var(--leaf-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+.info__farm-link:hover {
+  text-decoration: underline;
 }
 .info__price {
   font-size: 24px;
@@ -579,6 +637,11 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
   padding-top: 8px;
   border-top: 1px dashed var(--line);
   font-size: 12px;
+  color: var(--muted);
+}
+.action-form__hint {
+  font-size: 12px;
+  font-weight: 400;
   color: var(--muted);
 }
 .action-form input {

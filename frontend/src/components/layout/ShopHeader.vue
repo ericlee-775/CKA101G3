@@ -44,28 +44,17 @@ const displayName = computed(() => {
 })
 
 // ===== 帳號下拉選單 =====
-// 點帳號膠囊展開/收合；點選單外任何地方會自動收起（見下方 document 監聽）
-const isAccountMenuOpen = ref(false)
-const accountWrap = ref(null) // 綁在外層 div，用來判斷點擊是否發生在選單外
-
+// hover 帳號膠囊浮出選單（純 CSS）；點膠囊本身走 accountLink 進會員中心
 // 會員中心選單（跟 MemberLayout 的側邊選單一致，但不含「通知」→ 通知走小鈴鐺）
 const accountMenu = [
   { label: '個人資料', icon: '👤', to: '/member/me' },
-  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
+  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
   { label: '我的團購', icon: '👥', to: '/member/group-buys' },
   { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
-  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
+  { label: '已報名活動', icon: '🌱', to: '/member/farm-trips' },
+  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
 ]
-
-// 點到選單外就收起下拉
-function onDocClick(e) {
-  if (isAccountMenuOpen.value && accountWrap.value && !accountWrap.value.contains(e.target)) {
-    isAccountMenuOpen.value = false
-  }
-}
-onMounted(() => document.addEventListener('click', onDocClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 // ===== 通知小鈴鐺 =====
 
@@ -157,7 +146,7 @@ async function logout() {
         </span>
       </router-link>
       <!-- 你儂我農朱印：hover 微轉下壓像蓋章，點擊看品牌故事 -->
-      <router-link class="brand-seal" to="/about" aria-label="你儂我農——關於我們" title="關於我們">
+      <router-link class="brand-seal" to="/" aria-label="你儂我農——回首頁" title="回首頁">
         <span>你</span><span>儂</span>
         <span>我</span><span>農</span>
       </router-link>
@@ -181,6 +170,7 @@ async function logout() {
     <nav class="main-nav" :class="{ open: isMenuOpen }" @click="isMenuOpen = false">
       <router-link class="nav-link" to="/news">最新消息</router-link>
       <router-link class="nav-link" to="/products">全部商品</router-link>
+      <router-link class="nav-link" to="/farmily">合作農場</router-link>
       <router-link class="nav-link" to="/group-buys">團購</router-link>
       <router-link class="nav-link" to="/blogs">部落格</router-link>
       <router-link class="nav-link" to="/farm-trips">體驗活動</router-link>
@@ -235,33 +225,25 @@ async function logout() {
             <span class="account-name">{{ displayName }}</span>
           </router-link>
 
-          <!-- 會員：點帳號膠囊展開下拉選單（@click.stop 避免冒泡到 nav 把手機選單收掉） -->
-          <div v-else class="account-wrap" ref="accountWrap">
-            <button
-              class="account-btn account-toggle"
-              type="button"
-              :aria-expanded="isAccountMenuOpen"
-              @click.stop="isAccountMenuOpen = !isAccountMenuOpen"
-            >
+          <!-- 會員：hover 帳號膠囊浮出下拉選單；點膠囊本身直接進會員中心 -->
+          <div v-else class="account-wrap">
+            <router-link class="account-btn account-toggle" :to="accountLink">
               <span class="account-avatar">👤</span>
               <span class="account-name">{{ displayName }}</span>
-              <span class="account-caret" :class="{ open: isAccountMenuOpen }">▾</span>
-            </button>
+              <span class="account-caret">▾</span>
+            </router-link>
 
-            <transition name="menu-pop">
-              <div v-if="isAccountMenuOpen" class="account-menu">
-                <router-link
-                  v-for="item in accountMenu"
-                  :key="item.to"
-                  class="account-menu-item"
-                  :to="item.to"
-                  @click="isAccountMenuOpen = false"
-                >
-                  <span class="account-menu-icon">{{ item.icon }}</span>
-                  {{ item.label }}
-                </router-link>
-              </div>
-            </transition>
+            <div class="account-menu">
+              <router-link
+                v-for="item in accountMenu"
+                :key="item.to"
+                class="account-menu-item"
+                :to="item.to"
+              >
+                <span class="account-menu-icon">{{ item.icon }}</span>
+                {{ item.label }}
+              </router-link>
+            </div>
           </div>
 
           <button class="logout-btn" type="button" @click="logout">登出</button>
@@ -781,8 +763,8 @@ async function logout() {
   line-height: 1;
   transition: transform 0.2s ease;
 }
-.account-caret.open {
-  transform: rotate(180deg);         /* 展開時箭頭轉上 */
+.account-wrap:hover .account-caret {
+  transform: rotate(180deg);         /* hover 展開時箭頭轉上 */
 }
 .account-menu {
   position: absolute;
@@ -796,7 +778,25 @@ async function logout() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
   z-index: 40;
+}
+/* 用透明橋接補上膠囊與選單之間的 8px 空隙,滑過去時 hover 不會斷 */
+.account-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+.account-wrap:hover .account-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 .account-menu-item {
   display: flex;
@@ -817,16 +817,6 @@ async function logout() {
 .account-menu-icon {
   font-size: 15px;
   line-height: 1;
-}
-/* 下拉展開/收合的小動畫（配合 <transition name="menu-pop">） */
-.menu-pop-enter-active,
-.menu-pop-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease;
-}
-.menu-pop-enter-from,
-.menu-pop-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
 }
 
 /* 已登入：個人中心膠囊 + 登出 */

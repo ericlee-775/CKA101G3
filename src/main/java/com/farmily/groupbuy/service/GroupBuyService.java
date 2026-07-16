@@ -266,7 +266,7 @@ public class GroupBuyService {
 		GroupBuyVO gb = repository.findById(groupBuyId).orElseThrow(() -> new RuntimeException("查無此團購"));
 		return new GroupBuyDetailDTO(gb.getProduct().getProductId(), gb.getGroupBuyId(),
 				gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getTargetAmount(), gb.getOpenDatetime(),
-				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice());
+				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice(),gb.getProduct().getFarmer().getFarmName());
 	}
 
 	// 給團購主看的團購訂單
@@ -489,7 +489,7 @@ public class GroupBuyService {
 		repository.save(groupBuy);
 	}
 
-	// 自動
+	// 排程器自動檢測前一天團購結算
 	@Transactional
 	public void checkExpiredGroupBuys() {
 		Timestamp now = new Timestamp(System.currentTimeMillis());
