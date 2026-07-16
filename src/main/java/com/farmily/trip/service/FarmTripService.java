@@ -14,6 +14,8 @@ import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.dto.TripListResponse;
 import com.farmily.trip.dto.TripReviewRequest;
 import com.farmily.trip.model.FarmTrip;
+import com.farmily.trip.dto.SessionNotifyRequest;
+import com.farmily.trip.dto.TripUpdateRequest;
 
 public interface FarmTripService {
 
@@ -50,7 +52,23 @@ public interface FarmTripService {
 	byte[] getTripImage(Integer farmTripId);
 	
 	// 管理後台：列出待審核的活動
-		List<FarmTrip> getPendingTrips();
+	List<FarmTrip> getPendingTrips();
+		
+	// 小農修改場次時間
+	SessionResponse updateSession(Integer farmSessionId, SessionCreateRequest request);
 
+	// 小農取消場次（連帶取消該場次報名並 email 通知報名者）
+	SessionResponse cancelSession(Integer farmSessionId);
 
+	// 小農主動寄提醒信給該場次「未取消」的報名者，回傳實際寄出的人數
+	int notifySessionRegistrants(Integer farmSessionId, SessionNotifyRequest request);
+
+	// 小農修改自己的活動（修改後改回 PENDING 重新送審）
+	TripDetailResponse updateTrip(Integer farmTripId, TripUpdateRequest request);
+
+	// 小農刪除自己的活動（已有人報名則禁止）
+	void deleteTrip(Integer farmTripId, Integer farmerId);
+	
+	// 某農場「上架中(ACTIVE)」的體驗活動清單（給產地地圖農場詳情頁用）
+	List<TripListResponse> getActiveTripListByFarmer(Integer farmerId);
 }
