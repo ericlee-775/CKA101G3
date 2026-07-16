@@ -1,7 +1,11 @@
 package com.farmily.user.repository;
 
 import com.farmily.user.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +22,29 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByProviderId(String providerId);
     //英文小教室 Verified===驗證
     List<User> findByUserStatusAndEmailVerifiedTrue(User.UserStatus userStatus);
+
+    // 管理員端會員複合查詢 + 分頁（原生 SQL）：
+    // keyword 比對 email / 姓名 / 電話；status 比對會員狀態；皆可為 null（null 代表不套用該條件）
+    @Query(value = """
+            SELECT u.* FROM `user` u
+            WHERE (:keyword IS NULL
+                   OR u.email LIKE CONCAT('%', :keyword, '%')
+                   OR u.user_name LIKE CONCAT('%', :keyword, '%')
+                   OR u.user_phone_num LIKE CONCAT('%', :keyword, '%'))
+              AND (:status IS NULL OR u.user_status = :status)
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM `user` u
+            WHERE (:keyword IS NULL
+                   OR u.email LIKE CONCAT('%', :keyword, '%')
+                   OR u.user_name LIKE CONCAT('%', :keyword, '%')
+                   OR u.user_phone_num LIKE CONCAT('%', :keyword, '%'))
+              AND (:status IS NULL OR u.user_status = :status)
+            """,
+            nativeQuery = true)
+    Page<User> searchMembers(@Param("keyword") String keyword,
+                             @Param("status") String status,
+                             Pageable pageable);
 
 
 
