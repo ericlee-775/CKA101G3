@@ -1280,11 +1280,13 @@ INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, 
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 12001 , '專欄文章 9001 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
 
+-- 參數
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9001', '您的文章 9001 收到一則新留言。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'account_tier', 'account', '3', '您本月的會員等級已更新為 銀級會員');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 8004，期待您的到來！');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '6004', '感謝您參加體驗活動 6004！歡迎留下您的評分與心得，給小農鼓勵。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'order_created', 'order', '1', '已收到您的商品訂單 1，將盡速為您安排出貨');
+
 
 
 -- 7. 通知 - 通知類型文字模板
@@ -1305,13 +1307,13 @@ INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {ord
 INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 配達，感謝您的參與，快聯繫團員取貨吧!');
 INSERT INTO notification_template VALUES ('gb_request_created', '您收到 {product_name} 的新團購申請，請儘速審核回覆。');
 INSERT INTO notification_template VALUES ('gb_order_created', '團購訂單 {group_buy_id} 已成團，請準備出貨。');
-INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT${total_amount} 已撥款，請查收。');
+INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT$ {total_amount} 已撥款，請查收。');
 
 INSERT INTO notification_template VALUES ('order_created', '已收到您的商品訂單 {order_id}，將盡速為您安排出貨');
-INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipping_date} 出貨，請留意近期收貨。');
-INSERT INTO notification_template VALUES ('order_completed', '商品訂單編號 {order_id} 已於 {receipt_datetime} 配達，感謝您的購買。');
+INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipped_at} 出貨，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('order_received', '商品訂單編號 {order_id} 已於 {received_at} 配達，感謝您的購買。');
 INSERT INTO notification_template VALUES ('order_farmer_new', '您有一筆新商品訂單 {order_id}，請盡速出貨。');
-INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款 NT${total_mount} 已撥款，請查收。');
+INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款已撥款，請查收。');
 
 INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_id} 已通過審核並開放報名，快邀請親朋好友一起參加!');
 INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_id} 審核未通過，原因：{reason}。');
@@ -1335,3 +1337,4 @@ INSERT INTO notification_template VALUES ('account_tier', '您本月的會員等
 INSERT INTO notification_template VALUES ('farmer_review', '小農申請編號 {review_id}，請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_report_new', '專欄文章 {blog_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_comment_report_new', '專欄文章 {blog_id} 留言 {comment_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+
