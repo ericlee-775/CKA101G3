@@ -190,15 +190,30 @@ watch(farmerId, loadFarmDetail)
 
         <p v-if="relatedErrors.trips" class="section-error">{{ relatedErrors.trips }}</p>
         <p v-else-if="trips.length === 0" class="empty">這個農場目前沒有開放中的體驗活動。</p>
+        
         <div v-else class="trip-grid">
-          <article v-for="trip in trips" :key="trip.farmTripId" class="trip-card">
-            <span>{{ tripTypeLabel(trip.farmTripType) }}</span>
-            <h3>{{ trip.farmTripTitle }}</h3>
-            <p>📍 {{ trip.location || farmAddress || '尚未提供地點' }}</p>
-            <p class="stars">{{ stars(trip.starNumbers) }}</p>
-            <strong>參考價 {{ formatPrice(trip.referPrice) }}</strong>
-          </article>
+          <RouterLink
+            v-for="trip in trips"
+            :key="trip.farmTripId"
+            :to="{ name: 'farm-trip-detail', params: { farmTripId: trip.farmTripId } }"
+            class="trip-card trip-card-link"
+          >
+            <img
+              class="trip-card__image"
+              :src="`/api/farm-trips/${trip.farmTripId}/image`"
+              :alt="trip.farmTripTitle"
+              @error="$event.target.style.display = 'none'"
+            />
+            <div class="trip-card__body">
+              <span>{{ tripTypeLabel(trip.farmTripType) }}</span>
+              <h3>{{ trip.farmTripTitle }}</h3>
+              <p>📍 {{ trip.location || farmAddress || '尚未提供地點' }}</p>
+              <p class="stars">{{ stars(trip.starNumbers) }}</p>
+              <strong>參考價 {{ formatPrice(trip.referPrice) }}</strong>
+            </div>
+          </RouterLink>
         </div>
+
       </section>
 
       <section class="section-block">
@@ -236,6 +251,19 @@ watch(farmerId, loadFarmDetail)
 </template>
 
 <style scoped>
+
+.trip-card-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+}
+.trip-card-link:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  transition: all 0.15s ease;
+}
+
 .farm-detail-page {
   width: min(1120px, calc(100% - 36px));
   margin: 0 auto;
@@ -413,6 +441,19 @@ watch(farmerId, loadFarmDetail)
 }
 
 .trip-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.trip-card__image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: var(--leaf-soft);
+  display: block;
+}
+
+.trip-card__body {
   padding: 18px;
 }
 

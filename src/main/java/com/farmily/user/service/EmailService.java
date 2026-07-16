@@ -137,7 +137,6 @@ public class EmailService {
                 + "已由主辦小農取消，此筆報名同時已為您取消。\n"
                 + "造成您的不便，我們深感抱歉。\n\n"
                 + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
-
         mailSender.send(message);
     }
 
@@ -156,8 +155,12 @@ public class EmailService {
                 + body + "\n\n"
                 + "期待與您相見！\n"
                 + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
-
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+            System.out.println("[TripReminder] 已寄給 -> " + toEmail);
+        } catch (Exception e) {
+            System.out.println("[TripReminder] 寄送失敗 -> " + toEmail);
+            e.printStackTrace();
+        }
     }
-    
 }

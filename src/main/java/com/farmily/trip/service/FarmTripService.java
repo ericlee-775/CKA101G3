@@ -68,5 +68,7 @@ public interface FarmTripService {
 
 	// 小農刪除自己的活動（已有人報名則禁止）
 	void deleteTrip(Integer farmTripId, Integer farmerId);
-
+	
+	// 某農場「上架中(ACTIVE)」的體驗活動清單（給產地地圖農場詳情頁用）
+	List<TripListResponse> getActiveTripListByFarmer(Integer farmerId);
 }

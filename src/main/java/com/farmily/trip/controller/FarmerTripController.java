@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import com.farmily.trip.dto.SessionNotifyRequest;
 import com.farmily.trip.dto.TripUpdateRequest;
 
+
 @RestController
 @RequestMapping("/api/farmer/farm-trips")
 public class FarmerTripController {

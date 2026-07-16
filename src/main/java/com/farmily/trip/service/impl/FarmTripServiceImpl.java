@@ -641,4 +641,10 @@ public class FarmTripServiceImpl implements FarmTripService {
 	public List<FarmTrip> getPendingTrips() {
 		return farmTripRepository.findByTripStatus(TripStatus.PENDING);
 	}
+
+	@Override
+	public List<TripListResponse> getActiveTripListByFarmer(Integer farmerId) {
+		return farmTripRepository.findByFarmerId(farmerId).stream().filter(t -> t.getTripStatus() == TripStatus.ACTIVE)
+				.map(this::toListResponse).toList();
+	}
 }
