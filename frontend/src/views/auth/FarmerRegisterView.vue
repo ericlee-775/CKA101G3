@@ -4,9 +4,14 @@ import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
 import cityDistrictApi from '@/api/cityDistrict'
 import PasswordInput from '@/components/PasswordInput.vue'
+import TermsModal from '@/components/TermsModal.vue'
 import { validateCertFile } from '@/utils/certFile'
 
 const router = useRouter()
+
+// 使用條款：需勾選同意才能送出申請
+const agreed = ref(false)
+const showTerms = ref(false)
 
 // 表單欄位（對齊後端 FarmerRegisterRequest）
 const farmName = ref('')          // 農場名稱
@@ -216,6 +221,11 @@ async function handleRegister() {
     error.value = '請上傳農地、產品與身分三項證明文件'
     return
   }
+  // 需先閱讀並同意小農合作條款
+  if (!agreed.value) {
+    error.value = '請先閱讀並勾選同意小農合作條款與隱私權政策'
+    return
+  }
 
   loading.value = true
   try {
@@ -367,13 +377,27 @@ async function handleRegister() {
           <PasswordInput v-model="confirm" placeholder="再輸入一次密碼" autocomplete="new-password" />
         </label>
 
+        <!-- 使用條款：勾選同意 + 點連結開啟彈窗閱讀 -->
+        <label class="agree">
+          <input v-model="agreed" type="checkbox" />
+          <span>
+            我已閱讀並同意
+            <button type="button" class="agree-link" @click="showTerms = true">
+              《小農合作條款與隱私權政策》
+            </button>
+          </span>
+        </label>
+
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="done" class="auth-ok">申請成功！正在帶你前往登入…</p>
 
-        <button class="auth-btn" type="submit" :disabled="loading">
+        <button class="auth-btn" type="submit" :disabled="loading || !agreed">
           {{ loading ? '送出中…' : '送出申請' }}
         </button>
       </form>
+
+      <!-- 條款彈窗：按「我已閱讀並同意」會自動勾選上方同意框 -->
+      <TermsModal v-model="showTerms" type="farmer" @agree="agreed = true" />
 
       <p class="auth-foot">
         已經是小農夥伴了？
@@ -566,6 +590,36 @@ async function handleRegister() {
   border: 1px solid var(--line);
   border-radius: 8px;
   object-fit: cover;
+}
+
+/* 同意使用條款 */
+.agree {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  cursor: pointer;
+}
+.agree input {
+  width: auto;
+  margin-top: 3px;
+  accent-color: var(--leaf);
+  flex: none;
+}
+.agree-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--leaf);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.agree-link:hover {
+  color: var(--leaf-dark);
 }
 
 .auth-error {
