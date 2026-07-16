@@ -209,54 +209,5 @@ public class NotificationService {
 		return count;
 	}
 	
-	
-	
-	// ============== 寫給其他功能發送通知用的方法 ==============
-	// sendNotif(String typeCode, NotificationRecipientType recipientType, 
-	//  	Integer recipientId, String targetType, Integer targetId, Map<String, String> variables)
-	
-	// 商品訂單成立，通知小農/會員
-	public void sendProdOrderCreated(Set<Integer> farmerIds, Integer userId, Integer orderId) {
-		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
-		// 給消費者 (會員)
-		req.setTypeCode("order_created");
-		req.setRecipientType(NotificationRecipientType.user);
-		req.setRecipientId(userId);
-		req.setTargetType("order");
-		req.setTargetId(orderId);
-		req.setVariables(Map.of("order_id", orderId.toString()));
-		sendOneNotif(req);
-		
-		// 給小農們 
-		// sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) 
-		sendMultipleNotif(farmerIds, NotificationRecipientType.farmer, "order_farmer_new", "order", orderId, Map.of("order_id", String.valueOf(orderId)));
-	}
-	
-	
-	
-	// 團購申請通過, 通知團主(hostUserId)
-	public void sendGBApproved(Integer hostUserId, Integer groupBuyId) {
-		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
-		req.setTypeCode("gb_request_approved");			
-		req.setRecipientType(NotificationRecipientType.user);
-		req.setRecipientId(hostUserId);
-		req.setTargetType("groupbuy");
-		req.setTargetId(groupBuyId);
-		req.setVariables(Map.of("group_buy_id", String.valueOf(groupBuyId)));
-		sendOneNotif(req);
-	}
-	
-	// 團購申請未通過, 通知團主(hostUserId)
-	public void sendGBRRejected(Integer hostUserId, Integer groupBuyId, String rejectReason) {
-		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
-		req.setTypeCode("gb_request_rejected");			
-		req.setRecipientType(NotificationRecipientType.user);
-		req.setRecipientId(hostUserId);
-		req.setTargetType("groupbuy");
-		req.setTargetId(groupBuyId);
-		req.setVariables(Map.of("group_buy_id", String.valueOf(groupBuyId), "reject_reason", rejectReason));
-		sendOneNotif(req);
-	}
-	
 
 }
