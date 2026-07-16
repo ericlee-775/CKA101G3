@@ -19,6 +19,10 @@
 //   - ShippedStatus / OrderStatus / PaidStatus 這三個 enum 後端是用「全大寫」序列化
 //     （跟 GroupBuyStatus / RequestStatus 的全小寫不同），對照表要用大寫 key，
 //     混用會讓畫面直接顯示英文代碼原文（例如曾經在畫面上看到兩個 "PENDING"）。
+//   - 訂單表格的「建立時間」目前一定是空的：GroupBuyService.showOrderList()（給 /orderList 用）
+//     組 DTO 時沒有呼叫 dto.setCreatedAt(...)，這個欄位後端根本沒送。點「詳細資料」看到的建立時間
+//     是對的，因為那支走的是 showOneOrder()（GET /order/{orderId}），那支有設定這個欄位。
+//     這是後端 DTO 少映射一個欄位，前端沒有其他資料來源可以補，需要後端補上這行才會有值。
 import { ref, computed, onMounted } from 'vue'
 import farmerGroupBuyApi from '@/api/farmerGroupBuy'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
@@ -192,6 +196,20 @@ async function loadOrderList() {
   }
 }
 
+// 團購總收益：所有已撥款訂單的總金額加總，跟訂單清單分開獨立打一支 API。
+const totalRevenue = ref(null)
+const totalRevenueLoading = ref(true)
+async function loadTotalRevenue() {
+  totalRevenueLoading.value = true
+  try {
+    totalRevenue.value = await farmerGroupBuyApi.totalRevenue()
+  } catch {
+    totalRevenue.value = null
+  } finally {
+    totalRevenueLoading.value = false
+  }
+}
+
 const shippingBusyIds = ref(new Set())
 function isShippingBusy(id) {
   return shippingBusyIds.value.has(id)
@@ -265,16 +283,25 @@ function openOrderDetail(order) {
   openModal('orderDetail', `訂單詳細資料｜#${order.orderId}`, () => farmerGroupBuyApi.getOrder(order.orderId))
 }
 
+// 流程說明：純靜態內容，不用打 API，直接開窗。
+function openGuide() {
+  modal.value = { open: true, type: 'guide', title: '團購流程與注意事項', loading: false, error: '', data: true }
+}
+
 onMounted(() => {
   loadReviewList()
   loadOrderList()
+  loadTotalRevenue()
 })
 </script>
 
 <template>
   <main class="farmer-page">
     <header class="page-head">
-      <h1>🛒 團購管理</h1>
+      <div class="page-head__title">
+        <h1>🛒 團購管理</h1>
+        <button type="button" class="guide-btn" @click="openGuide">📖 流程說明</button>
+      </div>
       <nav class="main-tabs">
         <button
           v-for="tab in MAIN_TABS"
@@ -401,6 +428,13 @@ onMounted(() => {
 
     <!-- ========== 團購訂單 ========== -->
     <section v-else class="card">
+      <div class="revenue-box">
+        <span class="revenue-label">團購總收益</span>
+        <span class="revenue-value">
+          {{ totalRevenueLoading ? '載入中…' : formatPrice(totalRevenue) }}
+        </span>
+      </div>
+
       <nav class="sub-tabs">
         <button
           v-for="tab in ORDER_TABS"
@@ -468,10 +502,10 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- ========== 詳細資料 / 進度彈窗 ========== -->
+    <!-- ========== 詳細資料 / 進度 / 流程說明彈窗 ========== -->
     <Teleport to="body">
       <div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-card">
+        <div class="modal-card" :class="{ 'modal-card--wide': modal.type === 'guide' }">
           <header class="modal-head">
             <h3>{{ modal.title }}</h3>
             <button type="button" class="modal-close" @click="closeModal">✕</button>
@@ -479,6 +513,39 @@ onMounted(() => {
           <div class="modal-body">
             <p v-if="modal.loading" class="state">載入中…</p>
             <p v-else-if="modal.error" class="state state--error">😢 {{ modal.error }}</p>
+
+            <!-- 團購流程說明（靜態內容） -->
+            <div v-else-if="modal.type === 'guide'" class="guide-content">
+              <p>為確保團購訂單能順利完成，請小農在審核團購申請前，先詳閱以下流程與注意事項：</p>
+              <ol>
+                <li>
+                  <strong>確認配送地址</strong>
+                  <p>團購成功後，商品將由小農自行配送至團購主所設定的收貨地址。因此，在審核團購申請時，請先確認該地址是否位於可配送範圍內。</p>
+                </li>
+                <li>
+                  <strong>審核通過並開放會員參加</strong>
+                  <p>小農按下「審核通過」後，此筆團購將正式開放。所有會員皆可在團購截止日期前加入團購並完成付款。</p>
+                </li>
+                <li>
+                  <strong>截止後由系統自動結算</strong>
+                  <p>團購進行期間不會提前結算，系統將於截止日期到期後，依照所有參加會員的付款總金額進行結算。</p>
+                  <p>若付款總金額達到團購主原先設定的目標金額，此筆團購即為成團成功，系統將自動建立團購訂單；若未達目標金額，則視為成團失敗。</p>
+                </li>
+                <li>
+                  <strong>聯繫團購主並安排配送</strong>
+                  <p>成團成功後，請小農主動聯繫團購主，確認實際配送日期及時間。團購主的姓名、電子郵件等聯絡資訊，可於訂單詳細資料中查看。</p>
+                </li>
+                <li>
+                  <strong>完成配送及點收</strong>
+                  <p>配送商品時，請與團購主當面確認商品內容及數量。確認點收完畢後，請小農於系統中將訂單狀態更新為「已配達」，並提醒團購主至會員中心按下「確認收貨」。</p>
+                </li>
+                <li>
+                  <strong>款項撥付</strong>
+                  <p>團購主完成確認收貨後，系統將於三日內自動撥付款項給小農。請小農留意款項狀態，並確認款項是否正確入帳。</p>
+                </li>
+              </ol>
+              <p class="guide-footer">請務必於審核前確認配送範圍，並於成團後主動與團購主聯繫，以確保訂單配送及款項撥付流程順利完成。</p>
+            </div>
 
             <!-- 團購申請詳細資料（/list/{groupBuyId}，跟 GroupBuyFarmerDTO 同形狀：扁平欄位，不是巢狀 entity） -->
             <dl v-else-if="modal.type === 'reviewDetail' && modal.data" class="modal-meta">
@@ -555,6 +622,46 @@ onMounted(() => {
   margin: 0;
   font-size: 24px;
   color: var(--ink);
+}
+.page-head__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.guide-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--leaf);
+  background: #fff;
+  color: var(--leaf-dark);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.guide-btn:hover {
+  background: var(--leaf);
+  color: #fff;
+}
+
+/* ---------- 團購總收益 ---------- */
+.revenue-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  background: var(--leaf-soft);
+  border-radius: 12px;
+}
+.revenue-label {
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.revenue-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--leaf-dark);
 }
 
 /* ---------- 主分頁（審核／訂單）---------- */
@@ -785,6 +892,9 @@ onMounted(() => {
   border-radius: 16px;
   box-shadow: 0 18px 48px rgba(30, 25, 15, 0.28);
 }
+.modal-card--wide {
+  max-width: 560px;
+}
 .modal-head {
   position: sticky;
   top: 0;
@@ -856,5 +966,43 @@ onMounted(() => {
   margin-top: 8px;
   font-weight: 600;
   color: #c2410c;
+}
+
+/* ---------- 流程說明 ---------- */
+.guide-content {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.guide-content > p:first-child {
+  margin-top: 0;
+}
+.guide-content ol {
+  margin: 12px 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.guide-content li {
+  padding-left: 4px;
+}
+.guide-content li strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.guide-content li p {
+  margin: 2px 0;
+}
+.guide-footer {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
 }
 </style>

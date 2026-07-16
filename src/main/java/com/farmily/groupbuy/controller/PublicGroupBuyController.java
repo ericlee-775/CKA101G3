@@ -48,6 +48,7 @@ public class PublicGroupBuyController {
 		return ResponseEntity.ok(groupBuySvc.getConsumerGroupBuyList(statuses));
 	}
 
+	//手動結算單筆團購
 	@PostMapping("/forceSettle/{groupBuyId}")
 	public ResponseEntity<String> forceSettle(@PathVariable Integer groupBuyId) {
 		groupBuySvc.forceSettleGroupBuy(groupBuyId);
