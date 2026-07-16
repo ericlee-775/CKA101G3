@@ -5,6 +5,7 @@ import memberApi from '@/api/member'
 import authStore from '@/stores/auth'
 import GoogleLoginButton from '@/components/GoogleLoginButton.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import TermsModal from '@/components/TermsModal.vue'
 import { confirm as confirmDialog } from '@/composables/useConfirm'
 
 const router = useRouter()
@@ -14,6 +15,10 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirm = ref('')
+
+// 使用條款：需勾選同意才能註冊
+const agreed = ref(false)
+const showTerms = ref(false)
 
 const error = ref('')
 const done = ref(false)
@@ -70,6 +75,11 @@ async function handleRegister() {
   // 確認兩次密碼一致
   if (password.value !== confirm.value) {
     error.value = '兩次輸入的密碼不一致'
+    return
+  }
+  // 需先閱讀並同意使用條款
+  if (!agreed.value) {
+    error.value = '請先閱讀並勾選同意使用條款與隱私權政策'
     return
   }
 
@@ -225,13 +235,27 @@ function handleGoogleError(e) {
             <PasswordInput v-model="confirm" placeholder="再輸入一次密碼" autocomplete="new-password" />
           </label>
 
+          <!-- 使用條款：勾選同意 + 點連結開啟彈窗閱讀 -->
+          <label class="agree">
+            <input v-model="agreed" type="checkbox" />
+            <span>
+              我已閱讀並同意
+              <button type="button" class="agree-link" @click="showTerms = true">
+                《會員服務條款與隱私權政策》
+              </button>
+            </span>
+          </label>
+
           <p v-if="error" class="auth-error">{{ error }}</p>
           <p v-if="done" class="auth-ok">註冊成功!請至信箱收啟用驗證信完成驗證</p>
 
-          <button class="btn" :class="{ done }" type="submit" :disabled="loading || done">
+          <button class="btn" :class="{ done }" type="submit" :disabled="loading || done || !agreed">
             {{ done ? '歡迎加入 Farmily' : loading ? '註冊中…' : '註冊' }}
           </button>
         </form>
+
+        <!-- 條款彈窗：按「我已閱讀並同意」會自動勾選上方同意框 -->
+        <TermsModal v-model="showTerms" type="member" @agree="agreed = true" />
 
         <!-- 分隔線 -->
         <div class="divider"><span>或</span></div>
@@ -904,6 +928,29 @@ function handleGoogleError(e) {
 
 .auth-error { margin: 0; color: #c0392b; font-size: 13px; }
 .auth-ok    { margin: 0; color: var(--leaf-g); font-size: 13px; }
+
+/* 同意使用條款 */
+.agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  cursor: pointer;
+}
+.agree input { margin-top: 3px; accent-color: var(--leaf-g); flex: none; }
+.agree-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--leaf-g);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.agree-link:hover { color: var(--rice-dark); }
 
 .btn {
   margin-top: 4px;
