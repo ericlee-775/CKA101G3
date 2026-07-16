@@ -1,10 +1,10 @@
 package com.farmily.trip.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;                     // 【新增】
+import org.springframework.http.MediaType; // 【新增】
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;  // 【新增】
+import org.springframework.web.bind.annotation.ModelAttribute; // 【新增】
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +20,11 @@ import com.farmily.trip.dto.TripCreateRequest;
 import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.service.FarmTripService;
+
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import com.farmily.trip.dto.SessionNotifyRequest;
+import com.farmily.trip.dto.TripUpdateRequest;
 
 @RestController
 @RequestMapping("/api/farmer/farm-trips")
@@ -56,5 +61,39 @@ public class FarmerTripController {
 	@GetMapping("/orders")
 	public ResponseEntity<List<OrderResponse>> getFarmerOrders(@RequestParam Integer farmerId) {
 		return ResponseEntity.ok(farmTripService.getFarmerOrders(farmerId));
+	}
+
+	// PUT /api/farmer/farm-trips/{farmTripId} → 小農修改活動（multipart，可含新圖片），改後回待審核
+	@PutMapping(value = "/{farmTripId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<TripDetailResponse> update(@PathVariable Integer farmTripId,
+			@ModelAttribute TripUpdateRequest request) {
+		return ResponseEntity.ok(farmTripService.updateTrip(farmTripId, request));
+	}
+
+	// DELETE /api/farmer/farm-trips/{farmTripId}?farmerId=1 → 小農刪除活動（已有人報名則擋下）
+	@DeleteMapping("/{farmTripId}")
+	public ResponseEntity<Void> delete(@PathVariable Integer farmTripId, @RequestParam Integer farmerId) {
+		farmTripService.deleteTrip(farmTripId, farmerId);
+		return ResponseEntity.noContent().build();
+	}
+
+	// PUT /api/farmer/farm-trips/sessions/{farmSessionId} → 修改場次時間
+	@PutMapping("/sessions/{farmSessionId}")
+	public ResponseEntity<SessionResponse> updateSession(@PathVariable Integer farmSessionId,
+			@RequestBody SessionCreateRequest request) {
+		return ResponseEntity.ok(farmTripService.updateSession(farmSessionId, request));
+	}
+
+	// PUT /api/farmer/farm-trips/sessions/{farmSessionId}/cancel → 取消場次（連帶取消報名並通知）
+	@PutMapping("/sessions/{farmSessionId}/cancel")
+	public ResponseEntity<SessionResponse> cancelSession(@PathVariable Integer farmSessionId) {
+		return ResponseEntity.ok(farmTripService.cancelSession(farmSessionId));
+	}
+
+	// POST /api/farmer/farm-trips/sessions/{farmSessionId}/notify → 寄提醒信給該場次未取消的報名者
+	@PostMapping("/sessions/{farmSessionId}/notify")
+	public ResponseEntity<Integer> notifyRegistrants(@PathVariable Integer farmSessionId,
+			@RequestBody SessionNotifyRequest request) {
+		return ResponseEntity.ok(farmTripService.notifySessionRegistrants(farmSessionId, request));
 	}
 }

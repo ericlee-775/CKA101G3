@@ -122,5 +122,42 @@ public class EmailService {
     		message.setSubject("優惠卷通知");
     		message.setText(userName+"有新的優惠卷"+"券號是:"+coupon.getCouponId()+"折抵金額：" + coupon.getAmount()+ "最低消費：" + coupon.getMinSpending());
     		mailSender.send(message);
-    	}    
+    	}
+    
+ // 寄出「體驗活動場次取消」通知信給已報名的會員
+    @Async
+    public void sendTripSessionCancelledEmail(String toEmail, String userName, String tripTitle, String sessionTime) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Farmily - 體驗活動場次取消通知");
+        message.setText("您好 " + (userName == null || userName.isBlank() ? "" : userName) + "，\n\n"
+                + "很抱歉通知您，您報名的體驗活動「" + tripTitle + "」"
+                + (sessionTime == null || sessionTime.isBlank() ? "" : "（場次時間：" + sessionTime + "）")
+                + "已由主辦小農取消，此筆報名同時已為您取消。\n"
+                + "造成您的不便，我們深感抱歉。\n\n"
+                + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
+
+        mailSender.send(message);
+    }
+
+    // 小農主動寄給報名者的「活動提醒」信（主旨與內文由小農自訂）
+    @Async
+    public void sendTripReminderEmail(String toEmail, String userName, String tripTitle,
+            String sessionTime, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject(subject == null || subject.isBlank() ? "Farmily - 體驗活動提醒" : subject);
+        message.setText("您好 " + (userName == null || userName.isBlank() ? "" : userName) + "，\n\n"
+                + "這是您報名的體驗活動「" + tripTitle + "」"
+                + (sessionTime == null || sessionTime.isBlank() ? "" : "（場次時間：" + sessionTime + "）")
+                + " 主辦小農的提醒：\n\n"
+                + body + "\n\n"
+                + "期待與您相見！\n"
+                + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
+
+        mailSender.send(message);
+    }
+    
 }
