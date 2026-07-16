@@ -1,13 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import authStore from '@/stores/auth'
 
 const route = useRoute()
 // 網址上的活動 id：/farm-trips/:farmTripId
 const farmTripId = ref(route.params.farmTripId)
 
-// 目前登入者（還沒接登入，先手動指定，報名／評論／查訂單都用它）
-const userId = ref(1)
+// 登入的會員 id（跟 BlogDetailView 一致，從 authStore 拿）
+const userId = computed(() => authStore.state.user?.userId ?? null)
 
 // ---- 活動詳情 ----
 const detail = ref(null)
@@ -92,6 +93,11 @@ function startBooking(sessionId) {
 
 async function submitBooking(sessionId) {
   bookMsg.value = ''
+  // 未登入擋下：沒有 userId 就別送，避免報名綁到 null 或錯的帳號
+  if (!userId.value) {
+    bookMsg.value = '請先登入會員再報名。'
+    return
+  }
   if (!bookForm.value.userName || !bookForm.value.userPhoneNum) {
     bookMsg.value = '請填寫聯絡人姓名與電話。'
     return

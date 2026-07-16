@@ -185,6 +185,7 @@ onMounted(async () => {
 .hero {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   margin-bottom: 24px;
 }
