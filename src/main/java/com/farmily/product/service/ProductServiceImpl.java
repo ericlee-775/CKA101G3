@@ -43,11 +43,11 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	@Transactional(readOnly = true)
 	public Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
-			Integer minPrice, Integer maxPrice, Pageable pageable) {
+			Integer minPrice, Integer maxPrice,Integer farmerId,Pageable pageable) {
 		if (keyword != null && keyword.isBlank()) {
 			keyword = null;
 		}
-		return productRepository.searchProducts(keyword, subCatClassId, minPrice, maxPrice, pageable);
+		return productRepository.searchProducts(keyword, subCatClassId, minPrice, maxPrice,farmerId, pageable);
 	}
 
 	@Override
