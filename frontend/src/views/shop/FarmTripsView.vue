@@ -4,9 +4,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// 目前登入者（還沒接登入，先手動指定，查我的報名用它）
-const userId = ref(1)
-
 // ---- 活動列表 ----
 const trips = ref([])
 const listLoading = ref(true)
@@ -17,10 +14,6 @@ function goFarm(farmerId) {
   if (farmerId == null) return
   router.push({ name: 'farm-detail', params: { farmerId } })
 }
-
-// ---- 我的報名 ----
-const myOrders = ref([])
-const myOrdersMsg = ref('')
 
 // 活動類型 enum 轉中文
 const TYPE_LABEL = { FARM_EXPERIENCE: '農場體驗營', FIELD_VISIT: '產地參訪' }
@@ -62,32 +55,6 @@ async function loadTrips() {
     listError.value = e.message || '無法載入活動，請稍後再試。'
   } finally {
     listLoading.value = false
-  }
-}
-
-// ========== 我的報名 ==========
-async function loadMyOrders() {
-  myOrdersMsg.value = ''
-  try {
-    const res = await fetch(`/api/farm-trips/orders/mine?userId=${userId.value}`)
-    if (!res.ok) throw new Error(`伺服器回應 ${res.status}`)
-    myOrders.value = await res.json()
-    if (myOrders.value.length === 0) myOrdersMsg.value = '目前沒有報名紀錄。'
-  } catch (e) {
-    myOrdersMsg.value = '查詢失敗：' + (e.message || '請稍後再試')
-  }
-}
-
-async function cancelOrder(orderId) {
-  try {
-    const res = await fetch(`/api/farm-trips/orders/${orderId}/cancel`, { method: 'PUT' })
-    if (!res.ok) {
-      const msg = await res.text()
-      throw new Error(msg || `伺服器回應 ${res.status}`)
-    }
-    loadMyOrders()
-  } catch (e) {
-    myOrdersMsg.value = '取消失敗：' + (e.message || '請稍後再試')
   }
 }
 
@@ -153,23 +120,6 @@ onMounted(loadTrips)
           <p class="price">參考價 {{ formatPrice(t.referPrice) }}</p>
         </router-link>
       </div>
-
-      <!-- 我的報名 -->
-      <section class="my-orders">
-        <h2>我的報名</h2>
-        <button class="btn" @click="loadMyOrders">查詢我的報名</button>
-        <p v-if="myOrdersMsg" class="muted">{{ myOrdersMsg }}</p>
-        <ul v-if="myOrders.length" class="order-list">
-          <li v-for="o in myOrders" :key="o.farmTripOrderId">
-            <span>訂單 {{ o.farmTripOrderBookingNo }}｜{{ o.numPeople }} 人｜{{ o.orderStatus }}</span>
-            <button
-              v-if="o.orderStatus === 'CONFIRMED'"
-              class="btn-outline"
-              @click="cancelOrder(o.farmTripOrderId)"
-            >取消</button>
-          </li>
-        </ul>
-      </section>
     </section>
   </main>
 </template>
@@ -272,21 +222,4 @@ h1 { color: var(--ink); }
 .star { color: #e6a700; letter-spacing: 2px; }
 .price { color: var(--leaf-dark); font-weight: 600; }
 .error { color: #c0392b; }
-
-.btn {
-  background: var(--leaf); color: #fff; border: none; padding: 8px 16px;
-  border-radius: 10px; cursor: pointer; font-size: 14px;
-}
-.btn:hover { background: var(--leaf-dark); }
-.btn-outline {
-  background: #fff; color: var(--leaf-dark); border: 1px solid var(--leaf);
-  padding: 6px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; margin: 8px 0;
-}
-
-.my-orders { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 20px; }
-.order-list { list-style: none; padding: 0; }
-.order-list li {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid var(--line); gap: 12px;
-}
 </style>

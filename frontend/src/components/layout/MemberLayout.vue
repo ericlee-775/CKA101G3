@@ -25,6 +25,7 @@ const menu = [
   { label: '我的團購', icon: '👥', to: '/member/group-buys' },
   { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
   { label: '我的訂單', icon: '🧾', to: '/member/orders' },
+  { label: '已報名活動', icon: '🌱', to: '/member/farm-trips' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
   { label: '通知', icon: '🔔', to: '/member/notifications' },
 ]

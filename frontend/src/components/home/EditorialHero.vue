@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
 
         <div class="hero__actions">
           <router-link class="btn-solid" to="/products"><span>購買商品</span></router-link>
-          <router-link class="link-arrow" to="/farmily">認識我們的農場 <i>→</i></router-link>
+          <router-link class="link-arrow" to="/about">關於我們 <i>→</i></router-link>
         </div>
       </div>
 
@@ -186,9 +186,6 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </main>
-
-    <!-- 酒類警語:主視覺題有「把酒話桑麻」的飲酒意象,依法標示 -->
-    <p class="hero__warning">未滿十八歲禁止飲酒・酒後不開車,開車不喝酒</p>
 
     <!-- 下方:品牌理念(滾動進場) -->
     <section class="manifesto">
@@ -567,20 +564,6 @@ onBeforeUnmount(() => {
     opacity: 1;
     translate: 0 0;
   }
-}
-
-/* 酒類警語:置中一行,壓在紙張顆粒層(z-index:3)之上仍清楚可讀 */
-.hero__warning {
-  position: relative;
-  z-index: 4;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 4px clamp(16px, 3vw, 40px) 24px;
-  text-align: right;
-  font-size: 0.84rem;
-  letter-spacing: 0.14em;
-  color: var(--fh-moss);
-  animation: eh-fade 1s ease 1.5s both;
 }
 
 /* ============================================================
