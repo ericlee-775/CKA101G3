@@ -248,8 +248,8 @@ onMounted(loadTrips)
 .type-icon { font-size: 18px; }
 
 .page { padding: 32px clamp(18px, 4vw, 56px); color: var(--ink); }
-.topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-h1 { color: var(--ink); }
+.topbar { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; }
+h1 {color: var(--ink); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-top: 20px; }
 .card {
