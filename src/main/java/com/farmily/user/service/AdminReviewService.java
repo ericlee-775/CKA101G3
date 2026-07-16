@@ -18,8 +18,8 @@ public interface AdminReviewService {
     // 審核中 REVIEWING
     FarmerReviewResponse reviewing(Integer reviewId, Integer adminId);
 
-    // 核准 APPROVE
-    FarmerReviewResponse approve(Integer reviewId, Integer adminId);
+    // 核准 APPROVE（notes：管理員內部備註，選填，僅後台可見、不外洩給小農）
+    FarmerReviewResponse approve(Integer reviewId, Integer adminId, String notes);
 
     // 退件 REJECTED
     FarmerReviewResponse reject(Integer reviewId, Integer adminId, String rejectReason);

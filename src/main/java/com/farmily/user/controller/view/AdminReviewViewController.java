@@ -60,12 +60,13 @@ public class AdminReviewViewController {
         return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
 
-    // 修改: 核准（APPROVED）
+    // 修改: 核准（APPROVED）；notes 為管理員內部備註（選填），僅後台可見
     @PostMapping("/{reviewId}/approve")
     public String approve(@PathVariable Integer reviewId,
+                          @RequestParam(value = "notes", required = false) String notes,
                           @AuthenticationPrincipal AdminUserDetails me,
                           RedirectAttributes ra) {
-        adminReviewService.approve(reviewId, me.getAdminId());
+        adminReviewService.approve(reviewId, me.getAdminId(), notes);
         ra.addFlashAttribute("success", "（已核准）");
         return "redirect:/admin/reviews";       // POST-Redirect-GET：操作完導回清單頁，避免重新整理時重送表單
     }
