@@ -9,6 +9,7 @@ public class ProductSummaryDTO {
 	private Integer retailPrice;
 	private String unitPricingMeasure;
 	private String productName;
+	private String description;
 	private String farmName;
 	private Integer farmerId;
 	
@@ -40,7 +41,21 @@ public class ProductSummaryDTO {
 		this.unitPricingMeasure = unitPricingMeasure;
 		this.productName = productName;
 		this.farmName = farmName;
-		
+
+	}
+
+	// 收藏清單用（7 參數，多帶 description）：不能做成「4 參數＋description」的 5 參數版，
+	// 會跟上面的 5 參數（farmName）版參數型別完全相同而編譯衝突
+	public ProductSummaryDTO(Integer productId, Integer retailPrice, String unitPricingMeasure, String productName,
+			String farmName, Integer farmerId, String description) {
+		super();
+		this.productId = productId;
+		this.retailPrice = retailPrice;
+		this.unitPricingMeasure = unitPricingMeasure;
+		this.productName = productName;
+		this.farmName = farmName;
+		this.farmerId = farmerId;
+		this.description = description;
 	}
 	public Integer getProductId() {
 		return productId;
@@ -65,6 +80,12 @@ public class ProductSummaryDTO {
 	}
 	public void setProductName(String productName) {
 		this.productName = productName;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 
 	public String getFarmName() {
