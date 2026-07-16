@@ -195,7 +195,8 @@ onMounted(() => {
 <template>
   <main class="page">
     <section class="hero">
-     
+      <h1>🛒 團購專區</h1>
+      <p>揪團一起買，達標即成團，用更優惠的價格享受產地好物。</p>
     </section>
 
     <!-- 篩選頁籤：總覽 / 可發起 / 開團中 -->

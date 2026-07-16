@@ -126,10 +126,14 @@ public class GroupBuyService {
 		if (product == null) {
 			throw new RuntimeException("查無此商品");
 		}
+		Integer minimumTargetAmount=product.getGroupPrice()*2;
 		User hostUser = userRepository.findById(hostUserId).orElseThrow(() -> new RuntimeException("查無此會員"));
 		GroupBuyVO groupBuyVO = new GroupBuyVO();
 		groupBuyVO.setHostUser(hostUser);
 		groupBuyVO.setProduct(product);
+		if(form.getTargetAmount()<minimumTargetAmount){
+			throw new RuntimeException("達標金額不得低於"+minimumTargetAmount+"元");
+		}else {
 		groupBuyVO.setTargetAmount(form.getTargetAmount());
 		groupBuyVO.setOpenDatetime(Timestamp.valueOf(form.getOpenDatetime().atStartOfDay()));
 		groupBuyVO.setDdlDatetime(Timestamp.valueOf(form.getDdlDatetime().atTime(23, 59, 59)));
@@ -141,6 +145,7 @@ public class GroupBuyService {
 		groupBuyVO.setGroupPrice(product.getGroupPrice());
 
 		repository.save(groupBuyVO);
+		}
 	}
 
 	// 給會員看已成立之團購訂單
@@ -273,7 +278,7 @@ public class GroupBuyService {
 		return groupBuyList.stream()
 				.map(vo -> new UnderReviewDTO(vo.getGroupBuyId(), vo.getProduct().getProductName(), vo.getGroupPrice(),
 						vo.getRequestStatus(), vo.getTargetAmount(), vo.getOpenDatetime(), vo.getDdlDatetime(),
-						vo.getRejectReason(), vo.getReplyDatetime()))
+						vo.getRejectReason(), vo.getReplyDatetime(),vo.getRequestDatetime()))
 				.toList();
 	}
 
@@ -342,6 +347,7 @@ public class GroupBuyService {
 			dto.setTotalAmount(order.getTotalAmount());
 			dto.setShippingAddress(order.getGroupBuyId().getPickupAddress());
 			dto.setShippedStatus(order.getShippedStatus());
+			dto.setCreatedAt(order.getCreatedAt());
 			return dto;
 
 		}).toList();
@@ -514,7 +520,7 @@ public class GroupBuyService {
 				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
 						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
 						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
-						groupBuy.getStatus()))
+						groupBuy.getStatus(),groupBuy.getProduct().getFarmer().getFarmName()))
 				.toList();
 	}
 

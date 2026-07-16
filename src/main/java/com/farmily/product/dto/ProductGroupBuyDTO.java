@@ -18,6 +18,7 @@ public class ProductGroupBuyDTO {
 	    private String description;
 	    private Integer subCatClassId;
 	    private String subCatClassName;
+	    private String farmName;
 	    
 	    public ProductGroupBuyDTO(
 	            Integer productId,
@@ -26,7 +27,8 @@ public class ProductGroupBuyDTO {
 	            String unitPricingMeasure,
 	            String description,
 	            Integer subCatClassId,
-	            String subCatClassName) {
+	            String subCatClassName
+	            ) {
 	        this.productId = productId;
 	        this.productName = productName;
 	        this.groupPrice = groupPrice;
@@ -34,6 +36,7 @@ public class ProductGroupBuyDTO {
 	        this.description = description;
 	        this.subCatClassId = subCatClassId;
 	        this.subCatClassName = subCatClassName;
+	       
 	    }
 		public String getUnitPricingMeasure() {
 			return unitPricingMeasure;
@@ -84,6 +87,13 @@ public class ProductGroupBuyDTO {
 		public Integer getGroupPrice() {
 			return groupPrice;
 		}
+		
+		public String getFarmName() {
+			return farmName;
+		}
+		public void setFarmName(String farmName) {
+			this.farmName = farmName;
+		}
 		public void setGroupPrice(Integer groupPrice) {
 			this.groupPrice = groupPrice;
 		}
@@ -119,7 +129,7 @@ public class ProductGroupBuyDTO {
 		}
 		public ProductGroupBuyDTO(Integer groupBuyId, Integer productId, String productName, Integer groupPrice,
 				Integer targetAmount, Timestamp openDatetime, Timestamp ddlDatetime, String pickupAddress,
-				GroupBuyStatus status) {
+				GroupBuyStatus status,String farmName) {
 			super();
 			this.groupBuyId = groupBuyId;
 			this.productId = productId;
@@ -130,6 +140,7 @@ public class ProductGroupBuyDTO {
 			this.ddlDatetime = ddlDatetime;
 			this.pickupAddress = pickupAddress;
 			this.status = status;
+			this.farmName=farmName;
 		}
 	 
 	 

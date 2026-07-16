@@ -293,7 +293,7 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
           <p class="info__desc">
             {{ groupBuy.description || '這項商品支援團購，目前還沒有人發起，成為第一個發起的人吧！' }}
           </p>
-          <p class="info__notice">達標以後小農將會致電通知配達時間，請留意來電</p>
+          <p class="info__notice">達標以後小農將會致電通知團購主配達時間，請留意來電</p>
         </template>
         <dl v-else class="info__meta">
           <div class="info__meta-row">
