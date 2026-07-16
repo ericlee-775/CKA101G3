@@ -50,7 +50,7 @@ public class BlogController {
             @RequestParam(defaultValue = "blog_time") String orderBy,
             @RequestParam(defaultValue = "desc") String sort,
             //分頁
-            @RequestParam(defaultValue = "5") @Max(1000) @Min(0) Integer limit,
+            @RequestParam(defaultValue = "8") @Max(1000) @Min(0) Integer limit,
             @RequestParam(defaultValue = "0") @Min(0) Integer offset
     ) {
         BlogQueryParms parms = new BlogQueryParms();   // 把 request 參數組成查詢物件（輸入對應，留 controller OK）

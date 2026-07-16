@@ -16,6 +16,8 @@ public class BlogResponse {
     private Timestamp blogTime;
     private BlogStatus blogStatus;
     private Boolean liked;   // 目前這位會員有沒有按過讚（未登入/沒查則為 null，前端當作 false）
+    private String authorName;
+    private String authorType;
     //private byte[] blogImg; 圖片走 /api/blogs/{id}/image
 
     //entity轉DTO
@@ -30,6 +32,8 @@ public class BlogResponse {
         r.setBlogLikeCount(b.getBlogLikeCount());
         r.setBlogTime(b.getBlogTime());
         r.setBlogStatus(b.getBlogStatus());
+        r.setAuthorName(b.getAuthorName());
+        r.setAuthorType(b.getAuthorType());
         return r;
     }
 
@@ -112,5 +116,21 @@ public class BlogResponse {
 
     public void setLiked(Boolean liked) {
         this.liked = liked;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public String getAuthorType() {
+        return authorType;
+    }
+
+    public void setAuthorType(String authorType) {
+        this.authorType = authorType;
     }
 }

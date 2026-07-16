@@ -4,10 +4,7 @@ import com.farmily.blog.constant.BlogReportStatus;
 import com.farmily.blog.dao.BlogDao;
 import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
-import com.farmily.blog.rowmapper.BlogCommentReportRowMapper;
-import com.farmily.blog.rowmapper.BlogCommentRowMapper;
-import com.farmily.blog.rowmapper.BlogPhotoRowMapper;
-import com.farmily.blog.rowmapper.BlogRowMapper;
+import com.farmily.blog.rowmapper.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -63,15 +60,20 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Blog getBlogById(Integer blogId) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, " +
-                "blog_content, blog_img, blog_like_count, " +
-                "blog_time, blog_status FROM Blog WHERE blog_id = :blogId" ;
+        String sql = "SELECT b.blog_id, b.blog_title, b.user_id, b.farmer_id, b.blog_type_id, " +
+                "b.blog_content, b.blog_img, b.blog_like_count, b.blog_time, b.blog_status, " +
+                "COALESCE(f.farm_name, u.user_nickname, u.user_name) AS author_name, " +
+                "CASE WHEN b.farmer_id IS NOT NULL THEN 'FARMER' ELSE 'MEMBER' END AS author_type " +
+                "FROM Blog b " +
+                "LEFT JOIN FARMER f ON b.farmer_id = f.farmer_id " +
+                "LEFT JOIN `USER` u ON b.user_id = u.user_id " +
+                "WHERE b.blog_id = :blogId";
 
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
         //結果用blogRowMapper 轉成 List<Blog>
-        List<Blog> blogList = namedParameterJdbcTemplate.query(sql, map, new BlogRowMapper());
+        List<Blog> blogList = namedParameterJdbcTemplate.query(sql, map, new BlogCardRowMapper());
         //query執行三個參數 sql：要執行的SQL。 map：SQL裡參數的值。new BlogRowMapper()：把每一列轉成Product物件的工具
 
         if (blogList.size() > 0) {
@@ -85,8 +87,14 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<Blog> getBlogs(BlogQueryParms blogQueryParms) {
-        String sql = "SELECT blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_content," +
-                "blog_img, blog_like_count, blog_time, blog_status FROM Blog WHERE 1=1";
+        String sql = "SELECT b.blog_id, b.blog_title, b.user_id, b.farmer_id, b.blog_type_id, b.blog_content, " +
+                "b.blog_img, b.blog_like_count, b.blog_time, b.blog_status, " +
+                "COALESCE(f.farm_name, u.user_nickname, u.user_name) AS author_name, " +
+                "CASE WHEN b.farmer_id IS NOT NULL THEN 'FARMER' ELSE 'MEMBER' END AS author_type " +
+                "FROM Blog b " +
+                "LEFT JOIN FARMER f ON b.farmer_id = f.farmer_id " +
+                "LEFT JOIN `USER` u ON b.user_id = u.user_id " +
+                "WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
         // 把篩選條件（分類、關鍵字）動態拼進 SQL，沒帶的條件就不加
@@ -101,7 +109,7 @@ public class BlogDaoImpl implements BlogDao {
         map.put("limit", blogQueryParms.getLimit());
         map.put("offset", blogQueryParms.getOffset());
 
-        return namedParameterJdbcTemplate.query(sql, map, new BlogRowMapper());
+        return namedParameterJdbcTemplate.query(sql, map, new BlogCardRowMapper());
 
 
 
@@ -109,7 +117,7 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public Integer countBlogs(BlogQueryParms blogQueryParms) {
-        String sql = "SELECT COUNT(*) FROM Blog WHERE 1=1";
+        String sql = "SELECT COUNT(*) FROM Blog b WHERE 1=1";
 
         Map<String, Object> map = new HashMap<>();
         // 用跟 getBlogs 一樣的篩選條件，但不加排序與分頁
@@ -123,12 +131,16 @@ public class BlogDaoImpl implements BlogDao {
 
     @Override
     public List<BlogComment> getBlogComments(Integer blogId) {
-        String sql = "SELECT comment_id, blog_id, user_id, comment_time, comment_post,comment_like, " +
-                "comment_status FROM blog_comment WHERE blog_id = :blogId AND comment_status = 'VISIBLE'";
+        String sql = "SELECT c.comment_id, c.blog_id, c.user_id, c.comment_time, c.comment_post, c.comment_like, " +
+                "c.comment_status, " +
+                "COALESCE(u.user_nickname, u.user_name) AS author_name " +
+                "FROM blog_comment c " +
+                "LEFT JOIN `USER` u ON c.user_id = u.user_id " +
+                "WHERE c.blog_id = :blogId AND c.comment_status = 'VISIBLE'";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
-        List<BlogComment> blogCommentList = namedParameterJdbcTemplate.query(sql,map,new BlogCommentRowMapper());
+        List<BlogComment> blogCommentList = namedParameterJdbcTemplate.query(sql,map,new BlogCommentCardRowMapper());
 
         return blogCommentList;
     }
@@ -454,23 +466,23 @@ public class BlogDaoImpl implements BlogDao {
     // 共用的篩選條件，getBlogs 與 countBlogs 都呼叫，確保兩邊條件一致
     private String addFilter(String sql, Map<String, Object> map, BlogQueryParms blogQueryParms) {
         if (blogQueryParms.getBlogTypeId() != null) {
-            sql = sql + " AND blog_type_id = :blogTypeId";
+            sql = sql + " AND b.blog_type_id = :blogTypeId";
             map.put("blogTypeId", blogQueryParms.getBlogTypeId());
         }
         if (blogQueryParms.getFarmerId() != null) {
-            sql = sql + " AND farmer_id = :farmerId";
+            sql = sql + " AND b.farmer_id = :farmerId";
             map.put("farmerId", blogQueryParms.getFarmerId());
         }
         if (blogQueryParms.getUserId() != null) {
-            sql = sql + " AND user_id = :userId";
+            sql = sql + " AND b.user_id = :userId";
             map.put("userId", blogQueryParms.getUserId());
         }
         if (blogQueryParms.getSearch() != null && !blogQueryParms.getSearch().isBlank()) {
-            sql = sql + " AND (blog_title LIKE :search OR blog_content LIKE :search)";
+            sql = sql + " AND (b.blog_title LIKE :search OR b.blog_content LIKE :search)";
             map.put("search", "%" + blogQueryParms.getSearch() + "%");
         }
         if (blogQueryParms.getStatus() != null) {
-            sql = sql + " AND blog_status = :status";
+            sql = sql + " AND b.blog_status = :status";
             map.put("status", blogQueryParms.getStatus());
         }
         return sql;
