@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,11 +43,16 @@ public class NotificationService {
 	// ============== 更新已讀 (status) 狀態 ==============
 	// mark as read, single 單筆已讀
 	@Transactional
-	public void markOneAsRead(Integer notificationId) {
-		repository.findById(notificationId).ifPresent(notification -> {
-			notification.setStatus(NotificationStatus.read);
-			repository.save(notification);
-		});
+	public void markOneAsRead(Integer notificationId, NotificationRecipientType recipientType, Integer recipientId) {
+		NotificationVO notification = repository.findById(notificationId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此通知"));
+		
+		// 檢查這則通知是否屬於此會員
+		if (notification.getRecipientType() != recipientType || !notification.getRecipientId().equals(recipientId)){
+			throw new AccessDeniedException("無權限操作此通知");
+		}
+		notification.setStatus(NotificationStatus.read);
+		repository.save(notification);			
 	}
 	
 	// mark as read, all 全部已讀
@@ -162,8 +167,8 @@ public class NotificationService {
 	@Transactional(readOnly = true)
 	public Page<NotificationResponseDTO> getNotifByRecipient(NotificationRecipientType recipientType, Integer recipientId, int page){
 		// pageable (起始頁, 每頁筆數, 排序: 未讀在前-日期先後)
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Order.desc("status"), Sort.Order.desc("createdAt")));
-		Page<NotificationVO> list = repository.findByRecipientTypeAndRecipientId(recipientType, recipientId, pageable);
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE);
+		Page<NotificationVO> list = repository.findNotifs(recipientType, recipientId, NotificationStatus.unread, pageable);
 		Page<NotificationResponseDTO> dtoList = list.map(this::toDTO);
 		return dtoList;
 	}
@@ -172,8 +177,8 @@ public class NotificationService {
 	// 傳入 recipientType, recipientId, targetType, page
 	@Transactional(readOnly = true)
 	public Page<NotificationResponseDTO> getNotifBytarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, int page){
-		Pageable pageable = PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Order.desc("status"), Sort.Order.desc("createdAt")));
-		Page<NotificationVO> list = repository.findByRecipientTypeAndRecipientIdAndTargetType(recipientType, recipientId, targetType, pageable);
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE);
+		Page<NotificationVO> list = repository.findnNotifsByTargetType(recipientType, recipientId, targetType, NotificationStatus.unread, pageable);
 		Page<NotificationResponseDTO> dtoList = list.map(this::toDTO);
 		return dtoList;
 	}
