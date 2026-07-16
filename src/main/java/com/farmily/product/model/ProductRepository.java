@@ -13,11 +13,13 @@ import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 
+import groovyjarjarpicocli.CommandLine.Parameters;
+
 public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 
 	// 全部商品
 	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
-			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName,f.farmName) "
 			+ "FROM ProductVO p JOIN p.farmer f "
 			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE",
@@ -28,13 +30,14 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 
 	// 複合查詢
 	@Query(value = "SELECT new com.farmily.product.dto.ProductSummaryDTO("
-			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName,f.farmName,f.farmerId) "
 			+ "FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
 			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND (:keyword IS NULL OR p.productName LIKE CONCAT('%', :keyword, '%')) "
 			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
 			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
 			+ "AND (:maxPrice IS NULL OR p.retailPrice <= :maxPrice) "
+			+ "AND (:farmerId IS NULL OR f.farmerId = :farmerId) "
 			+ "AND f.farmerStatus = ACTIVE",
 		countQuery = "SELECT count(p) FROM ProductVO p JOIN p.subCategoryVO s JOIN p.farmer f "
 			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
@@ -42,11 +45,13 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 			+ "AND (:subCatClassId IS NULL OR s.subCatClassId = :subCatClassId) "
 			+ "AND (:minPrice IS NULL OR p.retailPrice >= :minPrice) "
 			+ "AND (:maxPrice IS NULL OR p.retailPrice <= :maxPrice) "
+			+ "AND (:farmerId IS NULL OR f.farmerId = :farmerId) "
 			+ "AND f.farmerStatus = ACTIVE")
 	Page<ProductSummaryDTO> searchProducts(@Param("keyword") String keyword,
 			@Param("subCatClassId") Integer subCatClassId,
 			@Param("minPrice") Integer minPrice,
 			@Param("maxPrice") Integer maxPrice,
+			@Param("farmerId") Integer farmerId,
 			Pageable pageable);
 
 	// 農夫管理自己商品（小農端）
@@ -56,11 +61,11 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 			+ "FROM ProductVO p WHERE p.farmerId = :farmerId")
 	List<ProductManageDTO> findMyProducts(@Param("farmerId") Integer farmerId);
 
-	// 商品詳情（買家端）：建構式投影一次撈齊，不載入圖片 BLOB
-	// 小農停權 → 查不到（回 null，controller 轉 404）
+	// 單一查詢不載入圖片 BLOB
+	
 	@Query("SELECT new com.farmily.product.dto.ProductDetailDTO("
 			+ "p.productId, p.productName, p.retailPrice, p.groupPrice, "
-			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, s.subCatClassId, s.subCatClassName) "
+			+ "p.unitPricingMeasure, p.description, p.isGroupBuy, s.subCatClassId, s.subCatClassName,f.farmName) "
 			+ "FROM ProductVO p LEFT JOIN p.subCategoryVO s JOIN p.farmer f "
 			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.ProductStatus.ACTIVE "
 			+ "AND f.farmerStatus = ACTIVE")

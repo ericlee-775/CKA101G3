@@ -20,6 +20,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/farmer")
 public class FarmerController {
@@ -83,6 +85,24 @@ public class FarmerController {
     public ResponseEntity<FarmerProfileResponse> getMe(
             @AuthenticationPrincipal FarmerUserDetails me) {
         return ResponseEntity.ok(farmerService.getMyProfile(me.getFarmerId()));
+    }
+
+    // 查自己所有審核輪次紀錄（含各輪文件有無）
+    @GetMapping("/me/reviews")
+    public ResponseEntity<List<FarmerReviewResponse>> getMyReviews(
+            @AuthenticationPrincipal FarmerUserDetails me) {
+        return ResponseEntity.ok(farmerService.listMyReviews(me.getFarmerId()));
+    }
+
+    // 取自己某輪審核的證明文件圖片（type = land | product | identity）；僅本人可取
+    // 讓 <img> 直接內嵌顯示；非本人的 reviewId 會由 service 擋下
+    @GetMapping("/me/reviews/{reviewId}/cert/{type}")
+    public ResponseEntity<byte[]> getMyCert(
+            @AuthenticationPrincipal FarmerUserDetails me,
+            @PathVariable Integer reviewId,
+            @PathVariable String type) {
+        byte[] bytes = farmerService.getMyCertFile(me.getFarmerId(), reviewId, type);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
     }
 
     // 修改非審核欄位（電話、描述) - 立即生效

@@ -61,7 +61,8 @@
             </span>
             <!-- 認領狀態標示 -->
             <span th:if="${r.adminId == currentAdminId}" class="badge badge-primary ml-2">您負責中</span>
-            <span th:unless="${r.adminId == currentAdminId}" class="badge badge-secondary ml-2"
+            <span th:if="${r.adminId == null}" class="badge badge-warning ml-2">尚未被認領</span>
+            <span th:if="${r.adminId != null and r.adminId != currentAdminId}" class="badge badge-secondary ml-2"
                   th:text="'由 ' + ${r.adminName} + ' 審核中'"></span>
         </summary>
 
@@ -84,11 +85,17 @@
                          th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
                 </div>
 
-                <!-- 核准 -->
-                <form method="post" class="d-inline"
-                      th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
-                    <button class="btn btn-success btn-sm">核准</button>
-                </form>
+                <!-- 核准：點開可填「內部備註」（選填，僅後台可見、不外洩給小農）後確認 -->
+                <details class="d-inline-block reject-box">
+                    <summary class="btn btn-success btn-sm">核准</summary>
+                    <form method="post" class="form-inline mt-2"
+                          th:action="@{/admin/reviews/{id}/approve(id=${r.reviewId})}">
+                        <input type="text" name="notes" maxlength="500"
+                               class="form-control form-control-sm mr-1"
+                               placeholder="內部備註（選填，僅後台可見）"/>
+                        <button class="btn btn-success btn-sm">確認核准</button>
+                    </form>
+                </details>
 
                 <!-- 退件：點開才顯示退件理由（選擇退件後才填理由）-->
                 <details class="d-inline-block ml-2 reject-box">
@@ -102,13 +109,97 @@
                 </details>
             </div>
 
+            <!-- 尚未被認領：提示先認領 -->
+            <p th:if="${r.adminId == null}" class="text-muted mb-0">
+                此案件尚未被認領，請先於待審清單認領後才能檢視文件或審核。
+            </p>
+
             <!-- 非認領者：不提供文件與操作 -->
-            <p th:unless="${r.adminId == currentAdminId}" class="text-muted mb-0">
+            <p th:if="${r.adminId != null and r.adminId != currentAdminId}" class="text-muted mb-0">
                 此案件由其他管理員負責，您無法檢視文件或審核。
             </p>
         </div>
     </details>
     <p th:if="${reviewingData.isEmpty()}" class="text-muted">目前沒有審核中案件</p>
+
+    <!-- ===== 審核歷史（已核准 / 已退件）===== -->
+    <!-- 顯示邏輯：證明文件僅負責（認領/審核）此案件的管理員可見；退件理由 / 備註則所有管理員皆可見 -->
+    <div class="section-title mt-4"><span class="bar"></span>審核歷史（已核准 APPROVED / 已退件 REJECTED）</div>
+
+    <!-- 複合查詢：農場名 / Email 關鍵字、狀態、審核日期區間 -->
+    <form method="get" th:action="@{/admin/reviews}" class="form-inline mb-2">
+        <input type="text" name="hKw" th:value="${hKw}" class="form-control form-control-sm mr-2 mb-1"
+               placeholder="農場名稱 / Email"/>
+        <select name="hStatus" class="form-control form-control-sm mr-2 mb-1">
+            <option value="" th:selected="${hStatus == null or hStatus == ''}">全部狀態</option>
+            <option value="APPROVED" th:selected="${hStatus == 'APPROVED'}">已核准</option>
+            <option value="REJECTED" th:selected="${hStatus == 'REJECTED'}">已退件</option>
+        </select>
+        <label class="mr-1 mb-1 text-muted">審核日期</label>
+        <input type="date" name="hFrom" th:value="${hFrom}" class="form-control form-control-sm mr-1 mb-1" title="起日"/>
+        <span class="mr-1 mb-1">~</span>
+        <input type="date" name="hTo" th:value="${hTo}" class="form-control form-control-sm mr-2 mb-1" title="迄日"/>
+        <button type="submit" class="btn btn-sm btn-primary mr-1 mb-1">查詢</button>
+        <a th:href="@{/admin/reviews}" class="btn btn-sm btn-outline-secondary mb-1">清除</a>
+    </form>
+
+    <div class="table-card">
+        <table class="table table-bordered mb-0">
+            <thead class="thead-light">
+            <tr>
+                <th>審核編號</th><th>農場名稱</th><th>Email</th><th>輪次</th><th>狀態</th>
+                <th>審核時間</th><th>審核者</th><th>退件理由</th><th>備註</th><th>證明文件</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${history.content}">
+                <td th:text="${r.reviewId}"></td>
+                <td th:text="${r.submittedFarmName} ?: ${r.farmName}"></td>
+                <td th:text="${r.farmerEmail}"></td>
+                <td th:text="${r.reviewRound}"></td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${r.reviewStatus == 'APPROVED'} ? 'badge-success' : 'badge-danger'"
+                          th:text="${r.reviewStatus}"></span>
+                </td>
+                <td th:text="${r.reviewedAt != null ? #temporals.format(r.reviewedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
+                <!-- 審核者 / 退件理由 / 備註：所有管理員皆可見 -->
+                <td th:text="${r.adminName} ?: '—'"></td>
+                <td th:text="${r.rejectReason} ?: '—'"></td>
+                <td th:text="${r.notes} ?: '—'"></td>
+                <!-- 證明文件：僅負責此案件的管理員可見（cert 端點後端亦會再擋一次）-->
+                <td style="white-space:nowrap;">
+                    <th:block th:if="${r.adminId == currentAdminId}">
+                        <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
+                             th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+                        <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
+                              class="text-muted">—</span>
+                    </th:block>
+                    <span th:if="${r.adminId != currentAdminId}" class="text-muted">由其他管理員負責</span>
+                </td>
+            </tr>
+            <tr th:if="${history.empty}">
+                <td colspan="10" class="text-center text-muted">沒有符合條件的審核歷史</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分頁列：上一頁 / 下一頁，沿用目前查詢條件 -->
+    <div class="d-flex align-items-center mt-2" th:if="${history.totalPages > 0}">
+        <a class="btn btn-sm btn-outline-secondary" th:classappend="${history.first} ? 'disabled'"
+           th:href="@{/admin/reviews(hKw=${hKw}, hStatus=${hStatus}, hFrom=${hFrom}, hTo=${hTo}, hPage=${history.number - 1})}">上一頁</a>
+        <span class="mx-2 text-muted">
+            第 <span th:text="${history.number + 1}"></span> / <span th:text="${history.totalPages}"></span> 頁
+            （共 <span th:text="${history.totalElements}"></span> 筆）
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" th:classappend="${history.last} ? 'disabled'"
+           th:href="@{/admin/reviews(hKw=${hKw}, hStatus=${hStatus}, hFrom=${hFrom}, hTo=${hTo}, hPage=${history.number + 1})}">下一頁</a>
+    </div>
 
 </div>
 </body>

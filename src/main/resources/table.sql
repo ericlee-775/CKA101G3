@@ -597,7 +597,7 @@ INSERT INTO FARMER (email, email_verified, district_id, uploaded_at, password, f
 VALUES
     ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
     ('farmer02@gmail.com', TRUE, 2, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '大同街200號', '綠野農場', 25.06321000, 121.51234000, '自然農法種植，提供當季新鮮蔬果', '2024-03-22 15:00:00', '0922222222', 'ACTIVE'),
-    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'ACTIVE'),
+    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'PENDING'),
     ('farmer04@gmail.com', TRUE, 4, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '仁愛路88號',  '海風農場', 25.12345000, 121.73456000, '靠海農場，專售海鹽與特色農產品', '2024-03-10 09:00:00', '0944444444', 'SUSPENDED'),
     ('farmer05@gmail.com', TRUE, 5, '2024-06-01 13:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '板橋路77號',  '稻香農場', 24.87654000, 121.45678000, '傳統水稻種植，提供在地新鮮稻米', '2024-06-01 13:00:00', '0955555555', 'PENDING');
 
@@ -786,11 +786,47 @@ CREATE TABLE PRODUCT_DETAIL (
 -- 參數
 INSERT INTO PRODUCT_DETAIL (product_id, sub_cat_class_id, farmer_id, retail_price, group_price, unit_pricing_measure, product_image, is_group_buy, description, status,product_name)
 VALUES
- (1, 1, 1, 120, 100, '包/300g', NULL, 1, '無毒香蕉', 'ACTIVE','屏東霸王農場香蕉'),
- (2, 1, 2, 180, 150, '盒/600g', NULL, 1, '無毒香蕉。', 'ACTIVE','桃園香蕉'),
- (3, 1, 3, 250, 220, '箱/3kg', NULL, 1, '屏東產地直送香蕉，香氣濃郁。', 'ACTIVE','屏東香蕉'),
- (4, 1, 4, 160, 140, '包/500g', NULL, 1, '花蓮有機香蕉，鬆甜綿密，適合蒸烤。', 'ACTIVE','花蓮香蕉'),
- (5, 1, 5, 199, 169, '箱/6入', NULL, 1, '城市小田香蕉箱。', 'ACTIVE','哈哈農場香蕉水果箱');
+(1, 1, 1, 120, 100, '包/300g', NULL, 1, '陽光農場有機香蕉，堅持無農藥栽培，果肉綿密。',     'ACTIVE','陽光農場有機香蕉'),
+ (2, 1, 2, 180, 150, '盒/600g', NULL, 1, '綠野農場自然農法香蕉，當季採收，香氣清甜。',       'ACTIVE','綠野農場香蕉'),
+ (3, 1, 3, 250, 220, '箱/3kg',  NULL, 1, '山間農場山區栽培，日夜溫差大，香氣特別濃郁。',     'ACTIVE','山間農場香蕉'),
+ (4, 1, 4, 160, 140, '包/500g', NULL, 1, '海風農場臨海栽培，鬆甜綿密，適合蒸烤。',           'ACTIVE','海風農場香蕉'),
+ (5, 1, 5, 199, 169, '箱/6入',  NULL, 1, '稻香農場香蕉水果箱，六入家庭號，產地直送。',       'ACTIVE','稻香農場香蕉箱'),
+ -- 水果類
+ (6,  3,  2, 320, 280, '箱/5kg',   NULL, 1, '台南玉井愛文芒果，果肉細緻香甜，冷藏配送。',   'ACTIVE',   '玉井愛文芒果'),
+ (7,  2,  3, 280, 240, '顆/1.5kg', NULL, 1, '關廟金鑽鳳梨，酸甜適中不咬舌。',               'ACTIVE',   '關廟金鑽鳳梨'),
+ (8,  9,  1, 450, 400, '盒/400g',  NULL, 1, '大湖高架草莓，低農藥檢驗合格，當日採收。',     'ACTIVE',   '大湖高架草莓'),
+ (9,  8,  2, 360, 320, '箱/2kg',   NULL, 1, '巨峰葡萄產季限定，果粉自然，甜度高。',         'ACTIVE',   '巨峰葡萄'),
+ (10, 7,  3, 150, 130, '袋/2kg',   NULL, 0, '茂谷柑皮薄多汁，香氣清爽。',                   'ACTIVE',   '茂谷柑'),
+-- 葉菜類
+ (11, 18, 1,  80,  65, '顆/1.2kg', NULL, 0, '高山高麗菜，清脆回甘，生食熱炒皆宜。',         'ACTIVE',   '梨山高麗菜'),
+ (12, 24, 1,  45,  35, '把/300g',  NULL, 0, '有機地瓜葉，當日採收，無農藥。',               'ACTIVE',   '有機地瓜葉'),
+ (13, 22, 2,  55,  45, '把/250g',  NULL, 0, '自然農法菠菜，無農藥殘留。',                   'ACTIVE',   '自然農法菠菜'),
+ (14, 28, 4,  90,  75, '把/200g',  NULL, 0, '三星蔥蔥白長、辛香濃郁。',                     'ACTIVE',   '三星青蔥'),
+-- 根莖類
+ (15, 32, 5, 120, 100, '箱/3kg',   NULL, 1, '台農57號地瓜，鬆軟香甜，適合烤food。',         'ACTIVE',   '台農57號地瓜'),
+ (16, 33, 5, 200, 170, '袋/2kg',   NULL, 1, '大甲芋頭鬆綿químico，芋香濃厚。',              'ACTIVE',   '大甲芋頭'),
+ (17, 30, 1,  60,  50, '袋/1kg',   NULL, 0, '有機胡蘿蔔，甜度高，適合打汁。',               'ACTIVE',   '有機胡蘿蔔'),
+-- 瓜果茄豆
+ (18, 40, 2, 140, 120, '盒/600g',  NULL, 1, '溫室玉女小番茄，皮薄多汁。',                   'ACTIVE',   '玉女小番茄'),
+ (19, 49, 5, 100,  85, '箱/6入',   NULL, 1, '水果玉米生食也甘甜，纖維細。',                 'ACTIVE',   '水果玉米'),
+ (20, 44, 4, 110,  95, '顆/2kg',   NULL, 0, '栗子南瓜粉質綿密，適合濃湯。',                 'ACTIVE',   '栗子南瓜'),
+-- 穀物雜糧
+ (21, 52, 5, 320, 280, '包/2kg',   NULL, 1, '池上米，粒粒飽滿，冷飯也好吃。',               'ACTIVE',   '池上米'),
+ (22, 53, 5, 280, 250, '包/2kg',   NULL, 1, '有機糙米，保留胚芽，營養完整。',               'ACTIVE',   '有機糙米'),
+ (23, 65, 4, 220, 190, '包/600g',  NULL, 0, '北港花生，低溫烘焙，無添加。',                 'ACTIVE',   '北港花生'),
+-- 菇蕈類
+ (24, 69, 3, 260, 230, '包/300g',  NULL, 1, '埔里段木香菇，菇傘厚實，香氣足。',             'ACTIVE',   '埔里段木香菇'),
+ (25, 71, 3,  90,  75, '盒/250g',  NULL, 0, '杏鮑菇肉質厚實，口感彈牙。',                   'ACTIVE',   '鮮採杏鮑菇'),
+-- 茶葉咖啡
+ (26, 85, 3, 850, 780, '罐/150g',  NULL, 1, '梨山高山烏龍，手採春茶，喉韻回甘。',           'ACTIVE',   '梨山高山茶'),
+ (27, 86, 3, 600, 550, '包/227g',  NULL, 1, '古坑咖啡豆，中焙，帶堅果與可可風味。',         'ACTIVE',   '古坑咖啡豆'),
+-- 蛋品
+ (28, 88, 1, 130, 110, '盒/10入',  NULL, 0, '放牧雞蛋，蛋黃飽滿，日日新鮮。',               'ACTIVE',   '放牧土雞蛋'),
+-- 蜂蜜 / 加工品（測試 INACTIVE 用）
+ (29, 92, 4, 480, 430, '瓶/700g',  NULL, 1, '龍眼蜜，天然熟成，未加糖。',                   'INACTIVE', '龍眼蜂蜜'),
+ (30, 97, 2, 180, 160, '罐/250g',  NULL, 0, '手工草莓果醬，無添加香料與色素。',             'INACTIVE', '手工草莓果醬');
+
+
 
 
 -- 3-4. 農場商品 - 產品圖片
@@ -802,7 +838,36 @@ CREATE TABLE PRODUCT_IMAGE (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO PRODUCT_IMAGE (product_image_id, product_id, product_image) VALUES
-    (1, 1, NULL);
+   (1, 1, NULL), (2,  1,  NULL), (3,  1,  NULL),                 -- 陽光農場有機香蕉 (共3張)
+ (4,  2,  NULL), (5,  2,  NULL),                 -- 綠野農場香蕉 (2張)
+ (6,  3,  NULL), (7,  3,  NULL), (8,  3,  NULL), -- 山間農場香蕉 (3張)
+ (9,  4,  NULL),                                 -- 海風農場香蕉 (1張)
+ (10, 5,  NULL), (11, 5,  NULL),                 -- 稻香農場香蕉箱 (2張)
+ (12, 6,  NULL), (13, 6,  NULL), (14, 6,  NULL), -- 玉井愛文芒果 (3張)
+ (15, 7,  NULL), (16, 7,  NULL),                 -- 關廟金鑽鳳梨 (2張)
+ (17, 8,  NULL), (18, 8,  NULL), (19, 8,  NULL), -- 大湖高架草莓 (3張)
+ (20, 9,  NULL), (21, 9,  NULL),                 -- 巨峰葡萄 (2張)
+ (22, 10, NULL),                                 -- 茂谷柑 (1張)
+ (23, 11, NULL), (24, 11, NULL),                 -- 梨山高麗菜 (2張)
+ (25, 12, NULL),                                 -- 有機地瓜葉 (1張)
+ (26, 13, NULL), (27, 13, NULL),                 -- 自然農法菠菜 (2張)
+ (28, 14, NULL),                                 -- 三星青蔥 (1張)
+ (29, 15, NULL), (30, 15, NULL), (31, 15, NULL), -- 台農57號地瓜 (3張)
+ (32, 16, NULL), (33, 16, NULL),                 -- 大甲芋頭 (2張)
+ (34, 17, NULL),                                 -- 有機胡蘿蔔 (1張)
+ (35, 18, NULL), (36, 18, NULL), (37, 18, NULL), -- 玉女小番茄 (3張)
+ (38, 19, NULL), (39, 19, NULL),                 -- 水果玉米 (2張)
+ (40, 20, NULL),                                 -- 栗子南瓜 (1張)
+ (41, 21, NULL), (42, 21, NULL), (43, 21, NULL), -- 池上米 (3張)
+ (44, 22, NULL), (45, 22, NULL),                 -- 有機糙米 (2張)
+ (46, 23, NULL),                                 -- 北港花生 (1張)
+ (47, 24, NULL), (48, 24, NULL), (49, 24, NULL), -- 埔里段木香菇 (3張)
+ (50, 25, NULL), (51, 25, NULL),                 -- 鮮採杏鮑菇 (2張)
+ (52, 26, NULL), (53, 26, NULL), (54, 26, NULL), -- 梨山高山茶 (3張)
+ (55, 27, NULL), (56, 27, NULL),                 -- 古坑咖啡豆 (2張)
+ (57, 28, NULL),                                 -- 放牧土雞蛋 (1張)
+ (58, 29, NULL), (59, 29, NULL),                 -- 龍眼蜂蜜 (2張)
+ (60, 30, NULL);                                 -- 手工草莓果醬 (1張)
 
 
 -- 3-5. 農場商品 - 一般會員商品收藏列表
@@ -838,53 +903,54 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
     order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
-    farmer_id INT NOT NULL,
     coupon_id VARCHAR(50),
 	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    refunded_at DATETIME,
     total_amount INT NOT NULL,
     discount_amount INT NOT NULL DEFAULT 0,
     final_payment INT NOT NULL,
-    shipped_status ENUM('pending', 'shipped', 'delivered') DEFAULT 'pending',
-    shipped_at DATETIME,
-    received_at DATETIME,
-    order_status ENUM('pending', 'confirmed') DEFAULT 'pending',
-    payout_status VARCHAR(50) DEFAULT 'pending',
+    order_status ENUM('pending', 'completed') DEFAULT 'pending',
     completed_at DATETIME,
     CONSTRAINT PK_ORDERS_OID PRIMARY KEY (order_id),
     CONSTRAINT FK_ORDERS_UID FOREIGN KEY (user_id) REFERENCES user (user_id),
-    CONSTRAINT FK_ORDERS_FID FOREIGN KEY (farmer_id) REFERENCES farmer (farmer_id),
     CONSTRAINT FK_ORDERS_COUPID FOREIGN KEY (coupon_id) REFERENCES coupon (coupon_id)
 )
 AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, farmer_id, coupon_id, shipping_address, payment_id, total_amount, discount_amount, final_payment) VALUES
-(3, 1, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8881, 880, 100, 780);
-INSERT INTO ORDERS (user_id, farmer_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, shipped_status, shipped_at, received_at, order_status, payout_status, completed_at) VALUES
-(3, 1, '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 0, 500, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'confirmed', 'paid', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, shipping_address, payment_id, total_amount, discount_amount, final_payment)
+VALUES (3, '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
+
 
 -- 3-10. 農場商品 - 訂單明細
 DROP TABLE IF EXISTS order_item;
 CREATE TABLE ORDER_ITEM (
-    order_item_id INT AUTO_INCREMENT,
+    order_item_id INT NOT NULL AUTO_INCREMENT,
+	order_id INT NOT NULL,
     product_id INT NOT NULL,
-    order_id INT NOT NULL,
     product_name VARCHAR(50) NOT NULL,
+    farmer_id INT NOT NULL,
     quantity INT NOT NULL,
     price INT NOT NULL,
+    shipped_status ENUM('pending', 'shipping', 'delivered') DEFAULT 'pending',
+    shipped_at DATETIME,
+    received_at DATETIME,
+	payout_status VARCHAR(50) DEFAULT 'pending',
     CONSTRAINT PK_ORDITEM_ORDITEMID PRIMARY KEY (order_item_id),
+	CONSTRAINT FK_ORDITEM_OID FOREIGN KEY (order_id) REFERENCES orders (order_id),
     CONSTRAINT FK_ORDITEM_PRDID FOREIGN KEY (product_id) REFERENCES product_detail (product_id),
-    CONSTRAINT FK_ORDITEM_OID FOREIGN KEY (order_id) REFERENCES orders (order_id)
+    CONSTRAINT FK_ORDITEM_FID FOREIGN KEY (farmer_id) REFERENCES farmer (farmer_id)
 )
 AUTO_INCREMENT = 4001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 參數
-INSERT INTO ORDER_ITEM (product_id, product_name, order_id, quantity, price) VALUES (3, '屏東香蕉', 3001, 4, 250);
+INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
+VALUES (3001, 3, '屏東香蕉', 1, 4, 250, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'paid');
 
 
 -- 4. 團購 - 團購活動表
@@ -954,8 +1020,9 @@ CREATE TABLE GB_ORDER (
 
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-
+-- 參數
+INSERT INTO GB_ORDER (order_id, group_buy_id, total_quantity, group_price, total_amount, shipped_status, shipped_at, created_at, received_at, order_status, paid_status, completed_at) VALUES
+(90001, 1, 15, 220, 3300, 'PENDING', NULL, '2026-03-12 23:59:59', NULL, 'PENDING', 'PAID', NULL);
 
 
 -- 4. 團購 - 團購收藏表
@@ -1093,7 +1160,7 @@ INSERT INTO FARM_TRIP_ORDER (farm_trip_order_id, farm_session_id, user_id, farm_
 (8005, 6005, 5, 'TRIP-20260515-001', 2, 'COMPLETED', '2026-04-15 16:00:00', NULL, '2026-05-15 16:10:00', '黃雅婷', '0956789012', '希望體驗插秧與傳統米食製作。');
 -- 5. 體驗活動 - 體驗活動評論
 CREATE TABLE FARM_TRIP_COMMENT (
-    farm_trip_comment_id INT AUTO_INCREMENT PRIMARY KEY,
+    farm_trip_comment INT AUTO_INCREMENT PRIMARY KEY,
     farm_trip_id INT NOT NULL,
     user_id INT NOT NULL,
     star INT,
@@ -1103,7 +1170,7 @@ CREATE TABLE FARM_TRIP_COMMENT (
     FOREIGN KEY (user_id) REFERENCES USER(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
-INSERT INTO FARM_TRIP_COMMENT (farm_trip_comment_id, farm_trip_id, user_id, star, content, created_at) VALUES
+INSERT INTO FARM_TRIP_COMMENT (farm_trip_comment, farm_trip_id, user_id, star, content, created_at) VALUES
 (1, 5001, 5, 5, '有機蔬菜採收體驗很有趣，農友解說得非常仔細。', '2026-04-11 10:00:00'),
 
 (2, 5002, 1, 4, '導覽內容很豐富，讓我更了解自然農法。', '2026-04-18 11:00:00'),
@@ -1143,7 +1210,7 @@ INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_co
 (9002, '有機農場的一天',NULL, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2,'挑選當季蔬果時，可以觀察外觀、香氣與觸感，也能向農友了解採收日期。', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', NULL, 2, 2,'<p>選購蔬果時，除了注意價格，也可以從外觀、香氣、觸感與採收日期來判斷新鮮度。挑選當季盛產的蔬果，不僅風味通常更好，價格也比較實惠，還能減少長途運輸與長時間保存造成的品質下降。</p><p>首先可以觀察蔬果的外觀。新鮮的葉菜類通常葉片完整、顏色自然，沒有大面積枯黃或腐爛；番茄、甜椒等果菜類則應表皮飽滿，避免選擇有明顯裂痕、碰傷或發霉的產品。不過，外觀不漂亮不代表品質不好，有些小農蔬果雖然大小不一或帶有自然斑點，仍然新鮮又美味。</p><p>接著可以用手輕輕觸摸。根莖類蔬菜如馬鈴薯、紅蘿蔔，摸起來應該結實，不宜過度柔軟；葉菜類的菜梗則應保持挺立、有水分。挑選時不要用力按壓，以免造成蔬果損傷，影響後續販售與保存。</p><p>香氣也是判斷成熟度的方法之一。例如成熟的水果通常會散發自然果香，但如果味道過於濃烈，或帶有酒味、酸敗味，就可能已經過熟。部分蔬菜本身香氣不明顯，因此仍需要搭配外觀與觸感一起判斷。</p><p>購買前也可以詢問農友蔬果的採收日期、產地與建議保存方式。剛採收的蔬果不一定要立刻冷藏，有些品項適合放在陰涼通風處，有些則需要冷藏保鮮。依照不同蔬果的特性保存，才能延長新鮮度並減少浪費。</p><p>最後，建議優先選擇當地、當季生產的蔬果。當季作物通常較適合當下的氣候環境，也能品嘗到自然成熟的風味。透過認識產地與農友，不只可以買得更安心，也能用實際行動支持台灣在地農業。</p>', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
 (9004, '山間農場參訪記', 1, NULL, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
@@ -1278,11 +1345,13 @@ INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, 
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 12001 , '專欄文章 9001 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
 
+-- 參數
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9001', '您的文章 9001 收到一則新留言。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'account_tier', 'account', '3', '您本月的會員等級已更新為 銀級會員');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 8004，期待您的到來！');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '6004', '感謝您參加體驗活動 6004！歡迎留下您的評分與心得，給小農鼓勵。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'order_created', 'order', '1', '已收到您的商品訂單 1，將盡速為您安排出貨');
+
 
 
 -- 7. 通知 - 通知類型文字模板
@@ -1299,17 +1368,17 @@ INSERT INTO notification_template VALUES ('gb_request_rejected', '團購編號 {
 INSERT INTO notification_template VALUES ('gb_success', '團購編號 {group_buy_id} 已成團，訂單編號 {order_id}，將盡速為您安排出貨。');
 INSERT INTO notification_template VALUES ('gb_failed', '團購編號 {group_buy_id} 未達標，活動已取消，款項將全額退還，期待您再次參與。');
 INSERT INTO notification_template VALUES ('gb_cancelled', '團購編號 {group_buy_id} 已取消，款項將全額退還。');
-INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，請留意近期收貨。');
 INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 配達，感謝您的參與，快聯繫團員取貨吧!');
 INSERT INTO notification_template VALUES ('gb_request_created', '您收到 {product_name} 的新團購申請，請儘速審核回覆。');
 INSERT INTO notification_template VALUES ('gb_order_created', '團購訂單 {group_buy_id} 已成團，請準備出貨。');
-INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT${total_amount} 已撥款，請查收。');
+INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT$ {total_amount} 已撥款，請查收。');
 
 INSERT INTO notification_template VALUES ('order_created', '已收到您的商品訂單 {order_id}，將盡速為您安排出貨');
-INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipping_date} 出貨，物流單號 {tracking_num}，請留意近期收貨。');
-INSERT INTO notification_template VALUES ('order_completed', '商品訂單編號 {order_id} 已於 {receipt_datetime} 配達，感謝您的購買。');
+INSERT INTO notification_template VALUES ('order_shipped', '商品訂單編號 {order_id} 已於 {shipped_at} 出貨，請留意近期收貨。');
+INSERT INTO notification_template VALUES ('order_received', '商品訂單編號 {order_id} 已於 {received_at} 配達，感謝您的購買。');
 INSERT INTO notification_template VALUES ('order_farmer_new', '您有一筆新商品訂單 {order_id}，請盡速出貨。');
-INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款 NT${total_mount} 已撥款，請查收。');
+INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款已撥款，請查收。');
 
 INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_id} 已通過審核並開放報名，快邀請親朋好友一起參加!');
 INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_id} 審核未通過，原因：{reason}。');
@@ -1333,3 +1402,4 @@ INSERT INTO notification_template VALUES ('account_tier', '您本月的會員等
 INSERT INTO notification_template VALUES ('farmer_review', '小農申請編號 {review_id}，請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_report_new', '專欄文章 {blog_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_comment_report_new', '專欄文章 {blog_id} 留言 {comment_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+

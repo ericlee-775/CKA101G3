@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.AdminPasswordChangedEvent;
 import com.farmily.user.model.Admin;
 import com.farmily.user.model.AdminRole;
 import com.farmily.user.repository.AdminRepository;
@@ -8,6 +9,7 @@ import com.farmily.user.repository.AdminRoleRepository;
 import com.farmily.user.service.AdminService;
 import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,16 +30,18 @@ public class AdminServiceImpl implements AdminService {
     private final AdminRoleRepository adminRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailUniquenessChecker emailUniquenessChecker;
-    private final EmailService emailService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AdminServiceImpl(AdminRepository adminRepository, AdminRoleRepository adminRoleRepository,
-                            PasswordEncoder passwordEncoder, EmailUniquenessChecker emailUniquenessChecker,
-                            EmailService emailService) {
+    public AdminServiceImpl(AdminRepository adminRepository,
+                            AdminRoleRepository adminRoleRepository,
+                            PasswordEncoder passwordEncoder,
+                            EmailUniquenessChecker emailUniquenessChecker,
+                            ApplicationEventPublisher eventPublisher) {
         this.adminRepository = adminRepository;
         this.adminRoleRepository = adminRoleRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailUniquenessChecker = emailUniquenessChecker;
-        this.emailService = emailService;
+        this.eventPublisher = eventPublisher;
     }
 
     // 管理員登入
@@ -104,8 +108,9 @@ public class AdminServiceImpl implements AdminService {
         admin.setUpdatedAt(LocalDateTime.now());
         adminRepository.save(admin);
 
-        // 密碼變更成功後寄通知信；@Async 寄信失敗不影響密碼已變更的結果
-        emailService.sendPasswordChangedNoticeToAdmin(admin.getAdminEmail());
+        // 用事件監聽器確保密碼變更成功(交易成功 commit)後寄通知信
+        // 原本：emailService.sendPasswordChangedNoticeToAdmin(admin.getAdminEmail());
+        eventPublisher.publishEvent(new AdminPasswordChangedEvent(admin.getAdminEmail()));
     }
 
     // ================================= 管理員對其他管理員 CRUD =================================
@@ -248,7 +253,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
 
-    // 自訂方法：把一串權限代碼指派給某管理員
+    // 自訂方法：把一串權限代碼集合指派給某管理員
     private void assignPermissions(Integer adminId, List<String> codes) {
         if (codes == null)
             return;
@@ -262,7 +267,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    // 自訂判斷: 管理員是不是有 PERM_ADMIN 權限
+    // 自訂判斷: 管理員是不是有 PERM_ADMIN 權限 - 超級管理員
     private boolean isSuperAdmin(Integer adminId) {
         List<String> codes = adminRepository.findPermissionCodesByAdminId(adminId);
         return codes.contains("ADMIN");

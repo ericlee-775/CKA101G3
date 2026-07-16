@@ -126,10 +126,14 @@ public class GroupBuyService {
 		if (product == null) {
 			throw new RuntimeException("查無此商品");
 		}
+		Integer minimumTargetAmount=product.getGroupPrice()*2;
 		User hostUser = userRepository.findById(hostUserId).orElseThrow(() -> new RuntimeException("查無此會員"));
 		GroupBuyVO groupBuyVO = new GroupBuyVO();
 		groupBuyVO.setHostUser(hostUser);
 		groupBuyVO.setProduct(product);
+		if(form.getTargetAmount()<minimumTargetAmount){
+			throw new RuntimeException("達標金額不得低於"+minimumTargetAmount+"元");
+		}else {
 		groupBuyVO.setTargetAmount(form.getTargetAmount());
 		groupBuyVO.setOpenDatetime(Timestamp.valueOf(form.getOpenDatetime().atStartOfDay()));
 		groupBuyVO.setDdlDatetime(Timestamp.valueOf(form.getDdlDatetime().atTime(23, 59, 59)));
@@ -141,6 +145,7 @@ public class GroupBuyService {
 		groupBuyVO.setGroupPrice(product.getGroupPrice());
 
 		repository.save(groupBuyVO);
+		}
 	}
 
 	// 給會員看已成立之團購訂單
@@ -192,6 +197,7 @@ public class GroupBuyService {
 	}
 
 	// 團購主確認收貨用
+	@Transactional
 	public void confirmReceipt(Integer orderId, Integer userId) {
 		GroupBuyOrderVO orderVO = groupBuyOrderRepository.findByOrderIdAndGroupBuyId_HostUser_UserId(orderId, userId)
 				.orElseThrow(() -> new RuntimeException("查無此訂單，或你不是此團購的團購主"));
@@ -199,7 +205,7 @@ public class GroupBuyService {
 			throw new RuntimeException("此訂單已經確認收貨");
 		}
 
-		if (orderVO.getShippedStatus() != ShippedStatus.PENDING) {
+		if (orderVO.getShippedStatus() == ShippedStatus.PENDING) {
 			throw new RuntimeException("商品尚未出貨，無法確認收貨");
 		}
 		Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -211,6 +217,14 @@ public class GroupBuyService {
 
 		groupBuyOrderRepository.save(orderVO);
 	}
+	
+
+	//給小農看團購總收益
+	@Transactional(readOnly=true)
+	public Long getGroupBuyTotalRevenue(Integer farmerId) {
+		return groupBuyOrderRepository.sumTotalAmountByPaidStatusAndFarmerId(PaidStatus.PAID,farmerId);
+	}
+	
 
 	// 給小農審核團購申請用
 	@Transactional
@@ -252,7 +266,7 @@ public class GroupBuyService {
 		GroupBuyVO gb = repository.findById(groupBuyId).orElseThrow(() -> new RuntimeException("查無此團購"));
 		return new GroupBuyDetailDTO(gb.getProduct().getProductId(), gb.getGroupBuyId(),
 				gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getTargetAmount(), gb.getOpenDatetime(),
-				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice());
+				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice(),gb.getProduct().getFarmer().getFarmName());
 	}
 
 	// 給團購主看的團購訂單
@@ -264,7 +278,7 @@ public class GroupBuyService {
 		return groupBuyList.stream()
 				.map(vo -> new UnderReviewDTO(vo.getGroupBuyId(), vo.getProduct().getProductName(), vo.getGroupPrice(),
 						vo.getRequestStatus(), vo.getTargetAmount(), vo.getOpenDatetime(), vo.getDdlDatetime(),
-						vo.getRejectReason(), vo.getReplyDatetime()))
+						vo.getRejectReason(), vo.getReplyDatetime(),vo.getRequestDatetime()))
 				.toList();
 	}
 
@@ -333,6 +347,7 @@ public class GroupBuyService {
 			dto.setTotalAmount(order.getTotalAmount());
 			dto.setShippingAddress(order.getGroupBuyId().getPickupAddress());
 			dto.setShippedStatus(order.getShippedStatus());
+			dto.setCreatedAt(order.getCreatedAt());
 			return dto;
 
 		}).toList();
@@ -474,7 +489,7 @@ public class GroupBuyService {
 		repository.save(groupBuy);
 	}
 
-	// 自動
+	// 排程器自動檢測前一天團購結算
 	@Transactional
 	public void checkExpiredGroupBuys() {
 		Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -505,7 +520,7 @@ public class GroupBuyService {
 				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
 						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
 						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
-						groupBuy.getStatus()))
+						groupBuy.getStatus(),groupBuy.getProduct().getFarmer().getFarmName()))
 				.toList();
 	}
 

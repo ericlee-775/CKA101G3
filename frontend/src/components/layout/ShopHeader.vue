@@ -44,29 +44,17 @@ const displayName = computed(() => {
 })
 
 // ===== 帳號下拉選單 =====
-// 點帳號膠囊展開/收合；點選單外任何地方會自動收起（見下方 document 監聽）
-const isAccountMenuOpen = ref(false)
-const accountWrap = ref(null) // 綁在外層 div，用來判斷點擊是否發生在選單外
-
+// hover 帳號膠囊浮出選單（純 CSS）；點膠囊本身走 accountLink 進會員中心
 // 會員中心選單（跟 MemberLayout 的側邊選單一致，但不含「通知」→ 通知走小鈴鐺）
 const accountMenu = [
   { label: '個人資料', icon: '👤', to: '/member/me' },
-  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
-  { label: '我的商品', icon: '📦', to: '/member/products' },
+  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
   { label: '我的團購', icon: '👥', to: '/member/group-buys' },
   { label: '我的收藏', icon: '❤️', to: '/member/favorites' },
-  { label: '我的訂單', icon: '🧾', to: '/member/orders' },
+  { label: '已報名活動', icon: '🌱', to: '/member/farm-trips' },
+  { label: '我的文章', icon: '✍️', to: '/member/blogs' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
 ]
-
-// 點到選單外就收起下拉
-function onDocClick(e) {
-  if (isAccountMenuOpen.value && accountWrap.value && !accountWrap.value.contains(e.target)) {
-    isAccountMenuOpen.value = false
-  }
-}
-onMounted(() => document.addEventListener('click', onDocClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 // ===== 通知小鈴鐺 =====
 
@@ -108,6 +96,16 @@ async function loadBell(){
   }
 }
 
+// 登入後重載鈴鐺
+watch(() => authStore.isMember, (isMember) => {
+  if (isMember){
+    loadBell()
+  } else {
+    notifications.value = []
+    notificationStore.reset()
+  }
+})
+
 // 載入小鈴鐺，每 {300} 秒自動更新一次未讀數
 let BellTimer = null
 onMounted(() => {
@@ -134,18 +132,25 @@ async function logout() {
 
 <template>
   <header class="site-header">
-    <!-- 品牌區：點 logo 回首頁。只保留「一張 logo + 名稱 + 標語」，乾淨不重複 -->
-    <router-link class="brand" to="/" aria-label="Farmily 首頁">
-      <img
-        class="brand-logo"
-        src="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent"
-        alt="Farmily logo"
-      />
-      <span class="brand-text">
-        <strong>Farmily</strong>
-        <small>新鮮直送・產地到餐桌</small>
-      </span>
-    </router-link>
+    <!-- 品牌區：logo 回首頁；印章是獨立按鈕（<a> 不能巢狀），點了進「關於我們」 -->
+    <div class="brand-group">
+      <router-link class="brand" to="/" aria-label="Farmily 首頁">
+        <img
+          class="brand-logo"
+          src="https://storage.googleapis.com/cka101-15/form/farmLogo.png?v=20260613-transparent"
+          alt="Farmily logo"
+        />
+        <span class="brand-text">
+          <strong>Farmily</strong>
+          <small>新鮮直送・產地到餐桌</small>
+        </span>
+      </router-link>
+      <!-- 你儂我農朱印：hover 微轉下壓像蓋章，點擊看品牌故事 -->
+      <router-link class="brand-seal" to="/" aria-label="你儂我農——回首頁" title="回首頁">
+        <span>你</span><span>儂</span>
+        <span>我</span><span>農</span>
+      </router-link>
+    </div>
 
     <!-- 手機版選單按鈕：點一下切換 isMenuOpen -->
     <button
@@ -165,6 +170,7 @@ async function logout() {
     <nav class="main-nav" :class="{ open: isMenuOpen }" @click="isMenuOpen = false">
       <router-link class="nav-link" to="/news">最新消息</router-link>
       <router-link class="nav-link" to="/products">全部商品</router-link>
+      <router-link class="nav-link" to="/farmily">合作農場</router-link>
       <router-link class="nav-link" to="/group-buys">團購</router-link>
       <router-link class="nav-link" to="/blogs">部落格</router-link>
       <router-link class="nav-link" to="/farm-trips">體驗活動</router-link>
@@ -219,33 +225,25 @@ async function logout() {
             <span class="account-name">{{ displayName }}</span>
           </router-link>
 
-          <!-- 會員：點帳號膠囊展開下拉選單（@click.stop 避免冒泡到 nav 把手機選單收掉） -->
-          <div v-else class="account-wrap" ref="accountWrap">
-            <button
-              class="account-btn account-toggle"
-              type="button"
-              :aria-expanded="isAccountMenuOpen"
-              @click.stop="isAccountMenuOpen = !isAccountMenuOpen"
-            >
+          <!-- 會員：hover 帳號膠囊浮出下拉選單；點膠囊本身直接進會員中心 -->
+          <div v-else class="account-wrap">
+            <router-link class="account-btn account-toggle" :to="accountLink">
               <span class="account-avatar">👤</span>
               <span class="account-name">{{ displayName }}</span>
-              <span class="account-caret" :class="{ open: isAccountMenuOpen }">▾</span>
-            </button>
+              <span class="account-caret">▾</span>
+            </router-link>
 
-            <transition name="menu-pop">
-              <div v-if="isAccountMenuOpen" class="account-menu">
-                <router-link
-                  v-for="item in accountMenu"
-                  :key="item.to"
-                  class="account-menu-item"
-                  :to="item.to"
-                  @click="isAccountMenuOpen = false"
-                >
-                  <span class="account-menu-icon">{{ item.icon }}</span>
-                  {{ item.label }}
-                </router-link>
-              </div>
-            </transition>
+            <div class="account-menu">
+              <router-link
+                v-for="item in accountMenu"
+                :key="item.to"
+                class="account-menu-item"
+                :to="item.to"
+              >
+                <span class="account-menu-icon">{{ item.icon }}</span>
+                {{ item.label }}
+              </router-link>
+            </div>
           </div>
 
           <button class="logout-btn" type="button" @click="logout">登出</button>
@@ -276,15 +274,22 @@ async function logout() {
 }
 
 /* ========== 品牌區 ========== */
+.brand-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   text-decoration: none;             /* 拿掉 router-link 預設底線 */
 }
+/* icon 高度對齊「Farmily + tagline」兩行文字的總高（約 19*1.2 + 12*1.2 ≈ 38px），
+   視覺重心才穩，不會 icon 比字大一截 */
 .brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
 }
 .brand-text {
@@ -296,9 +301,61 @@ async function logout() {
   font-size: 19px;
   color: var(--ink);
 }
+/* 田字格朱印：紅底 + 白格露出紅色十字線，四字分置四角。
+   是個連結（關於我們）：hover 微轉下壓像蓋章，提示可以點 */
+.brand-seal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.5px;
+  width: 42px;
+  height: 42px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: #a94438;               /* 磚紅/胭脂紅：比朱紅沉,像老印泥 */
+  border-radius: 5px;
+  flex: none;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.brand-seal span {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: #a94438;
+}
+/* hover：先微微抬起再斜著壓下去，像在紙上蓋章；:active 再壓深一點 */
+.brand-seal:hover {
+  animation: seal-stamp 0.35s ease forwards;
+  box-shadow: 0 2px 8px rgba(169, 68, 56, 0.35);
+}
+.brand-seal:active {
+  transform: rotate(-4deg) scale(0.9);
+  animation: none;
+}
+@keyframes seal-stamp {
+  0%   { transform: rotate(0) scale(1); }
+  40%  { transform: rotate(-8deg) scale(1.08) translateY(-2px); }
+  100% { transform: rotate(-4deg) scale(0.97) translateY(1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-seal:hover,
+  .brand-seal:active {
+    animation: none;
+    transform: none;
+  }
+}
+/* tagline 淡化：墨綠 60% 透明度，讓 Farmily 更跳出來 */
 .brand-text small {
   font-size: 12px;
-  color: var(--muted);
+  font-weight: 400;
+  color: var(--muted);               /* 不支援 color-mix 的舊瀏覽器退回原色 */
+  color: color-mix(in srgb, var(--leaf-dark) 60%, transparent);
   letter-spacing: 0.04em;
 }
 
@@ -706,8 +763,8 @@ async function logout() {
   line-height: 1;
   transition: transform 0.2s ease;
 }
-.account-caret.open {
-  transform: rotate(180deg);         /* 展開時箭頭轉上 */
+.account-wrap:hover .account-caret {
+  transform: rotate(180deg);         /* hover 展開時箭頭轉上 */
 }
 .account-menu {
   position: absolute;
@@ -721,7 +778,25 @@ async function logout() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
   z-index: 40;
+}
+/* 用透明橋接補上膠囊與選單之間的 8px 空隙,滑過去時 hover 不會斷 */
+.account-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+.account-wrap:hover .account-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 .account-menu-item {
   display: flex;
@@ -742,16 +817,6 @@ async function logout() {
 .account-menu-icon {
   font-size: 15px;
   line-height: 1;
-}
-/* 下拉展開/收合的小動畫（配合 <transition name="menu-pop">） */
-.menu-pop-enter-active,
-.menu-pop-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease;
-}
-.menu-pop-enter-from,
-.menu-pop-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
 }
 
 /* 已登入：個人中心膠囊 + 登出 */
@@ -810,6 +875,11 @@ async function logout() {
   .mobile-menu {
     display: inline-grid;
     place-items: center;
+  }
+  /* 行動版空間有限：不論捲動與否都只留 icon + Farmily */
+  .brand-text small,
+  .brand-seal {
+    display: none;
   }
   .main-nav {
     grid-column: 1 / -1;             /* 換到下一整行 */

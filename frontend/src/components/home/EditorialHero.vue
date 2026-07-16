@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
 
         <div class="hero__actions">
           <router-link class="btn-solid" to="/products"><span>購買商品</span></router-link>
-          <router-link class="link-arrow" to="/farmily">認識我們的農場 <i>→</i></router-link>
+          <router-link class="link-arrow" to="/about">關於我們 <i>→</i></router-link>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
             class="hero__photo hero__scene"
             ref="photo"
             role="img"
-            aria-label="手繪稻田插畫：日出、飛鳥與隨風輕搖的稻穗，題有詩句「把酒話桑麻・相逢在田家」與「小農商城」印章"
+            aria-label="手繪稻田插畫：日出、飛鳥與隨風輕搖的稻穗，題有詩句「把酒話桑麻・相逢在田家」"
           >
             <svg class="scene-svg" viewBox="0 0 520 693" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
               <!-- 遠山:兩層淡墨 -->
@@ -179,9 +179,6 @@ onBeforeUnmount(() => {
               <span>相逢在田家</span>
               <span class="minor">跟著節氣採收・照顧土地與人</span>
             </div>
-
-            <!-- 印章紅落款 -->
-            <div class="scene-seal" aria-hidden="true">小農商城</div>
           </figure>
           <!-- 圖說必須在 figure 之外(figure 有 overflow:hidden 會裁掉它),
                因此用 p 而非 figcaption(figcaption 依規範只能是 figure 的子元素) -->
@@ -189,9 +186,6 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </main>
-
-    <!-- 酒類警語:主視覺題有「把酒話桑麻」的飲酒意象,依法標示 -->
-    <p class="hero__warning">未滿十八歲禁止飲酒・酒後不開車,開車不喝酒</p>
 
     <!-- 下方:品牌理念(滾動進場) -->
     <section class="manifesto">
@@ -473,26 +467,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.4em;
 }
 
-/* 印章紅落款(全畫面唯一暖色點綴) */
-.scene-seal {
-  position: absolute;
-  right: 36px;
-  bottom: 44px;
-  width: 44px;
-  height: 44px;
-  background: #a5442a;
-  color: var(--fh-paper);
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  line-height: 1.2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  z-index: 1;
-}
-
 /* --- 插畫動態:日出 / 稻穗搖曳 / 飛鳥滑翔 --- */
 /* 太陽:載入時從地平線升起(延遲配合揭幕動畫) */
 .sun-disc {
@@ -590,20 +564,6 @@ onBeforeUnmount(() => {
     opacity: 1;
     translate: 0 0;
   }
-}
-
-/* 酒類警語:置中一行,壓在紙張顆粒層(z-index:3)之上仍清楚可讀 */
-.hero__warning {
-  position: relative;
-  z-index: 4;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 4px clamp(16px, 3vw, 40px) 24px;
-  text-align: right;
-  font-size: 0.84rem;
-  letter-spacing: 0.14em;
-  color: var(--fh-moss);
-  animation: eh-fade 1s ease 1.5s both;
 }
 
 /* ============================================================

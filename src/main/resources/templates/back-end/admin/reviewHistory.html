@@ -28,7 +28,7 @@
             <thead class="thead-light">
             <tr>
                 <th>審核編號</th><th>輪次</th><th>狀態</th><th>送審時間</th><th>審核時間</th>
-                <th>審核者</th><th>退件理由</th><th>證明文件</th>
+                <th>審核者</th><th>退件理由</th><th>備註</th><th>證明文件</th>
             </tr>
             </thead>
             <tbody>
@@ -46,19 +46,29 @@
                 <td th:text="${r.reviewedAt != null ? #temporals.format(r.reviewedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
                 <td th:text="${r.adminName} ?: '—'"></td>
                 <td th:text="${r.rejectReason} ?: '—'"></td>
+                <td th:text="${r.notes} ?: '—'"></td>
+                <!-- 文件僅負責（認領/審核）此案件的管理員可見，與「小農審核」頁一致 -->
                 <td style="white-space:nowrap;">
-                    <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
-                         th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
-                    <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
-                         th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
-                    <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
-                         th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
-                    <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
-                          class="text-muted">—</span>
+                    <th:block th:if="${r.adminId == currentAdminId}">
+                        <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
+                             th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+                        <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
+                              class="text-muted">—</span>
+                    </th:block>
+                    <span th:if="${r.adminId == null}" class="text-muted">
+                        尚未被認領
+                    </span>
+                    <span th:if="${r.adminId != null and r.adminId != currentAdminId}" class="text-muted">
+                        由其他管理員負責
+                    </span>
                 </td>
             </tr>
             <tr th:if="${reviews.isEmpty()}">
-                <td colspan="8" class="text-center text-muted">此小農尚無審核紀錄</td>
+                <td colspan="9" class="text-center text-muted">此小農尚無審核紀錄</td>
             </tr>
             </tbody>
         </table>

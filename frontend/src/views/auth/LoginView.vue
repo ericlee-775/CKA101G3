@@ -70,7 +70,7 @@ async function handleLogin() {
     // 留一點時間讓小烏龜回頭打招呼,再進站
     setTimeout(afterLogin, 2000)
   } catch (e) {
-    error.value = e.message || '登入失敗,請確認帳號密碼'
+    error.value = e.message || '登入失敗，請確認帳號密碼'
   } finally {
     loading.value = false
   }
@@ -128,7 +128,7 @@ function handleGoogleError(e) {
       <section class="grove">
         <div class="brand">
           <div class="logo"><span class="sprout">🌱</span> Farmily <em>小農市集</em></div>
-          <p>天還沒亮,菜就已經在路上。直接向在地小農買菜——新鮮、當季、可溯源。</p>
+          <p>天還沒亮，菜就已經在路上。直接向在地小農買菜 —— 新鮮、當季、可溯源。</p>
         </div>
 
         <div class="plot">
@@ -152,7 +152,7 @@ function handleGoogleError(e) {
       <!-- 右:登入表單 -->
       <section class="card">
         <h1>會員登入</h1>
-        <p class="sub">歡迎回到 Farmily,繼續你的採買</p>
+        <p class="sub">歡迎回到 Farmily，繼續你的採買</p>
 
         <form class="auth-form" @submit.prevent="handleLogin">
           <label class="fg">

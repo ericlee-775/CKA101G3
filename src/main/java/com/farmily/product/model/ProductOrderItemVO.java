@@ -1,15 +1,19 @@
 package com.farmily.product.model;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -28,6 +32,9 @@ public class ProductOrderItemVO implements Serializable {
 	@Column (name = "product_name")
 	private String productName;
 	
+	@Column (name = "farmer_id")
+	private Integer farmerId;
+		
 	@ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn (name = "order_id", referencedColumnName = "order_id")
 	private ProductOrderVO order;
@@ -37,7 +44,22 @@ public class ProductOrderItemVO implements Serializable {
 	
 	@Column (name = "price")
 	private Integer price;
+	
+	@Column (name = "shipped_status")
+	@Enumerated (EnumType.STRING)
+	private ShippedStatus shippedStatus;
+	
+	@Column (name = "shipped_at")
+	private LocalDateTime shippedAt;
+	
+	@Column (name = "received_at")
+	private LocalDateTime receivedAt;
 
+	@Column (name = "payout_status")
+	@Enumerated (EnumType.STRING)
+	private PayoutStatus payoutStatus;
+	
+	
 	public ProductOrderItemVO() {
 		super();
 	}
@@ -65,6 +87,14 @@ public class ProductOrderItemVO implements Serializable {
 	public void setProductName(String productName) {
 		this.productName = productName;
 	}
+	
+	public Integer getFarmerId() {
+		return farmerId;
+	}
+	
+	public void setFarmerId(Integer farmerId) {
+		this.farmerId = farmerId;
+	}
 
 	public ProductOrderVO getOrder() {
 		return order;
@@ -89,5 +119,46 @@ public class ProductOrderItemVO implements Serializable {
 	public void setPrice(Integer price) {
 		this.price = price;
 	}
+
+	public ShippedStatus getShippedStatus() {
+		return shippedStatus;
+	}
+
+	public void setShippedStatus(ShippedStatus shippedStatus) {
+		this.shippedStatus = shippedStatus;
+	}
+
+	public LocalDateTime getShippedAt() {
+		return shippedAt;
+	}
+
+	public void setShippedAt(LocalDateTime shippedAt) {
+		this.shippedAt = shippedAt;
+	}
+
+	public LocalDateTime getReceivedAt() {
+		return receivedAt;
+	}
+
+	public void setReceivedAt(LocalDateTime receivedAt) {
+		this.receivedAt = receivedAt;
+	}
+
+	public PayoutStatus getPayoutStatus() {
+		return payoutStatus;
+	}
+
+	public void setPayoutStatus(PayoutStatus payoutStatus) {
+		this.payoutStatus = payoutStatus;
+	}
 	
+	@PrePersist
+	protected void onCreate() {
+		if (shippedStatus == null) {
+			shippedStatus = ShippedStatus.pending;
+		}
+		if (payoutStatus == null) {
+			payoutStatus = PayoutStatus.pending;
+		}
+	}
 }

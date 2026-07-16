@@ -14,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -29,9 +30,6 @@ public class ProductOrderVO implements Serializable {
 	@Column (name = "user_id")
 	private Integer userId;
 	
-	@Column (name = "farmer_id")
-	private Integer farmerId;
-	
 	@Column (name = "coupon_id")
 	private String couponId;
 	
@@ -43,10 +41,7 @@ public class ProductOrderVO implements Serializable {
 	
 	@Column (name = "created_at", updatable = false)
 	private LocalDateTime createdAt;
-	
-	@Column (name = "refunded_at")
-	private LocalDateTime refundedAt;
-	
+
 	@Column (name = "total_amount")
 	private Integer totalAmount;
 	
@@ -55,25 +50,11 @@ public class ProductOrderVO implements Serializable {
 	
 	@Column (name = "final_payment")
 	private Integer finalPayment;
-	
-	@Column (name = "shipped_status")
-	@Enumerated (EnumType.STRING)
-	private ShippedStatus shippedStatus;
-	
-	@Column (name = "shipped_at")
-	private LocalDateTime shippedAt;
-	
-	@Column (name = "received_at")
-	private LocalDateTime receivedAt;
 
 	@Column (name = "order_status")
 	@Enumerated (EnumType.STRING)
 	private OrderStatus orderStatus;
 
-	@Column (name = "payout_status")
-	@Enumerated (EnumType.STRING)
-	private PayoutStatus payoutStatus;
-	
 	@Column (name = "completed_at")
 	private LocalDateTime completedAt;
 	
@@ -98,14 +79,6 @@ public class ProductOrderVO implements Serializable {
 
 	public void setUserId(Integer userId) {
 		this.userId = userId;
-	}
-
-	public Integer getFarmerId() {
-		return farmerId;
-	}
-
-	public void setFarmerId(Integer farmerId) {
-		this.farmerId = farmerId;
 	}
 
 	public String getCouponId() {
@@ -140,14 +113,6 @@ public class ProductOrderVO implements Serializable {
 		this.createdAt = createdAt;
 	}
 
-	public LocalDateTime getRefundedAt() {
-		return refundedAt;
-	}
-
-	public void setRefundedAt(LocalDateTime refundedAt) {
-		this.refundedAt = refundedAt;
-	}
-
 	public Integer getTotalAmount() {
 		return totalAmount;
 	}
@@ -172,44 +137,12 @@ public class ProductOrderVO implements Serializable {
 		this.finalPayment = finalPayment;
 	}
 
-	public ShippedStatus getShippedStatus() {
-		return shippedStatus;
-	}
-
-	public void setShippedStatus(ShippedStatus shippedStatus) {
-		this.shippedStatus = shippedStatus;
-	}
-
-	public LocalDateTime getShippedAt() {
-		return shippedAt;
-	}
-
-	public void setShippedAt(LocalDateTime shippedAt) {
-		this.shippedAt = shippedAt;
-	}
-
-	public LocalDateTime getReceivedAt() {
-		return receivedAt;
-	}
-
-	public void setReceivedAt(LocalDateTime receivedAt) {
-		this.receivedAt = receivedAt;
-	}
-
 	public OrderStatus getOrderStatus() {
 		return orderStatus;
 	}
 
 	public void setOrderStatus(OrderStatus orderStatus) {
 		this.orderStatus = orderStatus;
-	}
-
-	public PayoutStatus getPayoutStatus() {
-		return payoutStatus;
-	}
-
-	public void setPayoutStatus(PayoutStatus payoutStatus) {
-		this.payoutStatus = payoutStatus;
 	}
 
 	public LocalDateTime getCompletedAt() {
@@ -226,6 +159,19 @@ public class ProductOrderVO implements Serializable {
 
 	public void setItems(List<ProductOrderItemVO> items) {
 		this.items = items;
+	}
+	
+	@PrePersist
+	protected void onCreate() {
+		if (orderStatus == null) {
+			orderStatus = OrderStatus.pending;
+		}
+		if (createdAt == null) {
+			createdAt = LocalDateTime.now();
+		}
+		if (discountAmount == null) {
+			discountAmount = 0;
+		}
 	}
 	
 }

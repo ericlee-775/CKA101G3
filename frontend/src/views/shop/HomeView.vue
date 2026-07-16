@@ -1,6 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import EditorialHero from '@/components/home/EditorialHero.vue'
+import FarmerCta from '@/components/home/FarmerCta.vue'
+import { listPublicBlogs, listBlogTypes } from '@/api/blog'
+import { listFarms, normalizeFarm } from '@/api/farm'
+import groupBuyApi from '@/api/groupBuy'
 import noImage from '@/assets/no-image.svg'
 
 // 首頁的三個賣點（特色區用 v-for 渲染）
@@ -28,6 +32,119 @@ async function loadHotProducts() {
 }
 
 onMounted(loadHotProducts)
+
+/* ========== 首頁各區塊（最新消息 / 農場 / 團購 / 體驗活動 / 部落格）==========
+   每區各抓幾筆真實資料，統一整理成 { image, badge, title, desc, meta, to } 卡片格式，
+   模板用同一套版面渲染（比照部落格卡片）。各區獨立載入，一區失敗不影響其他。 */
+const LIMIT = 4
+const newsCards = ref([])
+const farmCards = ref([])
+const groupBuyCards = ref([])
+const tripCards = ref([])
+const blogCards = ref([])
+
+const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, '').trim()
+const fmtDate = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d)) return ''
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`
+}
+// 圖片載入失敗就換成佔位圖，讓每張卡都有圖、版面一致
+const onImgError = (e) => { e.target.src = noImage }
+
+async function loadNews() {
+  const res = await fetch(`/api/news?limit=${LIMIT}&offset=0`, { credentials: 'include' })
+  if (!res.ok) return
+  const data = await res.json()
+  newsCards.value = (data.results || []).map((n) => ({
+    key: 'news-' + n.newsId,
+    image: `/api/news/${n.newsId}/image`,
+    badge: '最新消息',
+    title: n.title,
+    desc: stripHtml(n.content),
+    meta: fmtDate(n.publishTime || n.createdAt),
+    to: { name: 'news-detail', params: { newsId: n.newsId } },
+  }))
+}
+
+async function loadFarms() {
+  const farms = (await listFarms()).map(normalizeFarm).slice(0, LIMIT)
+  farmCards.value = farms.map((f) => ({
+    key: 'farm-' + f.farmerId,
+    image: noImage,                      // 農場無專屬圖片端點，統一用佔位圖
+    badge: f.region || '合作農場',
+    title: f.farmName,
+    desc: f.farmDesc,
+    meta: f.location ? '📍 ' + f.location : '',
+    to: { name: 'farm-detail', params: { farmerId: f.farmerId } },
+  }))
+}
+
+async function loadGroupBuys() {
+  const list = (await groupBuyApi.list('all')).slice(0, LIMIT)
+  groupBuyCards.value = list.map((g) => ({
+    key: 'gb-' + (g.groupBuyId ?? 'p' + g.productId),
+    image: `/api/products/${g.productId}/image`,
+    badge: '團購',
+    title: g.productName,
+    desc: g.description,
+    meta: g.groupPrice != null ? `團購價 NT$ ${g.groupPrice}` : '',
+    // 已開團的導到團購詳情，還沒開的導到「發起團購」頁
+    to: g.groupBuyId != null
+      ? { name: 'group-buy-detail', params: { groupBuyId: g.groupBuyId } }
+      : { name: 'group-buy-host', params: { productId: g.productId } },
+  }))
+}
+
+async function loadTrips() {
+  const res = await fetch('/api/farm-trips', { credentials: 'include' })
+  if (!res.ok) return
+  const arr = await res.json()
+  tripCards.value = (arr || []).slice(0, LIMIT).map((t) => ({
+    key: 'trip-' + t.farmTripId,
+    image: `/api/farm-trips/${t.farmTripId}/image`,
+    badge: '體驗活動',
+    title: t.farmTripTitle,
+    desc: t.farmName ? '🏡 ' + t.farmName : '',
+    meta: t.location ? '📍 ' + t.location : '',
+    to: { name: 'farm-trip-detail', params: { farmTripId: t.farmTripId } },
+  }))
+}
+
+async function loadBlogs() {
+  const types = await listBlogTypes().catch(() => [])
+  const typeMap = Object.fromEntries((types || []).map((t) => [t.blogTypeId, t.blogTypeName]))
+  const data = await listPublicBlogs(0, LIMIT)
+  blogCards.value = (data.results || []).map((b) => ({
+    key: 'blog-' + b.blogId,
+    image: `/api/blogs/${b.blogId}/image`,
+    badge: typeMap[b.blogTypeId] || '文章',
+    title: b.blogTitle,
+    author: b.authorName ? (b.authorType === 'FARMER' ? '🏡 ' : '👤 ') + b.authorName : '',
+    desc: stripHtml(b.blogContent),
+    meta: fmtDate(b.blogTime),
+    to: `/blogs/${b.blogId}`,
+  }))
+}
+
+onMounted(() => {
+  loadNews().catch(() => {})
+  loadFarms().catch(() => {})
+  loadGroupBuys().catch(() => {})
+  loadTrips().catch(() => {})
+  loadBlogs().catch(() => {})
+})
+
+// 一份設定描述五個區塊，順序即畫面由上到下的順序
+const sections = computed(() => [
+  { key: 'news',  title: '最新消息', moreTo: '/news',       moreText: '看全部消息 →', items: newsCards.value },
+  { key: 'farms', title: '農場資訊', moreTo: '/farmily',    moreText: '看全部農場 →', items: farmCards.value },
+  { key: 'gb',    title: '團購',     moreTo: '/group-buys', moreText: '看全部團購 →', items: groupBuyCards.value },
+  { key: 'trips', title: '體驗活動', moreTo: '/farm-trips', moreText: '看全部活動 →', items: tripCards.value },
+  { key: 'blogs', title: '部落格',   moreTo: '/blogs',      moreText: '看全部文章 →', items: blogCards.value },
+])
 </script>
 
 <template>
@@ -70,12 +187,39 @@ onMounted(loadHotProducts)
       </div>
     </section>
 
-    <!-- ========== 行動呼籲 CTA ========== -->
-    <section class="cta">
-      <h2>加入 Farmily，享受產地直送</h2>
-      <p>註冊會員，第一筆訂單即享免運優惠。</p>
-      <router-link class="btn btn-primary" to="/register">免費註冊</router-link>
+    <!-- ========== 最新消息 / 農場 / 團購 / 體驗活動 / 部落格 ========== -->
+    <section
+      v-for="s in sections"
+      v-show="s.items.length"
+      :key="s.key"
+      class="section"
+    >
+      <div class="section-head">
+        <h2>{{ s.title }}</h2>
+        <router-link class="more-link" :to="s.moreTo">{{ s.moreText }}</router-link>
+      </div>
+
+      <div class="home-grid">
+        <router-link
+          v-for="item in s.items"
+          :key="item.key"
+          class="home-card"
+          :to="item.to"
+        >
+          <img class="home-card__img" :src="item.image" alt="" @error="onImgError" />
+          <div class="home-card__body">
+            <span class="home-card__badge">{{ item.badge }}</span>
+            <h3>{{ item.title }}</h3>
+            <p v-if="item.author" class="home-card__author">{{ item.author }}</p>
+            <p v-if="item.desc" class="home-card__desc">{{ item.desc }}</p>
+            <p v-if="item.meta" class="home-card__meta">{{ item.meta }}</p>
+          </div>
+        </router-link>
+      </div>
     </section>
+
+    <!-- ========== 小農招募廣告（深墨綠面板，對農夫說話） ========== -->
+    <FarmerCta />
   </main>
 </template>
 
@@ -83,32 +227,9 @@ onMounted(loadHotProducts)
 /* 首頁專屬的大地色紙感背景（其他頁面維持白底,不上色） */
 .home {
   background: var(--paper);
-}
-
-/* ========== 共用按鈕 ========== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 26px;
-  border-radius: 999px;
-  font-size: 15px;
-  text-decoration: none;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-}
-.btn-sm {
-  padding: 8px 0;
-  width: 100%;
-  font-size: 14px;
-}
-.btn-primary {
-  background: var(--leaf);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: var(--leaf-dark);
+  /* 底部留白:讓小農招募面板和深色 footer 之間隔一段紙色,
+     兩塊深綠才不會黏在一起。用 padding 而非 margin(margin 會露出 body 白底) */
+  padding-bottom: 72px;
 }
 
 /* ========== 三大特色 ========== */
@@ -221,23 +342,75 @@ onMounted(loadHotProducts)
   font-size: 17px;
 }
 
-/* ========== 行動呼籲 ========== */
-.cta {
-  max-width: 1100px;
-  margin: 64px auto 0;
-  padding: 48px clamp(18px, 4vw, 56px);
-  text-align: center;
+/* ========== 首頁區塊卡片（比照部落格卡片，等高對齊）========== */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+.home-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;                 /* 撐滿格線列高，內容多寡不影響卡片高度 */
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.home-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--leaf);
+  box-shadow: var(--shadow-hover);
+}
+.home-card__img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
   background: var(--leaf-soft);
-  border-radius: 18px;
 }
-.cta h2 {
-  margin: 0 0 10px;
+.home-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 16px 18px;
+}
+.home-card__badge {
+  align-self: flex-start;       /* 不被 flex 拉滿整行 */
+  margin-bottom: 8px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+.home-card__body h3 {
+  margin: 0 0 8px;
   color: var(--ink);
-  font-size: 26px;
+  font-size: 17px;
 }
-.cta p {
-  margin: 0 0 24px;
+.home-card__author {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.home-card__desc {
+  margin: 0 0 14px;
   color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.7;
+  max-height: 4.4em;
+  overflow: hidden;
+}
+.home-card__meta {
+  margin: auto 0 0;             /* 推到卡片底部對齊 */
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* ========== 響應式 ========== */

@@ -55,7 +55,12 @@ public class FarmerGroupBuyController {
 		List<GroupBuyOrderDTO> groupBuyOrder=groupBuySvc.showOrderList(me.getFarmerId());
 		return ResponseEntity.ok(groupBuyOrder);
 	}
-	
+	//小農的團購總收益
+	@GetMapping("/totalRevenue")
+	public ResponseEntity<Long>showGroupBuyTotalRevenue(@AuthenticationPrincipal FarmerUserDetails me){
+		Long total=groupBuySvc.getGroupBuyTotalRevenue(me.getFarmerId());
+		return ResponseEntity.ok(total);
+	}
 	
 	//小農看的單筆開團中的進度
 	@GetMapping("/progress/{groupBuyId}")

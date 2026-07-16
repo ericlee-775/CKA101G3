@@ -1,8 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import farmerApi from '@/api/farmer'
-import authApi from '@/api/auth'
 import cityDistrictApi from '@/api/cityDistrict'
 import authStore from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
@@ -13,6 +12,20 @@ const router = useRouter()
 
 const profile = ref(null)
 const loadError = ref('')
+
+// 我的審核紀錄與已上傳文件（唯讀）
+const reviews = ref([])
+const reviewsError = ref('')
+const certUrl = (reviewId, type) => farmerApi.certUrl(reviewId, type)
+
+// 時間格式化（yyyy-MM-dd HH:mm）；無值回 '—'
+function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 // 縣市 / 行政區
 const districtList = ref([])
@@ -34,30 +47,101 @@ const applyMsg = ref('')
 const applyErr = ref('')
 const savingApply = ref(false)
 
+// 經緯度（選填）：預先帶入既有座標，避免重新送審時被清空而從產地地圖消失
+// 變更農場地址後，可按「自動定位」或手動微調同步更新座標
+const locLat = ref('')            // locLat
+const locLong = ref('')           // locLong
+const geoStatus = ref('')         // '' | detecting | ok | denied | unsupported
+
+// 呼叫瀏覽器定位；允許→填入座標，拒絕/失敗→維持原值（不擋送出）
+function detectLocation() {
+  if (!('geolocation' in navigator)) {
+    geoStatus.value = 'unsupported'
+    return
+  }
+  geoStatus.value = 'detecting'
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // 對齊後端 @Digits(fraction = 8)：固定 8 位小數
+      locLat.value = pos.coords.latitude.toFixed(8)
+      locLong.value = pos.coords.longitude.toFixed(8)
+      geoStatus.value = 'ok'
+    },
+    () => {
+      geoStatus.value = 'denied'   // 使用者拒絕或定位失敗：座標維持原值
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
+}
+
+const geoHint = computed(() => {
+  switch (geoStatus.value) {
+    case 'detecting': return '定位中…請允許瀏覽器存取位置'
+    case 'ok': return '已更新為目前位置座標，可手動微調'
+    case 'denied': return '未取得定位權限，將沿用原座標'
+    case 'unsupported': return '此瀏覽器不支援定位，可手動填寫座標'
+    default: return ''
+  }
+})
+
 // 重新送審的證明文件（選填：沒選就沿用上一輪的圖片）
 const certLand = ref(null)
 const certProduct = ref(null)
 const certIdentity = ref(null)
 const certRefs = { land: certLand, product: certProduct, identity: certIdentity }
 
-// 使用者選檔：驗證通過才存入對應 ref
+// 各檔案 input 的 DOM 參照：移除文件時用來清空原生 input，允許重選同一檔
+const certLandEl = ref(null)
+const certProductEl = ref(null)
+const certIdentityEl = ref(null)
+const certInputEls = { land: certLandEl, product: certProductEl, identity: certIdentityEl }
+
+// 各證明文件的預覽圖 URL（由 URL.createObjectURL 產生，移除/替換/離開時需 revoke 釋放）
+const certPreviews = reactive({ land: '', product: '', identity: '' })
+
+// 設定預覽圖：先釋放舊 URL 再產生新的（file 為 null 則只清空）
+function setPreview(key, file) {
+  if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  certPreviews[key] = file ? URL.createObjectURL(file) : ''
+}
+
+// 使用者選檔：驗證通過才存入對應 ref，並產生預覽圖
 function onCertChange(key, event) {
   applyErr.value = ''
   const target = certRefs[key]
   const file = event.target.files && event.target.files[0]
   if (!file) {
     target.value = null
+    setPreview(key, null)
     return
   }
   const msg = validateCertFile(file)
   if (msg) {
     applyErr.value = msg
     target.value = null
+    setPreview(key, null)
     event.target.value = ''   // 驗證失敗清空，允許重選同一檔
     return
   }
   target.value = file
+  setPreview(key, file)
 }
+
+// 移除已選檔案：清掉 ref、預覽圖與原生 input，允許重新上傳同一檔
+function onCertRemove(key) {
+  applyErr.value = ''
+  certRefs[key].value = null
+  setPreview(key, null)
+  const el = certInputEls[key].value
+  if (el) el.value = ''
+}
+
+// 離開頁面時釋放所有預覽圖 URL，避免記憶體洩漏
+onBeforeUnmount(() => {
+  Object.keys(certPreviews).forEach((key) => {
+    if (certPreviews[key]) URL.revokeObjectURL(certPreviews[key])
+  })
+})
 
 // 改密碼
 const pw = ref({ oldPassword: '', newPassword: '', confirm: '' })
@@ -72,7 +156,19 @@ onMounted(async () => {
     districtList.value = []
   }
   await loadProfile()
+  await loadReviews()
 })
+
+// 載入自己的審核紀錄（失敗只提示，不影響其他區塊）
+async function loadReviews() {
+  reviewsError.value = ''
+  try {
+    reviews.value = await farmerApi.getMyReviews()
+  } catch (e) {
+    reviews.value = []
+    reviewsError.value = e.message || '審核紀錄載入失敗'
+  }
+}
 
 async function loadProfile() {
   try {
@@ -85,6 +181,9 @@ async function loadProfile() {
     apply.value.farmAddress = me.farmAddress || ''
     apply.value.districtId = me.districtId || ''
     selectedCity.value = me.cityName || ''
+    // 帶入既有座標：重新送審時一併送出，避免核准後被清空而從產地地圖消失
+    locLat.value = me.locLat != null ? String(me.locLat) : ''
+    locLong.value = me.locLong != null ? String(me.locLong) : ''
   } catch (e) {
     if (e.status === 401) {
       router.push('/farmer/login')
@@ -101,10 +200,20 @@ function onCityChange() {
 async function saveContact() {
   contactMsg.value = ''
   contactErr.value = ''
+  // 對齊後端：手機格式（有填才驗）、農場介紹長度
+  const phone = contact.value.farmerPhoneNum.replace(/[\s-]/g, '')
+  if (phone && !/^09\d{8}$/.test(phone)) {
+    contactErr.value = '手機號碼格式錯誤（需為 09 開頭共 10 碼）'
+    return
+  }
+  if (contact.value.farmDesc.length > 2000) {
+    contactErr.value = '農場介紹最多 2000 字'
+    return
+  }
   savingContact.value = true
   try {
     const updated = await farmerApi.updateContact({
-      farmerPhoneNum: contact.value.farmerPhoneNum,
+      farmerPhoneNum: phone,
       farmDesc: contact.value.farmDesc,
     })
     profile.value = updated
@@ -123,6 +232,19 @@ async function resubmit() {
     applyErr.value = '請填寫農場名稱與地址'
     return
   }
+  if (apply.value.farmName.length > 50) { applyErr.value = '農場名稱最多 50 字'; return }
+  if (apply.value.farmAddress.length > 100) { applyErr.value = '農場地址最多 100 字'; return }
+  // 經緯度為選填：有填才驗範圍（對齊後端 -90~90 / -180~180）
+  if (locLat.value !== '' &&
+      (isNaN(Number(locLat.value)) || Number(locLat.value) < -90 || Number(locLat.value) > 90)) {
+    applyErr.value = '緯度需介於 -90 ~ 90，或留空'
+    return
+  }
+  if (locLong.value !== '' &&
+      (isNaN(Number(locLong.value)) || Number(locLong.value) < -180 || Number(locLong.value) > 180)) {
+    applyErr.value = '經度需介於 -180 ~ 180，或留空'
+    return
+  }
   const ok = await confirm({
     title: '重新送審',
     message: '修改這些欄位會重新送審，期間狀態會變為待審核。確定要送出嗎？',
@@ -137,16 +259,20 @@ async function resubmit() {
     fd.append('farmName', apply.value.farmName)
     fd.append('farmAddress', apply.value.farmAddress)
     if (apply.value.districtId) fd.append('districtId', Number(apply.value.districtId))
+    // 經緯度：有值才送（含帶入的原座標），留空代表清除座標
+    if (locLat.value !== '') fd.append('locLat', locLat.value)
+    if (locLong.value !== '') fd.append('locLong', locLong.value)
     if (certLand.value) fd.append('certFileLand', certLand.value)
     if (certProduct.value) fd.append('certFileProduct', certProduct.value)
     if (certIdentity.value) fd.append('certFileIdentity', certIdentity.value)
     const updated = await farmerApi.resubmit(fd)
     profile.value = updated
-    // 送出後清掉已選檔案，避免誤以為還會再送
-    certLand.value = null
-    certProduct.value = null
-    certIdentity.value = null
+    // 送出後清掉已選檔案、預覽圖與原生 input，避免誤以為還會再送
+    onCertRemove('land')
+    onCertRemove('product')
+    onCertRemove('identity')
     applyMsg.value = '已重新送審，請等待管理員審核'
+    await loadReviews()   // 送審後多一輪，刷新審核紀錄
   } catch (e) {
     applyErr.value = e.message || '送審失敗'
   } finally {
@@ -157,8 +283,12 @@ async function resubmit() {
 async function changePassword() {
   pwMsg.value = ''
   pwErr.value = ''
-  if (pw.value.newPassword.length < 8) {
-    pwErr.value = '新密碼至少需 8 個字元'
+  if (pw.value.newPassword.length < 8 || pw.value.newPassword.length > 60) {
+    pwErr.value = '新密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(pw.value.newPassword) || !/\d/.test(pw.value.newPassword)) {
+    pwErr.value = '新密碼需同時包含英文字母與數字'
     return
   }
   if (pw.value.newPassword !== pw.value.confirm) {
@@ -179,17 +309,6 @@ async function changePassword() {
     savingPw.value = false
   }
 }
-
-async function logout() {
-  if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
-  try {
-    await authApi.logout()
-  } catch {
-    // ignore
-  }
-  authStore.clear()
-  router.push('/farmer/login')
-}
 </script>
 
 <template>
@@ -197,7 +316,6 @@ async function logout() {
     <div class="profile-wrap">
       <header class="profile-head">
         <h1>🌾 小農中心</h1>
-        <button class="btn-ghost" @click="logout">登出</button>
       </header>
 
       <p v-if="loadError" class="msg-err">{{ loadError }}</p>
@@ -212,6 +330,35 @@ async function logout() {
             <div><span class="label">審核狀態</span><span>{{ profile.reviewStatus || '—' }}</span></div>
             <div><span class="label">審核輪次</span><span>{{ profile.reviewRound ?? '—' }}</span></div>
           </div>
+        </section>
+
+        <!-- 審核紀錄與已上傳文件（唯讀）：含歷次重新送審 -->
+        <section class="card">
+          <h2>審核紀錄與文件</h2>
+          <p v-if="reviewsError" class="msg-err">{{ reviewsError }}</p>
+          <p v-else-if="!reviews.length" class="empty-note">尚無審核紀錄</p>
+          <ul v-else class="review-list">
+            <li v-for="r in reviews" :key="r.reviewId" class="review-item">
+              <div class="review-head">
+                <span class="round">第 {{ r.reviewRound }} 輪</span>
+                <span class="badge" :class="'badge--' + (r.reviewStatus || '').toLowerCase()">{{ r.reviewStatus }}</span>
+                <span class="review-date">{{ formatDateTime(r.submittedAt) }}</span>
+              </div>
+              <p v-if="r.rejectReason" class="reject-reason">退件理由：{{ r.rejectReason }}</p>
+              <div class="cert-thumbs">
+                <a v-if="r.hasCertLand" class="cert-thumb" :href="certUrl(r.reviewId, 'land')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'land')" alt="農地證明" /><span>農地證明</span>
+                </a>
+                <a v-if="r.hasCertProduct" class="cert-thumb" :href="certUrl(r.reviewId, 'product')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'product')" alt="產品證明" /><span>產品證明</span>
+                </a>
+                <a v-if="r.hasCertIdentity" class="cert-thumb" :href="certUrl(r.reviewId, 'identity')" target="_blank" rel="noopener">
+                  <img :src="certUrl(r.reviewId, 'identity')" alt="身分證明" /><span>身分證明</span>
+                </a>
+                <span v-if="!r.hasCertLand && !r.hasCertProduct && !r.hasCertIdentity" class="empty-note">此輪無文件</span>
+              </div>
+            </li>
+          </ul>
         </section>
 
         <!-- 立即生效：聯絡資訊 -->
@@ -253,23 +400,61 @@ async function logout() {
             </div>
             <label><span>農場地址</span><input v-model="apply.farmAddress" type="text" /></label>
 
+            <!-- 經緯度（選填）：帶入既有座標；變更地址後可自動定位或手動微調，會同步顯示在產地地圖 -->
+            <div class="geo-group">
+              <div class="geo-head">
+                <span>產地座標（經緯度，顯示於產地地圖）</span>
+                <button type="button" class="geo-btn" @click="detectLocation"
+                        :disabled="geoStatus === 'detecting'">
+                  {{ geoStatus === 'detecting' ? '定位中…' : '自動定位' }}
+                </button>
+              </div>
+              <div class="grid2">
+                <label>
+                  <span>緯度 (Lat)</span>
+                  <input v-model="locLat" type="text" inputmode="decimal" placeholder="自動偵測或手動填寫" />
+                </label>
+                <label>
+                  <span>經度 (Long)</span>
+                  <input v-model="locLong" type="text" inputmode="decimal" placeholder="自動偵測或手動填寫" />
+                </label>
+              </div>
+              <small v-if="geoHint" class="geo-hint"
+                     :class="{ 'geo-err': geoStatus === 'denied' || geoStatus === 'unsupported' }">
+                {{ geoHint }}
+              </small>
+              <small class="geo-note">留空並送審核准後，農場將從產地地圖上移除。</small>
+            </div>
+
             <!-- 證明文件（選填：不選則沿用上一輪的圖片，JPG / PNG，單張 ≤ 5MB）-->
             <div class="cert-group">
               <p class="cert-title">更換證明文件（選填，不選則沿用上一輪；JPG / PNG，單張 ≤ 5MB）</p>
               <label class="cert-item">
                 <span>農地證明</span>
-                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
-                <small v-if="certLand" class="cert-name">已選：{{ certLand.name }}</small>
+                <input ref="certLandEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('land', $event)" />
+                <small v-if="certLand" class="cert-name">
+                  已選：{{ certLand.name }}
+                  <button type="button" class="cert-remove" @click.prevent="onCertRemove('land')">移除</button>
+                </small>
+                <img v-if="certPreviews.land" :src="certPreviews.land" class="cert-preview" alt="農地證明預覽" />
               </label>
               <label class="cert-item">
                 <span>產品證明</span>
-                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
-                <small v-if="certProduct" class="cert-name">已選：{{ certProduct.name }}</small>
+                <input ref="certProductEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('product', $event)" />
+                <small v-if="certProduct" class="cert-name">
+                  已選：{{ certProduct.name }}
+                  <button type="button" class="cert-remove" @click.prevent="onCertRemove('product')">移除</button>
+                </small>
+                <img v-if="certPreviews.product" :src="certPreviews.product" class="cert-preview" alt="產品證明預覽" />
               </label>
               <label class="cert-item">
                 <span>身分證明</span>
-                <input type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
-                <small v-if="certIdentity" class="cert-name">已選：{{ certIdentity.name }}</small>
+                <input ref="certIdentityEl" type="file" accept="image/jpeg,image/png" @change="onCertChange('identity', $event)" />
+                <small v-if="certIdentity" class="cert-name">
+                  已選：{{ certIdentity.name }}
+                  <button type="button" class="cert-remove" @click.prevent="onCertRemove('identity')">移除</button>
+                </small>
+                <img v-if="certPreviews.identity" :src="certPreviews.identity" class="cert-preview" alt="身分證明預覽" />
               </label>
             </div>
 
@@ -418,17 +603,50 @@ async function logout() {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.btn-ghost {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
+/* 經緯度（選填）區塊 */
+.geo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed var(--line);
   border-radius: 10px;
-  background: #fff;
-  color: var(--ink-soft);
-  cursor: pointer;
 }
-.btn-ghost:hover {
-  border-color: var(--leaf);
-  color: var(--leaf);
+.geo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.geo-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--leaf);
+  border-radius: 8px;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.geo-btn:hover {
+  background: #fff;
+}
+.geo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.geo-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.geo-hint.geo-err {
+  color: #b06a00;
+}
+.geo-note {
+  color: var(--muted);
+  font-size: 12px;
 }
 .cert-group {
   display: flex;
@@ -459,8 +677,31 @@ async function logout() {
   background: #fff;
 }
 .cert-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--leaf-dark);
   font-size: 12px;
+}
+.cert-remove {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: #c0392b;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cert-remove:hover {
+  border-color: #c0392b;
+}
+.cert-preview {
+  margin-top: 6px;
+  max-width: 160px;
+  max-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
 }
 .danger-note {
   margin: 0;
@@ -476,5 +717,92 @@ async function logout() {
   margin: 0;
   color: var(--leaf);
   font-size: 13px;
+}
+/* ===== 審核紀錄與文件（唯讀） ===== */
+.empty-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.review-head .round {
+  font-weight: 600;
+  color: var(--ink);
+}
+.review-head .review-date {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+.reject-reason {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #c0392b;
+}
+.cert-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.cert-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.cert-thumb img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+/* 審核狀態配色：待審(黃) / 審核中(藍) / 核准(綠) / 退件(紅) */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--leaf-soft);
+  color: var(--leaf-dark);
+}
+.badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge--reviewing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.badge--approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 </style>

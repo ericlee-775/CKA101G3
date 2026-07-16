@@ -1,6 +1,7 @@
 package com.farmily.user.service;
 
 import com.farmily.user.dto.FarmerProfileResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -9,6 +10,9 @@ public interface AdminFarmerService {
 
     // 列出所有小農
     List<FarmerProfileResponse> listAll();
+
+    // 複合查詢 + 分頁：keyword 比對農場名 / email / 電話（可空）；status 比對小農狀態（可空）
+    Page<FarmerProfileResponse> search(String keyword, String status, int page, int size);
 
     // 查單一小農
     FarmerProfileResponse getById(Integer farmerId);

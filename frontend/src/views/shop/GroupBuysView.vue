@@ -9,14 +9,18 @@
 // 「總覽」頁籤現在要同時看到開團中 + 可發起，但後端沒有一支 API 一次給兩種，所以這裡改成前端併兩支 API：
 //   type=all（既有團購紀錄，pending+open）+ type=available（可發起的商品）。
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import groupBuyApi from '@/api/groupBuy'
 import groupBuyFavoriteApi from '@/api/groupBuyFavorite'
 import authStore from '@/stores/auth'
+import { confirm } from '@/composables/useConfirm'
 import { groupBuyStatusInfo } from '@/utils/groupBuyStatus'
 import { usePagination } from '@/composables/usePagination'
 import Pagination from '@/components/Pagination.vue'
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
+
+const router = useRouter()
 
 // 三個篩選頁籤：總覽（開團中+可發起都給）/ 可發起（沒有 groupBuyId 的商品）/ 開團中（status=open）
 const TABS = [
@@ -41,7 +45,7 @@ const loading = ref(true)
 // 錯誤訊息：抓資料失敗時放錯誤內容，畫面就顯示錯誤區塊。
 const error = ref('')
 
-const { page, totalPages, pageItems: pagedGroupBuys } = usePagination(groupBuys, 12)
+const { page, totalPages, pageItems: pagedGroupBuys } = usePagination(groupBuys, 10)
 
 // 跟後端要團購清單，依目前選中的頁籤帶 type 參數。
 // 「總覽」要把 type=all（既有團購）跟 type=available（可發起商品）兩批資料合併顯示。
@@ -155,8 +159,15 @@ function isFavorited(gb) {
 const favoriteBusyIds = ref(new Set())
 async function toggleFavorite(gb) {
   // 卡片點擊本來會被 RouterLink 導去詳情頁，這個按鈕要單獨處理，不能讓導頁一起發生。
+  // 未登入會員：用專案既有的確認彈窗（ConfirmDialog）而不是原生 alert，按確定就帶去登入頁。
   if (!authStore.isMember) {
-    alert('請先登入會員')
+    const goLogin = await confirm({
+      title: '請先登入會員',
+      message: '登入會員後即可收藏喜歡的團購，隨時追蹤成團進度。',
+      confirmText: '前往登入',
+      cancelText: '稍後再說',
+    })
+    if (goLogin) router.push('/login')
     return
   }
   if (favoriteBusyIds.value.has(gb.groupBuyId)) return
@@ -195,7 +206,8 @@ onMounted(() => {
 <template>
   <main class="page">
     <section class="hero">
-     
+      <h1>🛒 團購專區</h1>
+      <p>揪團一起買，達標即成團，用更優惠的價格享受產地好物。</p>
     </section>
 
     <!-- 篩選頁籤：總覽 / 可發起 / 開團中 -->
@@ -266,16 +278,17 @@ onMounted(() => {
             </button>
           </div>
           <div class="groupbuy-card__body">
+            <!-- 排序：商品名 → 團購價（緊接名稱下方）→ 類別/計價單位（有標籤）→ 其餘資訊/描述 -->
             <h2 class="groupbuy-card__name">{{ gb.productName }}</h2>
-            <p v-if="gb.subCatClassName" class="groupbuy-card__unit">{{ gb.subCatClassName }}</p>
-            <p v-if="gb.unitPricingMeasure" class="groupbuy-card__unit">{{ gb.unitPricingMeasure }}</p>
             <p class="groupbuy-card__price">{{ formatPrice(gb.groupPrice) }}</p>
+            <p v-if="gb.subCatClassName" class="groupbuy-card__meta">類別：{{ gb.subCatClassName }}</p>
+            <p v-if="gb.unitPricingMeasure" class="groupbuy-card__meta">計價單位：{{ gb.unitPricingMeasure }}</p>
             <template v-if="gb.groupBuyId != null">
               <p class="groupbuy-card__meta">達標金額：{{ formatPrice(gb.targetAmount) }}</p>
               <p class="groupbuy-card__meta">截止日期：{{ formatDate(gb.ddlDatetime) }}</p>
               <p v-if="gb.pickupAddress" class="groupbuy-card__meta">取貨地點：{{ gb.pickupAddress }}</p>
             </template>
-            <!-- 可發起商品還沒有目標數量/截止日期這些資料，改顯示商品描述 -->
+            <!-- 可發起商品還沒有目標數量/截止日期這些資料，改顯示商品描述（不用欄位名稱） -->
             <p v-else-if="gb.description" class="groupbuy-card__meta">{{ gb.description }}</p>
           </div>
         </RouterLink>

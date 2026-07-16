@@ -1,5 +1,7 @@
 package com.farmily.product.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.farmily.product.dto.ProductOrderCheckoutInfoDTO;
-import com.farmily.product.dto.ProductOrderItemResponseDTO;
+import com.farmily.product.dto.ProductOrderMemberGroupDTO;
 import com.farmily.product.dto.ProductOrderRequestDTO;
 import com.farmily.product.dto.ProductOrderResponseDTO;
-import com.farmily.product.model.ShippedStatus;
 import com.farmily.product.service.ProductOrderService;
 import com.farmily.user.security.MemberUserDetails;
 
@@ -31,7 +32,7 @@ public class MemberProductOrderController {
 	private ProductOrderService oSvc;
 	
 	// 訂單資料確認 (取得預設的消費者資料預填訂單頁: 地址)
-	@GetMapping("/check-info")
+	@GetMapping("/checkout-info")
 	public ResponseEntity<ProductOrderCheckoutInfoDTO> checkOutInfo(@AuthenticationPrincipal MemberUserDetails me){
 		ProductOrderCheckoutInfoDTO dto = oSvc.getCheckoutInfo(me.getUser());
 		return ResponseEntity.ok(dto);
@@ -51,13 +52,18 @@ public class MemberProductOrderController {
 	
 	
 	// 確認收貨
-	@PatchMapping("/{orderId}/received")
-	public ResponseEntity<Void> received(@PathVariable Integer orderId){
+	@PatchMapping("/{orderId}/farmers/{farmerId}/received")
+	public ResponseEntity<Void> received(
+			@AuthenticationPrincipal MemberUserDetails me,
+			@PathVariable Integer orderId,
+			@PathVariable Integer farmerId){
 		// updateReceived(Integer orderId)
-		oSvc.updateReceived(orderId);
+		oSvc.updateReceived(me.getUserId(), orderId, farmerId);
 		return ResponseEntity.ok().build();
 	}
 	
+	
+	// 顯示訂單列表
 	@GetMapping
 	public ResponseEntity<Page<ProductOrderResponseDTO>> getMyOrder(
 			@AuthenticationPrincipal MemberUserDetails me,
@@ -68,14 +74,15 @@ public class MemberProductOrderController {
 		return ResponseEntity.ok(list);
 	}
 	
+	// 顯示訂單明細
 	@GetMapping("/{orderId}/items")
-	public ResponseEntity<Page<ProductOrderItemResponseDTO>> getOrderItems(
-			@PathVariable Integer orderId,
-			@RequestParam (defaultValue = "0") int page){
-		// Page<ProductOrderItemResponseDTO> getOrderItem(Integer orderId, int page)
-		Page<ProductOrderItemResponseDTO> list = oSvc.getOrderItem(orderId, page);
+	public ResponseEntity<List<ProductOrderMemberGroupDTO>> getOrderItems(
+			@AuthenticationPrincipal MemberUserDetails me,
+			@PathVariable Integer orderId){
+		// List<ProductOrderMemberGroupDTO> getOrderItems(Integer userId, Integer orderId){
+		List<ProductOrderMemberGroupDTO> list = oSvc.getOrderItems(me.getUserId(), orderId);
 		
 		return ResponseEntity.ok(list);
 	}
-	
+
 }

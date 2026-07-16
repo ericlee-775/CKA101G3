@@ -9,7 +9,7 @@ const errorMsg = ref('')
 
 const page = ref(1)                 // 目前第幾頁(從 1 起算)
 const total = ref(0)                // 後端回傳的總筆數
-const pageSize = 5                  // 每頁幾筆(改這個數字就能調整)
+const pageSize = 8                  // 每頁幾筆(改這個數字就能調整)
 
 // ===== 篩選 / 排序狀態 =====
 const types = ref([])               // 分類清單(下拉用)
@@ -100,13 +100,10 @@ onMounted(async () => {
 
 <template>
   <main class="page">
-    <!-- Hero：與最新消息同款(icon 方塊 + 標題 + 副標) -->
+    <!-- Hero：與「全部商品」同款規格(emoji 同行、置中) -->
     <section class="hero">
-      <span class="hero__icon" aria-hidden="true">✍️</span>
-      <div>
-        <h1>部落格</h1>
-        <p>小農產地日記與會員分享，看看餐桌背後的故事。</p>
-      </div>
+      <h1>✍️ 部落格</h1>
+      <p>小農產地日記與會員分享，看看餐桌背後的故事。</p>
     </section>
 
     <!-- 篩選 / 搜尋 / 排序 -->
@@ -153,6 +150,10 @@ onMounted(async () => {
             <div class="blog-card__body">
               <span class="type-badge">{{ typeName(b.blogTypeId) }}</span>
               <h3>{{ b.blogTitle }}</h3>
+              <!-- 作者：小農文=🏡農場名、會員文=👤會員名；後端沒帶名字時整行不顯示 -->
+              <p v-if="b.authorName" class="author">
+                {{ b.authorType === 'FARMER' ? '🏡' : '👤' }} {{ b.authorName }}
+              </p>
               <p class="content">{{ snippet(b.blogContent) }}</p>
               <div class="meta">
                 <span class="meta__like">♡ {{ b.blogLikeCount || 0 }}</span>
@@ -178,29 +179,18 @@ onMounted(async () => {
 .page {
   width: min(1120px, calc(100% - 36px));
   margin: 0 auto;
-  padding: 56px 0 72px;
+  padding: 32px 0 72px;   /* 上方間距對齊其他導覽頁(32px) */
 }
 
-/* ===== Hero（與 NewsView 同款）===== */
+/* ===== Hero（與「全部商品」同款規格：emoji 同行、置中）===== */
 .hero {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.hero__icon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: var(--leaf-soft);
-  font-size: 28px;
+  text-align: center;
+  margin-bottom: 32px;
 }
 .hero h1 {
   margin: 0 0 8px;
   color: var(--ink);
-  font-size: 32px;
+  font-size: 28px;
 }
 .hero p {
   margin: 0;
@@ -275,7 +265,9 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 .blog-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;               /* 撐滿格線列高，內容多寡不影響卡片高度 */
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -298,6 +290,9 @@ onMounted(async () => {
   background: var(--leaf-soft);
 }
 .blog-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;                    /* 佔滿卡片剩餘高度，好讓 meta 靠底對齊 */
   padding: 16px 18px;
 }
 .type-badge {
@@ -315,6 +310,14 @@ onMounted(async () => {
   color: var(--ink);
   font-size: 17px;
 }
+.author {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
 .content {
   color: var(--ink-soft);
   font-size: 14px;
@@ -327,6 +330,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;           /* 不管內文長短，都把讚數/日期推到卡片底部對齊 */
   color: var(--muted);
   font-size: 12px;
 }

@@ -1,8 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
 // 「暫無圖片」佔位圖（放在 src/assets，打包後 Vite 會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 import authStore from '@/stores/auth' // 收藏功能：判斷使用者是否已登入、是不是會員身分
+
+// 從網址帶進來的農場篩選：農場專頁點「查看全部商品」時會帶 ?farmerId=&farmName=。
+// 有 farmerId → 只顯示該農場的商品；farmName 只是拿來顯示標題用。
+const route = useRoute()
+const farmerId = computed(() => route.query.farmerId || '')
+const farmName = computed(() => route.query.farmName || '')
 
 const PAGE_SIZE = 12
 
@@ -48,6 +55,7 @@ function buildQuery(page) {
   if (subCatClassId) params.set('subCatClassId', subCatClassId)
   if (minPrice !== '') params.set('minPrice', minPrice)
   if (maxPrice !== '') params.set('maxPrice', maxPrice)
+  if (farmerId.value) params.set('farmerId', farmerId.value) // 農場篩選：只帶有值時才送
   return params.toString()
 }
 
@@ -210,6 +218,9 @@ onMounted(async () => {
   if (sentinel.value) observer.observe(sentinel.value)
 })
 
+// 網址上的 farmerId 變了（換農場、或清掉篩選回全部商品）就整個重載。
+watch(farmerId, () => reload())
+
 onUnmounted(() => {
   if (observer) observer.disconnect()
   revokeImageUrls()
@@ -219,8 +230,17 @@ onUnmounted(() => {
 <template>
   <main class="page">
     <section class="hero">
-      <h1>🥬 全部商品</h1>
-      <p>嚴選合作農場的當季好物，直接從產地送到你家。</p>
+      <template v-if="farmerId">
+        <h1>🏡 {{ farmName || '這個農場' }} 的商品</h1>
+        <p>
+          目前只顯示這個農場上架的商品。
+          <RouterLink :to="{ name: 'products' }" class="hero__all">← 看全部農場的商品</RouterLink>
+        </p>
+      </template>
+      <template v-else>
+        <h1>🥬 全部商品</h1>
+        <p>嚴選合作農場的當季好物，直接從產地送到你家。</p>
+      </template>
     </section>
 
     <!-- 複合查詢篩選列：關鍵字 + 分類 + 價格區間。按 Enter 或「搜尋」才送出。 -->
@@ -320,6 +340,7 @@ onUnmounted(() => {
         </div>
         <div class="product-card__body">
           <h2 class="product-card__name">{{ product.productName }}</h2>
+          <p v-if="product.farmName" class="product-card__farm">🏡 {{ product.farmName }}</p>
           <p class="product-card__unit">{{ product.unitPricingMeasure }}</p>
           <div class="product-card__footer">
             <p class="product-card__price">{{ formatPrice(product.retailPrice) }}</p>
@@ -358,6 +379,15 @@ onUnmounted(() => {
 .hero p {
   color: var(--muted);
   margin: 0;
+}
+.hero__all {
+  margin-left: 8px;
+  color: var(--leaf-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+.hero__all:hover {
+  text-decoration: underline;
 }
 
 /* ---------- 篩選列 ---------- */
@@ -553,6 +583,11 @@ onUnmounted(() => {
 }
 .product-card:hover .product-card__name {
   color: var(--leaf-dark);
+}
+.product-card__farm {
+  font-size: 13px;
+  color: var(--leaf-dark);
+  margin: 0;
 }
 .product-card__unit {
   font-size: 13px;

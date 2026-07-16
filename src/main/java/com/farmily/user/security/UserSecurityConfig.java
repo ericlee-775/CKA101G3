@@ -94,10 +94,18 @@ public class UserSecurityConfig {
 						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
                         .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
-                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAnyAuthority("PERM_ADMIN", "PERM_FARMER")
-                        .requestMatchers("/admin/members/**").hasAnyAuthority("PERM_ADMIN", "PERM_MEMBER")
+                        .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
+						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
 
-								.anyRequest().hasRole("ADMIN"))
+						.requestMatchers("/admin/news/**").hasAuthority("PERM_NEWS")
+						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
+						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
+						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
+						.requestMatchers("/api/admin/groupBuy/**").hasAuthority("PERM_GROUP_BUY")
+
+						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
+						.anyRequest().hasRole("ADMIN"))
+
 
 				// formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
 				.formLogin(form -> form.loginPage("/admin/login").loginProcessingUrl("/admin/login")
@@ -158,12 +166,14 @@ public class UserSecurityConfig {
 
                         //產地地圖（公開：查全部農場 / 單一農場）
                         .requestMatchers(HttpMethod.GET, "/api/farms", "/api/farms/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/farms", "/api/farms/**").permitAll()
 
                         //Blog （列表/詳情/封面/留言/照片）
                         .requestMatchers(HttpMethod.GET, "/api/blogs/**", "/api/photos/**").permitAll()
 
                         //最新消息（公開：列表/詳情/封面圖）
                         .requestMatchers(HttpMethod.GET, "/api/news", "/api/news/**").permitAll()
+
 
 				// 前端靜態檔
 				.requestMatchers("/", "/index.html", "/css/**", "/js/**", "/vendors/**", "/webjars/**", "/favicon.ico")
@@ -174,6 +184,7 @@ public class UserSecurityConfig {
 
 				// 公開：Email 驗證 / 忘記密碼 (未登入也要能用)
 				.requestMatchers("/api/auth/**").permitAll()
+				.requestMatchers("/api/ai/**").permitAll()
 
 						.anyRequest().authenticated())
 				.build();

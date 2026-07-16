@@ -12,6 +12,9 @@
   let onEnter = null;
   // 什麼算「可互動」:外圈碰到就放大
   const INTERACTIVE = 'a, button, input, textarea, select, label, summary, [role="button"], [contenteditable="true"], [data-hover]';
+  // 深色背景區:墨綠游標在上面會隱形,要反轉成紙色。
+  // 其他頁面若新增深色區塊,在該區塊加 data-cursor-invert 屬性即可。
+  const DARK_ZONE = '.site-footer, [data-cursor-invert]';
 
   function initCursor() {
     // 只在桌機(有滑鼠、精細指標)且使用者沒開「減少動態」時啟用;
@@ -35,6 +38,10 @@
       my = e.clientY;
       // 每次移動判斷游標下方是不是可互動元素,是就把外圈放大
       ring.classList.toggle('is-active', !!e.target.closest(INTERACTIVE));
+      // 進到深色區(footer)就把游標反轉成紙色,不然墨綠點會和背景融在一起
+      const overDark = !!e.target.closest(DARK_ZONE);
+      dot.classList.toggle('is-inverted', overDark);
+      ring.classList.toggle('is-inverted', overDark);
     };
     // 滑出視窗時淡出,滑回來再淡入,避免游標卡在邊緣
     onLeave = () => {
@@ -130,6 +137,14 @@ html, body {
   height: 34px;
   border: 1px solid rgba(44, 58, 46, 0.45);
   transition: width 0.3s, height 0.3s, background 0.3s, border-color 0.3s, opacity 0.25s ease;
+}
+/* 深色區(footer)上的反轉配色:改用紙色才看得見。
+   寫在 .is-active 之前 → 滑到 footer 連結時,稻穗金仍優先生效(金色在深底上夠清楚) */
+.cursor-dot.is-inverted {
+  background: #f1ecdf;
+}
+.cursor-ring.is-inverted {
+  border-color: rgba(241, 236, 223, 0.55);
 }
 /* 滑到可互動元素時:外圈放大並染一層淡稻穗金 */
 .cursor-ring.is-active {

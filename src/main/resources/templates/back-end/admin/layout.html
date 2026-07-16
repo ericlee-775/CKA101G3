@@ -26,26 +26,31 @@
                 <span class="ico">🏠</span> 總覽</a>
 
             <a class="nav-link" data-path="/admin/members"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')" th:href="@{/admin/members}">
+               sec:authorize="hasAuthority('PERM_MEMBER')" th:href="@{/admin/members}">
                 <span class="ico">👥</span> 會員管理</a>
 
             <a class="nav-link" data-path="/admin/farmers"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/farmers}">
+               sec:authorize="hasAuthority('PERM_FARMER')" th:href="@{/admin/farmers}">
                 <span class="ico">🧑‍🌾</span> 小農管理</a>
 
             <a class="nav-link" data-path="/admin/reviews"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')" th:href="@{/admin/reviews}">
-                <span class="ico">📋</span> 小農審核</a>
+               sec:authorize="hasAuthority('PERM_FARMER')" th:href="@{/admin/reviews}">
+                <span class="ico">📋</span> 小農申請審核</a>
+
              <a class="nav-link" data-path="/admin/coupons"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN')" th:href="@{/admin/coupons}">
-                <span class="ico">???</span> 優惠卷管理</a>
+               sec:authorize="hasAuthority('PERM_SHOP')" th:href="@{/admin/coupons}">
+                <span class="ico">🎟️</span> 優惠卷管理</a>
+
+            <a class="nav-link" data-path="/admin/farm-trips"
+               sec:authorize="hasAuthority('PERM_EVENT')" th:href="@{/admin/farm-trips}">
+                <span class="ico">🎪</span> 活動審核</a>
 
             <a class="nav-link" data-path="/admin/news"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')" th:href="@{/admin/news}">
-                <span class="ico">📰</span> 最新消息</a>
+               sec:authorize="hasAuthority('PERM_NEWS')" th:href="@{/admin/news}">
+                <span class="ico">📰</span> 最新消息管理</a>
 
             <a class="nav-link" data-path="/admin/blog-reports"
-               sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')" th:href="@{/admin/blog-reports}">
+               sec:authorize="hasAuthority('PERM_BLOG')" th:href="@{/admin/blog-reports}">
                 <span class="ico">📝</span> 部落格檢舉審核</a>
 
             <a class="nav-link" data-path="/admin/admins"

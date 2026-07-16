@@ -10,8 +10,8 @@ import com.farmily.product.dto.ProductSummaryDTO;
 
 public interface WishListRepository extends JpaRepository<WishListVO, WishListId> {
 
-	// 收藏清單：走 5 參數建構子多帶 description（參數順序要對到 DTO 建構子，對不上啟動就報錯）
-	@Query("SELECT new com.farmily.product.dto.ProductSummaryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName, p.description) FROM WishListVO w, ProductVO p WHERE w.productId = p.productId AND w.userId = :userId")
+	// 收藏清單：走 7 參數建構子多帶 description（5 參數位置已被 farmName 版佔用，見 DTO 註解）
+	@Query("SELECT new com.farmily.product.dto.ProductSummaryDTO(p.productId, p.retailPrice, p.unitPricingMeasure, p.productName, f.farmName, p.farmerId, p.description) FROM WishListVO w, ProductVO p JOIN p.farmer f WHERE w.productId = p.productId AND w.userId = :userId")
 	List<ProductSummaryDTO> findWishListByUserId(@Param("userId") Integer userId);
 	
 	boolean existsByProductIdAndUserId(Integer productId, Integer userId);

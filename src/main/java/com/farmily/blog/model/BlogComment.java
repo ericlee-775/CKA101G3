@@ -35,6 +35,12 @@ public class BlogComment {
     @Column(name = "comment_status")
     private BlogStatus commentStatus ;
 
+    @Transient   // @Transient = 這欄不對應資料表欄位，JPA 不會拿去存/建表，只是用來裝查詢帶回的顯示值
+    private String authorName;
+
+    @Transient
+    private String authorType;
+
 
     public Integer getCommentId() {
         return commentId;
@@ -90,5 +96,21 @@ public class BlogComment {
 
     public void setCommentStatus(BlogStatus commentStatus) {
         this.commentStatus = commentStatus;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public String getAuthorType() {
+        return authorType;
+    }
+
+    public void setAuthorType(String authorType) {
+        this.authorType = authorType;
     }
 }

@@ -16,6 +16,13 @@ export const farmerApi = {
   // 查自己資料
   getMe: () => http.get(`${BASE}/me`),
 
+  // 查自己所有審核輪次紀錄（含各輪文件有無；不含承辦管理員資訊）
+  getMyReviews: () => http.get(`${BASE}/me/reviews`),
+
+  // 某輪某類文件的圖片網址（給 <img :src> 用；同源會自動帶 session cookie）
+  //   type = 'land' | 'product' | 'identity'
+  certUrl: (reviewId, type) => `${BASE}/me/reviews/${reviewId}/cert/${type}`,
+
   // 修改「非審核」欄位（電話、農場描述），立即生效；{ farmerPhoneNum?, farmDesc? }
   updateContact: (req) => http.put(`${BASE}/me`, req),
 

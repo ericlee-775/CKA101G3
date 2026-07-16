@@ -44,11 +44,15 @@ public class ProductController {
 
 	// 複合查詢
 	@GetMapping("/search")
-	public ResponseEntity<Page<ProductSummaryDTO>> searchProducts(@RequestParam(required = false) String keyword,
-			@RequestParam(required = false) Integer subCatClassId, @RequestParam(required = false) Integer minPrice,
-			@RequestParam(required = false) Integer maxPrice, @PageableDefault(size = 10) Pageable pageable) {
-		Page<ProductSummaryDTO> result = productService.searchProducts(keyword, subCatClassId, minPrice, maxPrice,
-				pageable);
+	public ResponseEntity<Page<ProductSummaryDTO>> searchProducts(
+			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) Integer subCatClassId,
+			@RequestParam(required = false) Integer minPrice,
+			@RequestParam(required = false) Integer maxPrice,
+			@RequestParam(required = false) Integer farmerId,
+			@PageableDefault(size = 10) Pageable pageable) {
+		Page<ProductSummaryDTO> result =
+				productService.searchProducts(keyword, subCatClassId, minPrice, maxPrice,farmerId, pageable);
 		return ResponseEntity.ok(result);
 	}
 

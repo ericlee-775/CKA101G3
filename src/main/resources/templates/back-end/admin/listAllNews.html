@@ -94,7 +94,7 @@
                 <tr>
                     <td th:text="${news.newsId}"></td>
                     <td>
-                        <img th:src="@{/api/news/{id}/image(id=${news.newsId})}"
+                        <img th:src="@{/api/admin/news/{id}/image(id=${news.newsId})}"
                              class="news-cover" onerror="this.style.display='none'" alt="封面">
                     </td>
                     <td th:text="${news.title}"></td>

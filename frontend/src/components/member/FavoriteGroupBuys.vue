@@ -119,6 +119,8 @@ onMounted(load)
     <!-- 收藏卡片 -->
     <template v-else>
       <article v-for="gb in pagedList" :key="gb.groupBuyId" class="gb-card">
+        <!-- 點卡片任何地方（除了愛心）都導到消費者看的團購詳情頁：/group-buys/:groupBuyId
+             （前端路由，實際資料來自 PublicGroupBuyController 的 GET /api/groupBuy/{groupBuyId}） -->
         <RouterLink
           class="gb-card__link"
           :to="{ name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId } }"
@@ -126,54 +128,49 @@ onMounted(load)
           <div class="gb-img-wrap">
             <img class="gb-img" :src="groupBuyImage(gb)" :alt="gb.productName" loading="lazy" />
           </div>
-        </RouterLink>
 
-        <div class="gb-body">
-          <div class="gb-head">
-            <RouterLink
-              class="gb-name-link"
-              :to="{ name: 'group-buy-detail', params: { groupBuyId: gb.groupBuyId } }"
-            >
+          <div class="gb-body">
+            <div class="gb-head">
               <h3 class="gb-name">{{ gb.productName }}</h3>
-            </RouterLink>
-            <!-- 這裡的愛心一定是實心，點下去取消收藏 -->
-            <button
-              type="button"
-              class="gb-heart"
-              :disabled="removingIds.has(gb.groupBuyId)"
-              aria-label="取消收藏"
-              @click="unfavorite(gb)"
-            >
-              ♥
-            </button>
-          </div>
+              <!-- 這裡的愛心一定是實心，點下去取消收藏；用 stop+prevent 避免連帶觸發卡片導頁 -->
+              <button
+                type="button"
+                class="gb-heart"
+                :disabled="removingIds.has(gb.groupBuyId)"
+                aria-label="取消收藏"
+                @click.stop.prevent="unfavorite(gb)"
+              >
+                ♥
+              </button>
+            </div>
 
-          <dl class="gb-grid">
-            <div class="gb-cell">
-              <dt>發起人</dt>
-              <dd>{{ gb.hostUser || '—' }}</dd>
-            </div>
-            <div class="gb-cell">
-              <dt>團購價</dt>
-              <dd>{{ formatMoney(gb.groupPrice) }}<span class="gb-retail"> 原價 {{ formatMoney(gb.retailPrice) }}</span></dd>
-            </div>
-            <div class="gb-cell">
-              <dt>截止時間</dt>
-              <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
-            </div>
-            <div class="gb-cell gb-cell--wide">
-              <dt>取貨地點</dt>
-              <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
-            </div>
-          </dl>
+            <dl class="gb-grid">
+              <div class="gb-cell">
+                <dt>發起人</dt>
+                <dd>{{ gb.hostUser || '—' }}</dd>
+              </div>
+              <div class="gb-cell">
+                <dt>團購價</dt>
+                <dd>{{ formatMoney(gb.groupPrice) }}<span class="gb-retail"> 原價 {{ formatMoney(gb.retailPrice) }}</span></dd>
+              </div>
+              <div class="gb-cell">
+                <dt>截止時間</dt>
+                <dd>{{ formatDate(gb.ddlDatetime) }}</dd>
+              </div>
+              <div class="gb-cell gb-cell--wide">
+                <dt>取貨地點</dt>
+                <dd>📍 {{ gb.pickupAddress || '—' }}</dd>
+              </div>
+            </dl>
 
-          <div class="gb-progress">
-            <span>目標金額 {{ formatMoney(gb.targetAmount) }}</span>
-            <span class="gb-progress__diff">
-              {{ gb.difference > 0 ? `再 ${formatMoney(gb.difference)} 即成團` : '已達標，等待截止結算' }}
-            </span>
+            <div class="gb-progress">
+              <span>目標金額 {{ formatMoney(gb.targetAmount) }}</span>
+              <span class="gb-progress__diff">
+                {{ gb.difference > 0 ? `再 ${formatMoney(gb.difference)} 即成團` : '已達標，等待截止結算' }}
+              </span>
+            </div>
           </div>
-        </div>
+        </RouterLink>
       </article>
 
       <Pagination v-model:page="page" :total-pages="totalPages" />
@@ -190,7 +187,6 @@ onMounted(load)
 
 /* ===== 收藏卡片 ===== */
 .gb-card {
-  display: flex;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -203,13 +199,20 @@ onMounted(load)
   transform: translateY(-2px);
 }
 .gb-card__link {
-  flex: 0 0 120px;
-  display: block;
+  display: flex;
+  color: inherit;
+  text-decoration: none;
 }
 .gb-img-wrap {
-  width: 100%;
-  height: 100%;
+  flex: 0 0 120px;
+  aspect-ratio: 1 / 1;
+  align-self: center;
+  margin: 16px 0 16px 16px;
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--line);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(30, 25, 15, 0.1);
 }
 .gb-img {
   width: 100%;
@@ -230,16 +233,12 @@ onMounted(load)
   gap: 12px;
   margin-bottom: 12px;
 }
-.gb-name-link {
-  color: inherit;
-  text-decoration: none;
-  min-width: 0;
-}
-.gb-name-link:hover .gb-name {
+.gb-card__link:hover .gb-name {
   color: var(--leaf-dark);
 }
 .gb-name {
   margin: 0;
+  min-width: 0;
   font-size: 17px;
   color: var(--ink);
   overflow: hidden;
@@ -315,12 +314,14 @@ onMounted(load)
 }
 
 @media (max-width: 560px) {
-  .gb-card {
+  .gb-card__link {
     flex-direction: column;
   }
-  .gb-card__link {
+  .gb-img-wrap {
     flex-basis: auto;
-    height: 140px;
+    width: auto;
+    margin: 16px 16px 0;
+    align-self: stretch;
   }
   .gb-grid {
     grid-template-columns: repeat(2, 1fr);

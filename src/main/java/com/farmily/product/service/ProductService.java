@@ -24,7 +24,7 @@ public interface ProductService {
 	Page<ProductSummaryDTO> getAllProducts(Pageable pageable);
 
 	Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
-			Integer minPrice, Integer maxPrice, Pageable pageable);
+			Integer minPrice, Integer maxPrice,Integer farmerId,Pageable pageable);
 
 	List<ProductManageDTO> getMyProducts(Integer farmerId);
 

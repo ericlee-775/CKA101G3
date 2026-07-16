@@ -20,53 +20,73 @@
     </div>
 
     <div class="row">
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_MEMBER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_MEMBER')">
             <a class="card stat-card h-100" th:href="@{/admin/members}">
                 <span class="stat-ico">👥</span>
                 <span>
-                    <span class="stat-label d-block">會員</span>
+                    <span class="stat-label d-block">會員資料管理 | 權限操作</span>
                     <span class="stat-link">會員管理 →</span>
                 </span>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_FARMER')">
             <a class="card stat-card h-100" th:href="@{/admin/farmers}">
                 <span class="stat-ico">🧑‍🌾</span>
                 <span>
-                    <span class="stat-label d-block">小農</span>
+                    <span class="stat-label d-block">小農資料管理 | 權限操作</span>
                     <span class="stat-link">小農管理 →</span>
                 </span>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_FARMER')">
             <a class="card stat-card h-100" th:href="@{/admin/reviews}">
                 <span class="stat-ico">📋</span>
                 <span>
-                    <span class="stat-label d-block">審核</span>
-                    <span class="stat-link">小農審核 →</span>
+                    <span class="stat-label d-block">小農申請 | 案件審核</span>
+                    <span class="stat-link">小農申請審核 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_SHOP')">
+            <a class="card stat-card h-100" th:href="@{/admin/coupons}">
+                <span class="stat-ico">🎟️</span>
+                <span>
+                    <span class="stat-label d-block">優惠券管理 | 寄信發券</span>
+                    <span class="stat-link">優惠券管理 →</span>
                 </span>
             </a>
         </div>
 
         <!-- 活動審核（體驗活動）-->
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_FARMER')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_EVENT')">
             <a class="card stat-card h-100" th:href="@{/admin/farm-trips}">
                 <span class="stat-ico">🎪</span>
                 <span>
-                    <span class="stat-label d-block">體驗活動</span>
+                    <span class="stat-label d-block">體驗預約 | 活動管理</span>
                     <span class="stat-link">活動審核 →</span>
                 </span>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_NEWS')">
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_NEWS')">
             <a class="card stat-card h-100" th:href="@{/admin/news}">
                 <span class="stat-ico">📰</span>
                 <span>
-                    <span class="stat-label d-block">內容</span>
+                    <span class="stat-label d-block">消息管理 | 發佈通知</span>
                     <span class="stat-link">最新消息管理 →</span>
+                </span>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_BLOG')">
+            <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
+                <span class="stat-ico">📝</span>
+                <span>
+                    <span class="stat-label d-block">文章檢舉 | 留言審核</span>
+                    <span class="stat-link">檢舉審核 →</span>
                 </span>
             </a>
         </div>
@@ -75,17 +95,8 @@
             <a class="card stat-card h-100" th:href="@{/admin/admins}">
                 <span class="stat-ico">🛡️</span>
                 <span>
-                    <span class="stat-label d-block">權限</span>
+                    <span class="stat-label d-block">管理員管理 | 權限控管</span>
                     <span class="stat-link">管理員管理 →</span>
-                </span>
-            </a>
-        </div>
-        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAnyAuthority('PERM_ADMIN','PERM_BLOG')">
-            <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
-                <span class="stat-ico">📝</span>
-                <span>
-                    <span class="stat-label d-block">部落格</span>
-                    <span class="stat-link">檢舉審核 →</span>
                 </span>
             </a>
         </div>
