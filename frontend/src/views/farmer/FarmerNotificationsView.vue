@@ -14,14 +14,14 @@ const marking = ref(false)
 
 
 // 分類開選的選項
-// targetType: ACCOUNT, PRODUCT, ORDER, GROUPBUY, TRIP, BLOG,...
+// targetType: account, order, groupbuy, trip, blog,...
 const TYPE_OPTIONS = [
   { value: '', label: '全部' },
-  { value: 'ACCOUNT', label: '帳號' },
-  { value: 'ORDER', label: '訂單' },
-  { value: 'GROUPBUY', label: '團購' },
-  { value: 'TRIP', label: '體驗活動' },
-  { value: 'BLOG', label: '專欄文章' }
+  { value: 'account', label: '帳號' },
+  { value: 'order', label: '訂單' },
+  { value: 'groupbuy', label: '團購' },
+  { value: 'trip', label: '體驗活動' },
+  { value: 'blog', label: '專欄文章' }
 ]
 
 // 通知列表代碼
@@ -29,7 +29,7 @@ const TYPE_LABEL = {
   account: '帳號',
   order: '訂單',
   groupbuy: '團購',
-  trip: '體驗活動', 
+  trip: '體驗活動',
   blog: '專欄文章'
 }
 
@@ -118,42 +118,37 @@ function formateDateTime(dt) {
 </script>
 
 <template>
-  <main class="notif-page">
-    <div class="notif-wrap">
+  <main class="farmer-page">
 
-      <header>
-        <h1>🔔 我的通知</h1>
-      </header>
-      
-      <nav class="filter">
-        <button v-for="opt in TYPE_OPTIONS" :key="opt.value" 
-        class="chip" :class="{ active: targetType === opt.value }"
+    <header class="page-head">
+      <h1>🔔 通知</h1>
+    </header>
+
+    <section class="card">
+      <nav class="sub-tabs">
+        <button v-for="opt in TYPE_OPTIONS" :key="opt.value" type="button" class="sub-tab-btn" :class="{ 'sub-tab-btn--active': targetType === opt.value }"
         @click="changeType(opt.value)">{{ opt.label }}</button>
         <!-- :class="{active: 條件}" 用來高亮目前的分類 -->
-        
         <button class="btn-ghost mark-all" :disabled="marking" @click="markAll">
-          {{ marking ? '處理中...' : '全部已讀' }} <!-- 處理中 marking == true，換字並禁用 -->
+          {{ marking ? '處理中...' : '全部已讀' }}
         </button>
       </nav>
 
       <!-- 載入狀態 -->
-      <p v-if="loading" class="hint">載入中...</p>
-      <p v-else-if="loadError" class="msg-err">{{ loadError }}</p>
-      <p v-else-if="notifs.length === 0" class="hint">暫無通知。</p>
+      <p v-if="loading" class="state">載入中...</p>
+      <p v-else-if="loadError" class="state state-error">{{ loadError }}</p>
+      <p v-else-if="notifs.length === 0" class="state">暫無通知</p>
 
       <!-- 非以上三種狀態，載入通知列表 -->
       <ul v-else class="notif-list">
-        <li 
-          v-for="n in notifs" :key="n.notificationId"
-          class="notif-item" :class="{ unread: n.status === 'unread' }"
-          @click="markOne(n)"
-        >
-          <span class="notif-tag" :class="'tag-' + (n.targetType.toLowerCase() || 'other')">
+        <li v-for="n in notifs" :key="n.notificationId" class="notif-row" :class="{ unread: n.status === 'unread' }"
+          @click="markOne(n)">
+          <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
             {{ TYPE_LABEL[n.targetType] || '其他' }}
           </span>
           <div class="notif-main">
             <p class="notif-contnet">{{ n.content }}</p>
-            <span class="notif-time">{{ formateDateTime(n.createdAt) }}</span>
+            <time class="notif-time" :datetime="n.createdAt">{{ formateDateTime(n.createdAt) }}</time>
           </div>
           <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
         </li>
@@ -162,191 +157,113 @@ function formateDateTime(dt) {
       <!-- 分頁 (超過一頁才顯示) -->
       <div v-if="totalPages > 1" class="pager">
         <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
-        <span class="pager-info">第 {{ page + 1}} / {{ totalPages }} 頁</span>
+        <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
         <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
       </div>
-
-    </div>
+    </section>
   </main>
 </template>
 
 <style scoped>
-.notif-page {
-  padding: 40px 18px;
-  min-height: 60vh;
-}
 
-.notif-wrap {
-  max-width: 640px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* 頁面外框 & 標題 */
+.farmer-page { padding: 32px 24px; }
+.page-head { margin-bottom: 20px; }
+.page-head h1 { margin: 0; font-size: 24px; color: var(--ink); }
 
-.notif-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.notif-head h1 {
-  margin: 0;
-  font-size: 26px;
-  color: var(--ink);
-}
-
-/* 分類 chip */
-.filter {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  padding: 6px 14px;
+/* 大白框 + 上緣綠條:全站共用面板 */
+.card {
+  background: #fff;
   border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  border-top: 3px solid var(--leaf);
+}
+
+/* 分類篩選藥丸 */
+.sub-tabs {
+  display: flex;
+  align-items: center;      /* 藥丸和按鈕垂直對齊 */
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.sub-tab-btn {
+  padding: 6px 16px;
   border-radius: 999px;
+  border: 1px solid var(--line);
   background: #fff;
   color: var(--ink-soft);
+  font-size: 13px;
   cursor: pointer;
-  font-size: 14px;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
 }
+.sub-tab-btn:hover { border-color: var(--leaf); }
 
-/* 選中高亮 */
-.chip.active {
-  background: var(--leaf);
-  color: #fff;
+/* active: 淺綠底 + 綠框 + 深綠字 */
+.sub-tab-btn--active {
+  background: var(--leaf-soft);
   border-color: var(--leaf);
+  color: var(--leaf-dark);
+  font-weight: 600;
 }
 
-.mark-all {
-  margin-left: auto;
-}
+/* 全部已讀: 推到最右 */
+.mark-all { margin-left: auto; }
 
-/* 通知清單 */
-.notif-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+/* 狀態文字: 面板內簡單置中(對齊 .state) */
+.state { text-align: center; color: var(--muted); padding: 24px 0; }
+.state-error { color: #c0392b; }
 
-.notif-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: #fff;
+/* 清單 */
+.notif-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+
+/* 每列: 淡邊框、無陰影、無浮起 (對齊 .product-row) */
+.notif-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 14px 16px;
   cursor: pointer;
-  box-shadow: var(--shadow);
+  transition: border-color .15s ease;
 }
+.notif-row:hover { border-color: var(--leaf); }
+.notif-row.unread { background: var(--leaf-soft); border-color: var(--leaf); }
 
-.notif-item.unread {
-  border-left: 3px solid var(--leaf);
-  background: var(--leaf-soft);
-}
-
-/* 未讀:綠邊 + 淺綠底 */
-.notif-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.notif-content {
-  margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-}
-
+/* 左側分類標籤 (固定寬、置中) */
 .notif-tag {
-  flex-shrink: 0;              /* 不被壓縮, 維持固定寬 */
-  align-self: flex-start;      /* 貼齊頂端, 和第一行文字對齊 */
-  width: 72px;
-  box-sizing: border-box;
-  text-align: center;
-  background: var(--leaf-soft); /* 淺綠底 */
-  color: var(--leaf-dark);      /* 深綠字 */
-  padding: 3px 10px;
-  border-radius: 999px;        /* 膠囊造型 */
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;          /* 「訂單」不換行 */
+  flex-shrink: 0; width: 72px; box-sizing: border-box; text-align: center;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--leaf-soft); color: var(--leaf-dark);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
 }
 
-.notif-time {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-/* 未讀圓點 */
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--leaf);
-  flex-shrink: 0;
-}
-
+/* 分類標籤配色 (沿用會員頁), 沒對到的就用預設綠色 */
 .tag-account  { background: #ffe4e4; color: #d60000; }  /* 會員:紅 */
 .tag-order    { background: #fdeede; color: #b5651d; }  /* 訂單:橘 */
 .tag-groupbuy { background: #e3eefb; color: #2f5fa5; }  /* 團購:藍 */
-.tag-trip     { background: #f7f59f; color: #dad60f; }  /* 體驗活動:黃 */
+.tag-trip     { background: #f7f59f; color: #8f8d05; }  /* 體驗活動:黃 */
 .tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 專欄文章:紫*/
-/* ...沒對到的就用預設綠色 */
+
+/* 中間內容 (min-width:0 讓長文字正常收合) */
+.notif-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.notif-content { margin: 0; color: var(--ink); font-size: 15px; }
+.notif-time { font-size: 12px; color: var(--muted); }
+
+/* 未讀圓點 */
+.dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--leaf); }
 
 /* 分頁 */
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 8px;
-}
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
+.pager-info { color: var(--ink-soft); font-size: 14px; }
 
-.pager-info {
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
-/* 共用小元素 */
+/* 按鈕 */
 .btn-ghost {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink-soft);
-  cursor: pointer;
-  font-size: 14px;
+  padding: 7px 16px; border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink-soft); cursor: pointer; font-size: 14px;
 }
+.btn-ghost:hover:not(:disabled) { border-color: var(--leaf); color: var(--leaf); }
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
 
-.btn-ghost:hover:not(:disabled) {
-  border-color: var(--leaf);
-  color: var(--leaf);
-}
-
-.btn-ghost:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.hint {
-  color: var(--muted);
-  text-align: center;
-  padding: 24px 0;
-}
-
-.msg-err {
-  color: #c0392b;
-  text-align: center;
-  padding: 24px 0;
-}
 </style>
