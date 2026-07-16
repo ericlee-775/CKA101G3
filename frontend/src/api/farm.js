@@ -21,4 +21,9 @@ export const getFarm = (farmerId) => http.get(`/api/farms/${farmerId}`)
 // 某農場的關聯內容
 export const getFarmBlogs = (farmerId) => http.get(`/api/farms/${farmerId}/blogs`)        // 後端已有
 export const getFarmTrips = (farmerId) => http.get(`/api/farms/${farmerId}/farm-trips`)    // 後端待加（體驗活動模組負責人）
-export const getFarmProducts = (farmerId) => http.get(`/api/farms/${farmerId}/products`)   // 後端待加（商品模組負責人）
+
+// 某農場的商品：直接用商品複合查詢的 farmerId 篩選（不用等 /api/farms/{id}/products）。
+// 搜尋端點回的是分頁 Page 物件，取出 content 陣列給農場專頁使用。
+export const getFarmProducts = (farmerId) =>
+  http.get(`/api/products/search?farmerId=${farmerId}&size=100`)
+    .then((data) => (Array.isArray(data) ? data : data?.content ?? []))
