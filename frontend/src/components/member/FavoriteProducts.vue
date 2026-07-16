@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import noImage from '@/assets/no-image.svg'
 
 // 會員中心：我的收藏 → 商品收藏（預設佔位元件）
 // 商品收藏的所有程式碼（打 API、清單畫面、取消收藏）都寫在這個元件裡。
@@ -58,144 +59,229 @@ onMounted(loadWishList)
 </script>
 
 <template>
-  <section class="card">
-    <p v-if="loading" class="state">載入中…</p>
-
-    <div v-else-if="error" class="state state-error">
-      <p class="msg-err">{{ error }}</p>
-      <button type="button" class="btn-ghost" @click="loadWishList">重新載入</button>
+  <div class="fp-list">
+    <div v-if="loading" class="state-box">
+      <p>載入中…</p>
     </div>
 
-    <div v-else-if="products.length === 0" class="state">
-      <p>還沒有收藏商品，快去挑選喜歡的商品吧！</p>
-      <router-link class="btn" to="/products">去逛逛商品 →</router-link>
+    <div v-else-if="error" class="state-box">
+      <span class="state-icon">😵</span>
+      <p>{{ error }}</p>
+      <button type="button" class="state-btn" @click="loadWishList">重新載入</button>
     </div>
 
-    <div v-else class="favorite-list">
-      <article v-for="product in products" :key="product.productId" class="favorite-row">
-        <div class="favorite-row__info">
-          <h3>{{ product.productName }}</h3>
-          <p class="favorite-row__unit">{{ product.unitPricingMeasure }}</p>
-        </div>
-        <div class="favorite-row__actions">
-          <span class="favorite-row__price">NT$ {{ product.retailPrice }}</span>
-          <button type="button" class="btn-ghost" @click="removeWishList(product.productId)">移除收藏</button>
+    <div v-else-if="products.length === 0" class="state-box">
+      <span class="state-icon">🤍</span>
+      <p>還沒有收藏任何商品</p>
+      <router-link class="state-btn" to="/products">去逛逛商品 →</router-link>
+    </div>
+
+    <template v-else>
+      <article v-for="product in products" :key="product.productId" class="fp-card">
+        <RouterLink
+          class="fp-card__link"
+          :to="{ name: 'product-detail', params: { productId: product.productId } }"
+        >
+          <div class="fp-img-wrap">
+            <!-- 直接用後端圖片端點當 src；沒圖（404）時 @error 換成預設圖 -->
+            <img class="fp-img" :src="`/api/products/${product.productId}/image`"
+              :alt="product.productName" loading="lazy"
+              @error="$event.target.src = noImage">
+          </div>
+        </RouterLink>
+
+        <div class="fp-body">
+          <div class="fp-head">
+            <RouterLink
+              class="fp-name-link"
+              :to="{ name: 'product-detail', params: { productId: product.productId } }"
+            >
+              <h3 class="fp-name">{{ product.productName }}</h3>
+            </RouterLink>
+            <!-- 這裡的愛心一定是實心（清單裡都是收藏過的），點下去取消收藏 -->
+            <button type="button" class="fp-heart" aria-label="取消收藏"
+              @click="removeWishList(product.productId)">
+              ♥
+            </button>
+          </div>
+
+          <!-- 商品描述：沒填描述（null）時顯示預設字 -->
+          <p class="fp-desc">{{ product.description || '（無描述）' }}</p>
+
+          <dl class="fp-grid">
+            <div class="fp-cell">
+              <dt>零售價</dt>
+              <dd>NT$ {{ product.retailPrice }}</dd>
+            </div>
+            <div class="fp-cell">
+              <dt>計價單位</dt>
+              <dd>{{ product.unitPricingMeasure || '—' }}</dd>
+            </div>
+          </dl>
         </div>
       </article>
-    </div>
-  </section>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-/* 卡片外框：跟全站其他頁面同一套（白底、陰影、頂部一條主題綠） */
-.card {
+.fp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== 收藏卡片：左圖右文 ===== */
+.fp-card {
+  display: flex;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: var(--shadow);
-  padding: 24px;
-  border-top: 3px solid var(--leaf);
+  overflow: hidden;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.fp-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+.fp-card__link {
+  flex: 0 0 120px;
+  display: block;
+}
+.fp-img-wrap {
+  width: 100%;
+  height: 100%;
+  background: var(--line);
+}
+.fp-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.fp-body {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
 }
 
-/* 載入中／錯誤／空清單：置中提示，內容用 flex 直排、留間距 */
-.state {
-  text-align: center;
-  color: var(--muted);
-  padding: 40px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.state p {
-  margin: 0;
-}
-.msg-err {
-  margin: 0;
-  color: #c0392b;
-  font-size: 14px;
-}
-
-/* 收藏清單：每筆之間留間距 */
-.favorite-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 單筆收藏：左邊商品資訊、右邊價格+移除按鈕，兩端對齊；
-   flex-wrap 讓窄螢幕時能自動換行，不會擠爆 */
-.favorite-row {
+/* 名稱 + 愛心排同一行、左右對齊 */
+.fp-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
-.favorite-row__info h3 {
-  margin: 0 0 2px;
-  font-size: 16px;
-  color: var(--ink);
+.fp-name-link {
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
 }
-.favorite-row__unit {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.favorite-row__actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.favorite-row__price {
-  font-size: 15px;
-  font-weight: 600;
+.fp-name-link:hover .fp-name {
   color: var(--leaf-dark);
 }
-
-/* 主要動作（去逛逛商品）：實心主題綠 */
-.btn {
-  padding: 9px 18px;
+.fp-name {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-heart {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: 10px;
-  background: var(--leaf);
-  color: #fff;
+  border-radius: 50%;
+  background: #fdeaea;
+  color: #e0435b;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.fp-heart:hover {
+  transform: scale(1.1);
+  background: #fbd7d7;
+}
+
+/* 商品描述：小字、次要色，單行截斷（同 .fp-name 的三件組），避免長描述撐爆卡片 */
+.fp-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 欄位以小格子排列，窄螢幕自動換行 */
+.fp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 16px;
+  margin: 0;
+}
+.fp-cell dt {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.fp-cell dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 560px) {
+  .fp-card {
+    flex-direction: column;
+  }
+  .fp-card__link {
+    flex-basis: auto;
+    height: 140px;
+  }
+  .fp-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== 載入中 / 失敗 / 空狀態 ===== */
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  background: #fff;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  text-align: center;
+}
+.state-icon { font-size: 38px; }
+.state-box p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.state-btn {
+  margin-top: 6px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--leaf);
+  background: #fff;
+  color: var(--leaf);
   font-size: 14px;
   text-decoration: none;
-  display: inline-block;
   cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
 }
-.btn:hover {
-  background: var(--leaf-dark);
-}
-
-/* 次要動作（重新載入／移除收藏）：白底外框 */
-.btn-ghost {
-  padding: 8px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink-soft);
-  font-size: 14px;
-  cursor: pointer;
-}
-.btn-ghost:hover {
-  border-color: var(--leaf);
-  color: var(--leaf);
-}
-
-/* 窄螢幕：單筆收藏改成上下堆疊，操作區撐滿寬度 */
-@media (max-width: 480px) {
-  .favorite-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .favorite-row__actions {
-    width: 100%;
-    justify-content: space-between;
-  }
+.state-btn:hover {
+  background: var(--leaf);
+  color: #fff;
 }
 </style>

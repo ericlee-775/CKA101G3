@@ -14,11 +14,23 @@ public class ProductSummaryDTO {
         this.unitPricingMeasure = unitPricingMeasure;
         this.productName = productName;
     }
+
+    // ③ 多載建構子（收藏清單用）：比 ② 多帶 description，JPQL 的 new 依參數數量自動挑建構子
+    //    ② 的 4 參數版不能刪——熱門商品、複合查詢的 @Query 還在用
+    public ProductSummaryDTO(Integer productId, Integer retailPrice,
+                      String unitPricingMeasure, String productName, String description) {
+        this.productId = productId;
+        this.retailPrice = retailPrice;
+        this.unitPricingMeasure = unitPricingMeasure;
+        this.productName = productName;
+        this.description = description;
+    }
 	
 	private Integer productId;
 	private Integer retailPrice;
 	private String unitPricingMeasure;
 	private String productName;
+	private String description;
 	
 	
 	public Integer getProductId() {
@@ -44,6 +56,12 @@ public class ProductSummaryDTO {
 	}
 	public void setProductName(String productName) {
 		this.productName = productName;
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
 	}
 	
 	

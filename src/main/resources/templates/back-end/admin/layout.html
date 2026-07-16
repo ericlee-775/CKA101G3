@@ -52,6 +52,12 @@
                sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/admins}">
                 <span class="ico">🛡️</span> 管理員管理</a>
 
+            <a class="nav-link" data-path="/admin/products"
+               sec:authorize="hasAuthority('PERM_ADMIN')" th:href="@{/admin/products}">
+                <span class="ico">🔥</span> 熱門商品管理</a>
+                
+           
+
             <div class="nav-section">帳號</div>
             <a class="nav-link" data-path="/admin/profile" th:href="@{/admin/profile}">
                 <span class="ico">⚙️</span> 個人資料</a>

@@ -1,5 +1,7 @@
 package com.farmily.product.dto;
 
+import java.util.List;
+
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.constraints.Min;
@@ -32,6 +34,17 @@ public class ProductInsertDTO {
 	private Boolean isGroupBuy; // 是否開團
 	private String description; // 商品描述
 	private MultipartFile productImage; // 商品圖片
+	private List<MultipartFile> productImages;// 商品圖片（多張，存 PRODUCT_IMAGE 表））
+
+	
+
+	public List<MultipartFile> getProductImages() {
+		return productImages;
+	}
+
+	public void setProductImages(List<MultipartFile> productImages) {
+		this.productImages = productImages;
+	}
 
 	public Integer getSubCatClassId() {
 		return subCatClassId;

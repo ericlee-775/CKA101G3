@@ -78,5 +78,13 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	// 只撈圖片這一個欄位（不載入整個 entity 的其他欄位）→ 讀圖時用
 	@Query("SELECT p.productImage FROM ProductVO p WHERE p.productId = :id")
 	byte[] findImageById(@Param("id") Integer id);
+	
+	//用 id 撈單筆摘要
+	@Query("SELECT new com.farmily.product.dto.ProductSummaryDTO("
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "FROM ProductVO p JOIN p.farmer f "
+			+ "WHERE p.productId = :id AND p.status = com.farmily.product.model.ProductStatus.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE")
+	ProductSummaryDTO findSummaryById(@Param("id") Integer id);
 
 }

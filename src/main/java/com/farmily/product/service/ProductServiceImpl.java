@@ -1,5 +1,7 @@
 package com.farmily.product.service;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,16 +36,21 @@ public class ProductServiceImpl implements ProductService {
 	private WishListRepository wishListRepository;
 	@Autowired
 	private SubCategoryRepository subCategoryRepository;
+	@Autowired
+	private ProductImageService productImageService;
+	@Autowired
+	private ProductClickService productClickService;
 
 	@Override
 	@Transactional(readOnly = true)
 	public Page<ProductSummaryDTO> getAllProducts(Pageable pageable) {
 		return productRepository.findAllProjectedToDto(pageable);
 	}
+
 	@Override
 	@Transactional(readOnly = true)
-	public Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId,
-			Integer minPrice, Integer maxPrice, Pageable pageable) {
+	public Page<ProductSummaryDTO> searchProducts(String keyword, Integer subCatClassId, Integer minPrice,
+			Integer maxPrice, Pageable pageable) {
 		if (keyword != null && keyword.isBlank()) {
 			keyword = null;
 		}
@@ -52,10 +59,9 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<ProductManageDTO> getMyProducts(Integer farmerId){
+	public List<ProductManageDTO> getMyProducts(Integer farmerId) {
 		return productRepository.findMyProducts(farmerId);
 	}
-	
 
 	@Transactional(readOnly = true)
 	public ProductVO getProductReferenceById(Integer productId) {
@@ -64,12 +70,15 @@ public class ProductServiceImpl implements ProductService {
 
 	// 存單筆產品
 	@Override
-	public Integer addProduct(ProductInsertDTO dto, Integer farmerId) {
+	public Integer addProduct(ProductInsertDTO dto, Integer farmerId) throws IOException {
 
-		if(!subCategoryRepository.existsById(dto.getSubCatClassId())) {
+		if (!subCategoryRepository.existsById(dto.getSubCatClassId())) {
 			throw new IllegalArgumentException("查無此分類");
 		}
-		
+		if (dto.getGroupPrice() != null && dto.getRetailPrice() != null && dto.getGroupPrice() > dto.getRetailPrice()) {
+			throw new IllegalArgumentException("團購價不得高於原價");
+		}
+
 		ProductVO productVO = new ProductVO();
 		productVO.setProductName(dto.getProductName());
 		productVO.setRetailPrice(dto.getRetailPrice());
@@ -92,6 +101,11 @@ public class ProductServiceImpl implements ProductService {
 
 		productRepository.save(productVO);
 
+		if (dto.getProductImages() != null && !dto.getProductImages().isEmpty()) {
+
+			productImageService.addProductImages(productVO.getProductId(), dto.getProductImages());
+		}
+
 		return productVO.getProductId();
 	}
 
@@ -106,6 +120,14 @@ public class ProductServiceImpl implements ProductService {
 		if (!product.getFarmerId().equals(farmerId)) {
 			throw new AccessDeniedException("無權限修改此商品");
 		}
+
+		// PATCH 可能只帶其中一個價格：沒帶的用商品現有的值，驗證的是「改完之後」的最終狀態
+		Integer newRetailPrice = (dto.getRetailPrice() != null) ? dto.getRetailPrice() : product.getRetailPrice();
+		Integer newGroupPrice = (dto.getGroupPrice() != null) ? dto.getGroupPrice() : product.getGroupPrice();
+		if (newGroupPrice != null && newRetailPrice != null && newGroupPrice > newRetailPrice) {
+			throw new IllegalArgumentException("團購價不得高於原價");
+		}
+
 		if (dto.getRetailPrice() != null) {
 			product.setRetailPrice(dto.getRetailPrice());
 		}
@@ -132,7 +154,6 @@ public class ProductServiceImpl implements ProductService {
 	public ProductDetailDTO getProductDetail(Integer productId) {
 		return productRepository.findDetailById(productId);
 	}
-
 
 	// 給團購用的全部查詢
 	@Override
@@ -173,11 +194,10 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public boolean deleteWishList(Integer productId, Integer userId) {
 
-		if(!productRepository.existsById(productId)) {
+		if (!productRepository.existsById(productId)) {
 			throw new IllegalArgumentException("查無此商品");
 		}
-		
-		
+
 		if (wishListRepository.existsByProductIdAndUserId(productId, userId)) {
 
 			WishListId id = new WishListId();
@@ -195,5 +215,23 @@ public class ProductServiceImpl implements ProductService {
 	public List<ProductSummaryDTO> getAllWishLists(Integer userId) {
 
 		return wishListRepository.findWishListByUserId(userId);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProductSummaryDTO> getHotProducts() {
+
+		List<Integer> hotIds = productClickService.getHotProductIds();
+
+		List<ProductSummaryDTO> result = new ArrayList<>();
+
+		for (Integer id : hotIds) {
+			ProductSummaryDTO dto = productRepository.findSummaryById(id);
+			if (dto != null) {
+				result.add(dto);
+			}
+		}
+		return result;
+
 	}
 }
