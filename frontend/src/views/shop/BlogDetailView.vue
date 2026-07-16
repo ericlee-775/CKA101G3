@@ -214,6 +214,14 @@ onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
            @error="$event.target.style.display = 'none'" alt="" />
       <span class="badge">{{ typeName }}</span>
       <h1 class="title">{{ blog.blogTitle }}</h1>
+      <!-- 作者：小農文=🏡農場名(可點進農場頁)、會員文=👤會員名(純文字)；後端沒帶名字就整行不顯示 -->
+      <p v-if="blog.authorName" class="author">
+        <router-link v-if="blog.authorType === 'FARMER'" class="author-link"
+                     :to="{ name: 'farm-detail', params: { farmerId: blog.farmerId } }">
+          🏡 {{ blog.authorName }}
+        </router-link>
+        <span v-else>👤 {{ blog.authorName }}</span>
+      </p>
       <div class="meta">
         {{ fmt(blog.blogTime) }} ｜
         <button class="like-btn" :class="{ liked }" :disabled="liking || !canInteract"
@@ -247,7 +255,7 @@ onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
         <ul v-if="comments.length" class="c-list">
           <li v-for="c in comments" :key="c.commentId">
             <div class="c-head">
-              會員 · {{ fmt(c.commentTime) }}
+              {{ c.authorName || '會員' }} · {{ fmt(c.commentTime) }}
               <button v-if="myUserId && c.userId === myUserId" class="report-link"
                       @click="removeComment(c.commentId)" title="刪除留言">🗑 刪除</button>
               <button v-else-if="canInteract" class="report-link"
@@ -304,6 +312,9 @@ onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
   font-size: 13px; font-weight: 600;
 }
 .title { margin: 12px 32px 6px; font-size: 28px; color: var(--ink); line-height: 1.3; }
+.author { margin: 4px 32px 10px; font-size: 14px; color: var(--muted); }
+.author-link { color: var(--leaf-dark); font-weight: 600; text-decoration: none; }
+.author-link:hover { text-decoration: underline; }
 .meta { margin: 0 32px 20px; color: var(--muted); font-size: 13px; }
 .content { margin: 0 32px; color: var(--ink-soft); font-size: 16px; line-height: 1.85; }
 .content :deep(h3) { color: #16a34a; font-size: 20px; margin: 24px 0 8px; }

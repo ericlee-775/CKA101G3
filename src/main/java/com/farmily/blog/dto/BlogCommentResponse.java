@@ -14,6 +14,7 @@ public class BlogCommentResponse {
     private String commentPost;
     private Integer commentLike;
     private BlogStatus commentStatus;
+    private String authorName;
 
     public static BlogCommentResponse from(BlogComment c) {
         BlogCommentResponse r = new BlogCommentResponse();
@@ -24,6 +25,7 @@ public class BlogCommentResponse {
         r.setCommentPost(c.getCommentPost());
         r.setCommentLike(c.getCommentLike());
         r.setCommentStatus(c.getCommentStatus());
+        r.setAuthorName(c.getAuthorName());   // 帶入留言者顯示名稱（會員暱稱/姓名）
         return r;
     }
 
@@ -81,5 +83,13 @@ public class BlogCommentResponse {
 
     public void setCommentStatus(BlogStatus commentStatus) {
         this.commentStatus = commentStatus;
+    }
+
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
     }
 }
