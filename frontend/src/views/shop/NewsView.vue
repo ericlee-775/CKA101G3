@@ -64,12 +64,10 @@ onMounted(loadNews)
 
 <template>
   <main class="page">
+    <!-- Hero：與「全部商品」同款規格(emoji 同行、置中) -->
     <section class="hero">
-      <span class="hero__icon" aria-hidden="true">📰</span>
-      <div>
-        <h1>最新消息</h1>
-        <p>掌握 Farmily 平台公告、產季資訊與活動更新。</p>
-      </div>
+      <h1>📰 最新消息</h1>
+      <p>掌握 Farmily 平台公告、產季資訊與活動更新。</p>
     </section>
 
     <p v-if="loading" class="state">載入最新消息中…</p>
@@ -130,30 +128,18 @@ onMounted(loadNews)
 .page {
   width: min(1120px, calc(100% - 36px));
   margin: 0 auto;
-  padding: 56px 0 72px;
+  padding: 32px 0 72px;   /* 上方間距對齊其他導覽頁(32px) */
 }
 
 .hero {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.hero__icon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: var(--leaf-soft);
-  font-size: 28px;
+  text-align: center;
+  margin-bottom: 32px;
 }
 
 .hero h1 {
   margin: 0 0 8px;
   color: var(--ink);
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .hero p {
@@ -277,14 +263,6 @@ onMounted(loadNews)
   .page {
     width: min(100% - 28px, 1120px);
     padding-top: 36px;
-  }
-
-  .hero {
-    align-items: flex-start;
-  }
-
-  .hero h1 {
-    font-size: 28px;
   }
 
   .news-card {

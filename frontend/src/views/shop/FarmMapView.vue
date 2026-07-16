@@ -149,10 +149,11 @@ onBeforeUnmount(() => { if (map) { map.remove(); map = null } })
 
 <template>
   <main class="map-page">
-    <header class="map-hero">
+    <!-- Hero：與「全部商品」同款規格(emoji + 標題同行、置中) -->
+    <section class="hero">
       <h1>🗺️ 產地地圖</h1>
       <p>點選農場釘點或左側清單，看看你的食材來自台灣哪個角落。</p>
-    </header>
+    </section>
 
     <p v-if="loading" class="state">農場資料載入中…</p>
 
@@ -226,9 +227,10 @@ onBeforeUnmount(() => { if (map) { map.remove(); map = null } })
   max-width: 1100px;
   margin: 0 auto;
 }
-.map-hero { text-align: center; margin-bottom: 24px; }
-.map-hero h1 { font-size: 28px; color: var(--ink); margin: 0 0 8px; }
-.map-hero p { color: var(--muted); margin: 0; }
+/* ===== Hero（與「全部商品」ProductsView 同款：emoji 同行、置中）===== */
+.hero { text-align: center; margin-bottom: 32px; }
+.hero h1 { font-size: 28px; color: var(--ink); margin: 0 0 8px; }
+.hero p { color: var(--muted); margin: 0; }
 
 .state { padding: 44px 0; text-align: center; color: var(--muted); }
 .state--error { color: #b42318; }
@@ -269,7 +271,9 @@ onBeforeUnmount(() => { if (map) { map.remove(); map = null } })
 .farm-empty { padding: 16px; color: var(--muted); text-align: center; }
 
 /* 地圖 */
-.map-wrap { position: relative; }
+/* z-index:0 建立一個低層級 stacking context，把 Leaflet 內部(圖層/控制項 z-index 高達 1000)
+   全部關在這層裡，捲動時才不會壓過 sticky header(z-index:30) 把上排導覽選項蓋掉 */
+.map-wrap { position: relative; z-index: 0; }
 .map-frame {
   height: 560px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
   background: var(--leaf-soft);
