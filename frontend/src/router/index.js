@@ -40,6 +40,7 @@ import MemberProfileView from '@/views/member/MemberProfileView.vue'
 import MemberGroupBuysView from '@/views/member/MemberGroupBuysView.vue'
 import MemberFavoritesView from '@/views/member/MemberFavoritesView.vue'
 import MemberOrdersView from '@/views/member/MemberOrdersView.vue'
+import MemberFarmTripOrdersView from '@/views/member/MemberFarmTripOrdersView.vue'
 import MemberCouponsView from '@/views/member/MemberCouponsView.vue'
 import MemberNotificationsView from '@/views/member/MemberNotificationsView.vue'
 import MemberBlogView from '@/views/member/MemberBlogView.vue'
@@ -135,6 +136,8 @@ const router = createRouter({
             { path: 'favorites',     name: 'member-favorites',     component: MemberFavoritesView },
             // 我的訂單
             { path: 'orders',        name: 'member-orders',        component: MemberOrdersView },
+            // 我的體驗活動報名
+            { path: 'farm-trips',    name: 'member-farm-trips',    component: MemberFarmTripOrdersView },
             // 我的通知 
             { path: 'notifications', name: 'member-notifications', component: MemberNotificationsView },
             // 以下三頁各自獨立成元件，功能開發中先放佔位內容

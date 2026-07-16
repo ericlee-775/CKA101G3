@@ -178,9 +178,18 @@ watch(farmerId, loadFarmDetail)
             class="trip-card product-card"
             :to="{ name: 'product-detail', params: { productId: product.productId } }"
           >
-            <h3>{{ product.productName }}</h3>
-            <p>{{ product.unitPricingMeasure }}</p>
-            <strong>{{ formatPrice(product.retailPrice) }}</strong>
+            <img
+              class="trip-card__image"
+              :src="`/api/products/${product.productId}/image`"
+              :alt="product.productName"
+              @error="$event.target.style.display = 'none'"
+            />
+            <div class="trip-card__body">
+              <span>農場商品</span>
+              <h3>{{ product.productName }}</h3>
+              <p>{{ product.unitPricingMeasure }}</p>
+              <strong>{{ formatPrice(product.retailPrice) }}</strong>
+            </div>
           </RouterLink>
         </div>
       </section>
