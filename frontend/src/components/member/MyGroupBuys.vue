@@ -13,7 +13,7 @@ import GroupBuyOrderList from '@/components/member/GroupBuyOrderList.vue'
 import GroupBuyRequestList from '@/components/member/GroupBuyRequestList.vue'
 
 const tabs = [
-  { key: 'joined', label: '進行中', icon: '👥' },
+  { key: 'joined', label: '團購追蹤', icon: '👥' },
   { key: 'orders', label: '訂單', icon: '🧾' },
   { key: 'requests', label: '開團申請', icon: '📋' },
 ]
