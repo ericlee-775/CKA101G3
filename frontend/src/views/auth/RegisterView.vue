@@ -2,7 +2,10 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import memberApi from '@/api/member'
+import authStore from '@/stores/auth'
+import GoogleLoginButton from '@/components/GoogleLoginButton.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import { confirm as confirmDialog } from '@/composables/useConfirm'
 
 const router = useRouter()
 
@@ -19,7 +22,13 @@ const loading = ref(false)
 // ===== 田埂插秧:一個欄位對應一叢秧苗,填好就插好一叢 =====
 const nameOk = computed(() => name.value.trim().length > 0)
 const emailOk = computed(() => email.value.includes('@') && email.value.length > 3)
-const pwdOk = computed(() => password.value.length >= 8)
+// 對齊後端：8~60 字且需同時含英文與數字
+const pwdOk = computed(() =>
+  password.value.length >= 8 &&
+  password.value.length <= 60 &&
+  /[A-Za-z]/.test(password.value) &&
+  /\d/.test(password.value)
+)
 const confirmOk = computed(() => confirm.value.length > 0 && confirm.value === password.value)
 
 // 四叢秧苗:label 顯示在小木牌上,ok = 該欄位完成(插好秧)
@@ -33,7 +42,7 @@ const crops = computed(() => [
 const grownCount = computed(() => crops.value.filter((c) => c.ok).length)
 const hint = computed(() => {
   if (done.value) return '結穗了!歡迎加入 Farmily'
-  if (grownCount.value === 4) return '四叢都插好了,按「註冊」等它結穗'
+  if (grownCount.value === 4) return '四叢都插好了，按「註冊」等它結穗'
   return `已插好 ${grownCount.value} / 4 叢秧苗`
 })
 
@@ -49,9 +58,13 @@ async function handleRegister() {
     error.value = '信箱格式不正確'
     return
   }
-  // 後端 @Size(min = 8):密碼至少 8 碼
-  if (password.value.length < 8) {
-    error.value = '密碼至少需 8 個字元'
+  // 後端 @Size(8~60) + @Pattern：長度 8~60 且需同時含英文與數字
+  if (password.value.length < 8 || password.value.length > 60) {
+    error.value = '密碼長度需 8~60 字'
+    return
+  }
+  if (!/[A-Za-z]/.test(password.value) || !/\d/.test(password.value)) {
+    error.value = '密碼需同時包含英文字母與數字'
     return
   }
   // 確認兩次密碼一致
@@ -69,13 +82,38 @@ async function handleRegister() {
       userName: name.value,
     })
     done.value = true
-    // 註冊成功後導到登入頁(留一點時間看結穗與飛鳥動畫)
-    setTimeout(() => router.push('/login'), 1800)
+    // 彈窗通知：啟用驗證信已寄出，請至信箱點擊連結完成驗證；按「前往登入」才導回登入頁
+    const goLogin = await confirmDialog({
+      title: '註冊成功，請驗證信箱',
+      message: '啟用驗證信已寄至你的信箱，請點擊信中連結完成 Email 驗證後即可登入。',
+      confirmText: '前往登入',
+      cancelText: '留在此頁',
+    })
+    if (goLogin) router.push('/login')
   } catch (e) {
-    error.value = e.message || '註冊失敗,請稍後再試'
+    error.value = e.message || '註冊失敗，請稍後再試'
   } finally {
     loading.value = false
   }
+}
+
+// Google 註冊/登入:同一個 OAuth 端點,首次登入即自動註冊;成功後已登入,直接進站
+async function handleGoogle(credential) {
+  error.value = ''
+  loading.value = true
+  try {
+    const user = await memberApi.googleLogin(credential)
+    authStore.setUser(user, 'MEMBER')   // 記住登入者身分,header 與受保護頁面才認得
+    router.push('/')
+  } catch (e) {
+    error.value = e.message || 'Google 登入失敗'
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleGoogleError(e) {
+  error.value = e.message || 'Google 登入元件載入失敗'
 }
 </script>
 
@@ -135,7 +173,7 @@ async function handleRegister() {
       <section class="grove">
         <div class="brand">
           <div class="logo"><span class="sprout">🌱</span> Farmily <em>小農市集</em></div>
-          <p>清晨的田剛醒。填一格,插一叢秧;四叢插好,就和 Farmily 一起等收成。</p>
+          <p>清晨的田剛醒。填一格，插一叢秧；四叢插好，就和 Farmily 一起等收成。</p>
         </div>
 
         <!-- 田埂:四叢秧苗,對應四個欄位 -->
@@ -164,7 +202,7 @@ async function handleRegister() {
       <!-- 右:註冊表單(暖色毛玻璃卡片) -->
       <section class="card">
         <h1>會員註冊</h1>
-        <p class="sub">加入 Farmily,享受產地直送</p>
+        <p class="sub">加入 Farmily，享受產地直送</p>
 
         <form class="auth-form" @submit.prevent="handleRegister">
           <label class="fg">
@@ -188,12 +226,18 @@ async function handleRegister() {
           </label>
 
           <p v-if="error" class="auth-error">{{ error }}</p>
-          <p v-if="done" class="auth-ok">註冊成功!正在帶你前往登入…</p>
+          <p v-if="done" class="auth-ok">註冊成功!請至信箱收啟用驗證信完成驗證</p>
 
           <button class="btn" :class="{ done }" type="submit" :disabled="loading || done">
             {{ done ? '歡迎加入 Farmily' : loading ? '註冊中…' : '註冊' }}
           </button>
         </form>
+
+        <!-- 分隔線 -->
+        <div class="divider"><span>或</span></div>
+
+        <!-- Google 註冊/登入(拿到 id_token 後打 /api/member/oauth/google,首次即註冊)-->
+        <GoogleLoginButton @credential="handleGoogle" @error="handleGoogleError" />
 
         <p class="foot">
           已經有帳號了?
@@ -894,6 +938,24 @@ async function handleRegister() {
 .btn:active::after { width: 340px; height: 340px; transition: 0s; }
 .btn:disabled { opacity: 0.75; cursor: not-allowed; }
 .btn.done { background: var(--leaf-g); opacity: 1; }
+
+/* 「或」分隔線 */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.divider span { padding: 0 12px; }
 
 .foot {
   margin: 14px 0 0;

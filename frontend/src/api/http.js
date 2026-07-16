@@ -23,7 +23,13 @@ export async function extractError(response) {
   try {
     const data = JSON.parse(text)
     if (data && typeof data === 'object') {
-      msg = data.message || data.error || text   // 常見錯誤欄位
+      if (data.message || data.error) {
+        msg = data.message || data.error          // 常見錯誤欄位
+      } else {
+        // Bean Validation 欄位錯誤 map：{ 欄位: 訊息, ... }，用「；」串起來（單行也可讀，不依賴 CSS）
+        const messages = Object.values(data).filter((v) => typeof v === 'string')
+        msg = messages.length ? messages.join('；') : text
+      }
     } else {
       msg = String(data)
     }

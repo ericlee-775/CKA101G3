@@ -154,18 +154,25 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
 
     // 取某輪審核的證明文件 bytes（給管理員預覽 / 下載）
+    // 僅負責（認領/審核）此案件的管理員才能取檔，讓「小農管理詳情」與「小農審核」兩處存取權一致
     @Override
     @Transactional(readOnly = true)
-    public byte[] getCertFile(Integer reviewId, String type) {
+    public byte[] getCertFile(Integer reviewId, String type, Integer adminId) {
         FarmerReview review = findReview(reviewId);
+
+        // adminId 來自已登入管理員，保證非 null，放在 equals 前面避免 NPE
+        Admin owner = review.getAdmin();
+        if (owner == null || !adminId.equals(owner.getAdminId())) {
+            throw new AccessDeniedException("此案件由其他管理員負責，您無法檢視文件");
+        }
 
         String t = (type == null) ? "" : type.toLowerCase();
         byte[] bytes;
-        if (t.equals("land")) {
+        if ("land".equals(t)) {
             bytes = review.getCertFileLand();
-        } else if (t.equals("product")) {
+        } else if ("product".equals(t)) {
             bytes = review.getCertFileProduct();
-        } else if (t.equals("identity")) {
+        } else if ("identity".equals(t)) {
             bytes = review.getCertFileIdentity();
         } else {
             throw new IllegalArgumentException("不支援的文件類型: " + type);

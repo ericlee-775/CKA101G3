@@ -1,5 +1,6 @@
 package com.farmily.trip.service.impl;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -7,19 +8,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.farmily.trip.dto.CommentCreateRequest;
 import com.farmily.trip.dto.CommentResponse;
 import com.farmily.trip.dto.OrderCreateRequest;
 import com.farmily.trip.dto.OrderResponse;
+import com.farmily.trip.dto.OrderUpdateRequest;
 import com.farmily.trip.dto.SessionCreateRequest;
 import com.farmily.trip.dto.SessionResponse;
 import com.farmily.trip.dto.TripCreateRequest;
 import com.farmily.trip.dto.TripDetailResponse;
 import com.farmily.trip.dto.TripListResponse;
 import com.farmily.trip.dto.TripReviewRequest;
+import com.farmily.trip.model.AuditsStatus;
 import com.farmily.trip.model.FarmTrip;
+import com.farmily.trip.model.FarmTripAudits;
 import com.farmily.trip.model.FarmTripComment;
 import com.farmily.trip.model.FarmTripOrder;
 import com.farmily.trip.model.FarmTripSession;
@@ -33,11 +38,8 @@ import com.farmily.trip.repository.FarmTripOrderRepository;
 import com.farmily.trip.repository.FarmTripRepository;
 import com.farmily.trip.repository.FarmTripSessionRepository;
 import com.farmily.trip.service.FarmTripService;
-import com.farmily.trip.dto.OrderUpdateRequest;
-import com.farmily.trip.model.FarmTripAudits;
-import com.farmily.trip.model.AuditsStatus;
-import java.io.IOException;
-import org.springframework.web.multipart.MultipartFile;
+import com.farmily.user.repository.FarmerRepository;
+
 
 @Service
 public class FarmTripServiceImpl implements FarmTripService {
@@ -47,16 +49,20 @@ public class FarmTripServiceImpl implements FarmTripService {
 	private final FarmTripAuditsRepository farmTripAuditsRepository;
 	private final FarmTripOrderRepository farmTripOrderRepository;
 	private final FarmTripCommentRepository farmTripCommentRepository;
-
+	private final FarmerRepository farmerRepository;
+	
 	@Autowired
 	public FarmTripServiceImpl(FarmTripRepository farmTripRepository,
 			FarmTripSessionRepository farmTripSessionRepository, FarmTripAuditsRepository farmTripAuditsRepository,
-			FarmTripOrderRepository farmTripOrderRepository, FarmTripCommentRepository farmTripCommentRepository) {
+			FarmTripOrderRepository farmTripOrderRepository, FarmTripCommentRepository farmTripCommentRepository,
+			FarmerRepository farmerRepository) {
+		
 		this.farmTripRepository = farmTripRepository;
 		this.farmTripSessionRepository = farmTripSessionRepository;
 		this.farmTripAuditsRepository = farmTripAuditsRepository;
 		this.farmTripOrderRepository = farmTripOrderRepository;
 		this.farmTripCommentRepository = farmTripCommentRepository;
+		this.farmerRepository = farmerRepository;                   
 	}
 
 	@Override
@@ -88,6 +94,12 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setReferPrice(trip.getReferPrice());
 		dto.setCommentNumbers(trip.getCommentNumbers());
 		dto.setStarNumbers(trip.getStarNumbers());
+		
+		String farmName = farmerRepository.findById(trip.getFarmerId())
+				.map(f -> f.getFarmName())
+				.orElse(null);
+		dto.setFarmName(farmName);
+						
 		return dto;
 	}
 
@@ -99,6 +111,13 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setLocation(trip.getLocation());
 		dto.setReferPrice(trip.getReferPrice());
 		dto.setStarNumbers(trip.getStarNumbers());
+		
+		String farmName = farmerRepository.findById(trip.getFarmerId())
+				.map(f -> f.getFarmName())
+				.orElse(null);
+		dto.setFarmName(farmName);
+		dto.setFarmerId(trip.getFarmerId());
+		
 		return dto;
 	}
 

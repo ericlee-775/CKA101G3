@@ -61,7 +61,8 @@
             </span>
             <!-- 認領狀態標示 -->
             <span th:if="${r.adminId == currentAdminId}" class="badge badge-primary ml-2">您負責中</span>
-            <span th:unless="${r.adminId == currentAdminId}" class="badge badge-secondary ml-2"
+            <span th:if="${r.adminId == null}" class="badge badge-warning ml-2">尚未被認領</span>
+            <span th:if="${r.adminId != null and r.adminId != currentAdminId}" class="badge badge-secondary ml-2"
                   th:text="'由 ' + ${r.adminName} + ' 審核中'"></span>
         </summary>
 
@@ -102,8 +103,13 @@
                 </details>
             </div>
 
+            <!-- 尚未被認領：提示先認領 -->
+            <p th:if="${r.adminId == null}" class="text-muted mb-0">
+                此案件尚未被認領，請先於待審清單認領後才能檢視文件或審核。
+            </p>
+
             <!-- 非認領者：不提供文件與操作 -->
-            <p th:unless="${r.adminId == currentAdminId}" class="text-muted mb-0">
+            <p th:if="${r.adminId != null and r.adminId != currentAdminId}" class="text-muted mb-0">
                 此案件由其他管理員負責，您無法檢視文件或審核。
             </p>
         </div>

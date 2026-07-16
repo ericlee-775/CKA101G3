@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
             class="hero__photo hero__scene"
             ref="photo"
             role="img"
-            aria-label="手繪稻田插畫：日出、飛鳥與隨風輕搖的稻穗，題有詩句「把酒話桑麻・相逢在田家」與「小農商城」印章"
+            aria-label="手繪稻田插畫：日出、飛鳥與隨風輕搖的稻穗，題有詩句「把酒話桑麻・相逢在田家」"
           >
             <svg class="scene-svg" viewBox="0 0 520 693" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
               <!-- 遠山:兩層淡墨 -->
@@ -179,9 +179,6 @@ onBeforeUnmount(() => {
               <span>相逢在田家</span>
               <span class="minor">跟著節氣採收・照顧土地與人</span>
             </div>
-
-            <!-- 印章紅落款 -->
-            <div class="scene-seal" aria-hidden="true">小農商城</div>
           </figure>
           <!-- 圖說必須在 figure 之外(figure 有 overflow:hidden 會裁掉它),
                因此用 p 而非 figcaption(figcaption 依規範只能是 figure 的子元素) -->
@@ -471,26 +468,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--fh-moss);
   letter-spacing: 0.4em;
-}
-
-/* 印章紅落款(全畫面唯一暖色點綴) */
-.scene-seal {
-  position: absolute;
-  right: 36px;
-  bottom: 44px;
-  width: 44px;
-  height: 44px;
-  background: #a5442a;
-  color: var(--fh-paper);
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  line-height: 1.2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  z-index: 1;
 }
 
 /* --- 插畫動態:日出 / 稻穗搖曳 / 飛鳥滑翔 --- */

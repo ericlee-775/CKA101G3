@@ -73,17 +73,20 @@ async function toggleOrderItems(orderId){
   }
 
   // 展開這張訂單的明細
-  openOrderId.value = orderId
   itemsError.value = ''
-
+  
   // 若明細已經在快取
-  if (groups[orderId]) return
+  if (groups[orderId]) {
+    openOrderId.value = orderId
+    return
+  }
 
   // 沒快取，api 取得明細
   itemsLoading.value = true
   try {
     const res = await memberOrdersApi.listItems(orderId)
     groups[orderId] = res || []
+    openOrderId.value = orderId
   } catch (e){
     itemsError.value = e.message || '載入明細失敗'
     openOrderId.value = null // 失敗就收合列表
@@ -100,6 +103,8 @@ function goPage(p){
 
 
 async function markReceived(orderId, group){
+
+  if (group.shippedStatus !== 'shipping') { return }
   const ok = await confirm({
     title: '確認收貨',
     message: `確定已經收到 ${group.farmerName || '此小農'} 的全部商品嗎?`,
@@ -107,7 +112,6 @@ async function markReceived(orderId, group){
     danger: true,
   })
   if (!ok) return
-  if (group.shippedStatus !== 'shipping') { return }
 
   receivingKey.value = `${orderId}-${group.farmerId}`   // 鎖定收貨按鈕
 
@@ -119,7 +123,7 @@ async function markReceived(orderId, group){
   } catch(e){
     alert(e.message || '操作失敗')
   } finally {
-    receivingId.value = null
+    receivingKey.value = null
   }
 }
 
@@ -129,7 +133,7 @@ async function markReceived(orderId, group){
   <section class="order-page">
     <header class="order-page-head">
       <h1>🧾 我的訂單</h1>
-      <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p>
+      <!-- <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p> -->
     </header>
 
     <p v-if="loading" class="state-box">載入中...</p>
@@ -191,6 +195,12 @@ async function markReceived(orderId, group){
             </header>
 
             <table class="item-table">
+                <colgroup>
+                  <col style="width: 50%" />
+                  <col style="width: 18%" />
+                  <col style="width: 12%" />
+                  <col style="width: 20%" />
+                </colgroup>
               <thead>
                 <tr>
                   <th>商品</th>
@@ -206,14 +216,14 @@ async function markReceived(orderId, group){
                     <span>{{ item.productName }}</span>
                   </td>
                   <td>{{ fmm(item.price) }}</td>
-                  <td>{{ fmm(item.quantity) }}</td>
+                  <td>{{ item.quantity }}</td>
                   <td>{{ fmm(item.itemSubtotal) }}</td>
                 </tr>
               </tbody>
             </table>
 
             <footer class="farmer-foot">
-              <span class="farmer-subtotal">農場小計 {{ g.subtotal }}</span>
+              <span class="farmer-subtotal">農場小計 {{ fmm(g.subtotal) }}</span>
               <button v-if="g.shippedStatus === 'shipping'" 
                 class="btn-primary" :disabled="receivingKey === `${o.orderId}-${g.farmerId}`"
                 @click="markReceived(o.orderId, g)"
@@ -243,16 +253,28 @@ async function markReceived(orderId, group){
 .order-list { display: flex; flex-direction: column; gap: 14px; }
 
 .order-card {
-  background: #fff; border: 1px solid var(--line); border-radius: 16px;
-  padding: 16px 18px; box-shadow: var(--shadow);
-  display: flex; flex-direction: column; gap: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--leaf);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.order-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 .order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .order-id   { display: block; font-weight: 600; color: var(--ink); }
 .order-date { font-size: 12px; color: var(--muted); }
 .order-badges { display: flex; gap: 6px; }
 
-/* 徽章：tone 名稱和組員的 GroupBuyOrderList 完全一致 */
+/* 徽章：tone */
 .badge { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .badge--green { background: #e3f4e8; color: #2f6e46; }
 .badge--blue  { background: #e5eefa; color: #2c5d9e; }
@@ -271,20 +293,24 @@ async function markReceived(orderId, group){
 /* 明細展開區 */
 .item-panel  { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 16px; }
 
-/* ★改：新增小農分組樣式 */
+/* 小農分組樣式 */
 .farmer-group { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--paper); }
 .farmer-head  { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .farmer-name  { font-weight: 600; font-size: 14px; color: var(--leaf-dark); }
 .farmer-foot  { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
-.farmer-subtotal { font-size: 14px; color: var(--ink-soft); }
+.farmer-subtotal { margin-left: auto; font-size: 12px; color: var(--muted); }
 
-.item-table  { width: 100%; border-collapse: collapse; font-size: 14px; }
+.item-table  { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
 .item-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding-bottom: 6px; }
 .item-table td { padding: 8px 0; border-top: 1px solid var(--line); color: var(--ink-soft); }
 .item-name   { display: flex; align-items: center; gap: 10px; }
 .item-img    { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; background: var(--leaf-soft); }
+.item-table th:not(:first-child),
+.item-table td:not(:first-child) {
+  text-align: right;
+}
 
-/* 按鈕 / 狀態（和通知頁同款） */
+/* 按鈕 / 狀態 */
 .btn-ghost { padding: 7px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
              color: var(--ink-soft); cursor: pointer; font-size: 14px; text-decoration: none; }
 .btn-ghost:hover:not(:disabled) { border-color: var(--leaf); color: var(--leaf); }
@@ -302,6 +328,5 @@ async function markReceived(orderId, group){
 .pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 4px; }
 .pager-info { color: var(--ink-soft); font-size: 14px; }
 
-/* ★改：刪除 .soon-card / .soon-icon / .soon-btn 等佔位頁殘留樣式（頁面已無這些元素，留著是死碼） */
 </style>
 

@@ -51,6 +51,9 @@ public class CouponDetailServiceImpl implements CouponDetailService{
 
 	@Override
 	public List<MyCouponDTO> getMyCoupons(Integer userId) {
+		//AI教我的好難
+		couponDetailRepository.expireMyCoupons(userId, java.time.LocalDateTime.now());
+		// 2. 再撈最新狀態回傳，過期的會顯示 EXPIRED
 		return couponDetailRepository.findMyCoupons(userId);
 	}
 

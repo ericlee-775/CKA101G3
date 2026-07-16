@@ -25,7 +25,6 @@ const year = new Date().getFullYear()
         <router-link to="/products">全部商品</router-link>
         <router-link to="/group-buys">團購</router-link>
         <router-link to="/farm-map">產地地圖</router-link>
-        <router-link to="/farm-game">小農遊戲</router-link>
       </nav>
 
       <!-- 關於欄 -->
@@ -48,25 +47,14 @@ const year = new Date().getFullYear()
       <div class="footer-col">
         <h4>聯絡我們</h4>
         <p>📧 service@farmily.com</p>
-        <p>📞 (04) 1234-5678</p>
-        <p>📍 台中市西區農夫路 101 號</p>
-
-        <!-- 社群：先放外連，之後換成你的實際連結 -->
-        <div class="footer-social">
-          <a href="#" aria-label="Facebook">Ⓕ</a>
-          <a href="#" aria-label="Instagram">📷</a>
-          <a href="#" aria-label="LINE">💬</a>
-        </div>
+        <p>📞 (03) 1234-5678</p>
+        <p>📍 桃園市中壢區香蕉路蘋果街1號1樓</p>
       </div>
     </div>
 
     <!-- 下半部：版權列 -->
     <div class="footer-bottom">
       <span>© {{ year }} Farmily. 版權所有。</span>
-      <span class="footer-policy">
-        <a href="#">隱私權政策</a>
-        <a href="#">服務條款</a>
-      </span>
     </div>
   </footer>
 </template>
@@ -127,28 +115,6 @@ const year = new Date().getFullYear()
   color: var(--leaf-soft);           /* 滑過變亮綠 */
 }
 
-/* 社群 icon */
-.footer-social {
-  display: flex;
-  gap: 12px;
-  margin-top: 14px;
-}
-.footer-social a {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid #46523f;
-  border-radius: 50%;
-  font-size: 16px;
-  margin: 0;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-.footer-social a:hover {
-  background: var(--leaf);
-  border-color: var(--leaf);
-}
-
 /* ========== 版權列 ========== */
 .footer-bottom {
   max-width: 1100px;
@@ -163,19 +129,6 @@ const year = new Date().getFullYear()
   font-size: 13px;
   color: #8a978690;
 }
-.footer-policy {
-  display: flex;
-  gap: 18px;
-}
-.footer-policy a {
-  color: #aab8a6;
-  text-decoration: none;
-  transition: color 0.18s ease;
-}
-.footer-policy a:hover {
-  color: var(--leaf-soft);
-}
-
 /* ========== 響應式 ========== */
 @media (max-width: 820px) {
   .footer-top {

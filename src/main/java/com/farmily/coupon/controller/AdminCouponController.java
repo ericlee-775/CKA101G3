@@ -28,7 +28,8 @@ public class AdminCouponController {
 		return "back-end/admin/Coupon";
 	}
 	@PostMapping
-    public String create(@RequestParam String couponId,
+    public String create(@RequestParam(defaultValue = "false") boolean sendMail,
+    						 @RequestParam String couponId,
                          @RequestParam String couponInfo,
                          @RequestParam(required = false)
                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime issueStartDate,
@@ -46,7 +47,7 @@ public class AdminCouponController {
              coupon.setIssueStartDate(issueStartDate);
              coupon.setIssueEndDate(issueEndDate);
              try {
-                     couponService.createCoupon(coupon);
+                     couponService.createCoupon(coupon,sendMail);
                      ra.addFlashAttribute("success", "（已新增優惠券）");
              } catch (IllegalArgumentException e) {
                      ra.addFlashAttribute("error", "（" + e.getMessage() + "）");

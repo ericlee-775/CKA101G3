@@ -3,6 +3,7 @@ package com.farmily.user.repository;
 import com.farmily.user.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -15,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     // OAuth: 用 Google 的編號 (providerId) 找會員
     Optional<User> findByProviderId(String providerId);
+    //英文小教室 Verified===驗證
+    List<User> findByUserStatusAndEmailVerifiedTrue(User.UserStatus userStatus);
 
 
 

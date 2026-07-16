@@ -166,6 +166,12 @@ public class ProductOrderVO implements Serializable {
 		if (orderStatus == null) {
 			orderStatus = OrderStatus.pending;
 		}
+		if (createdAt == null) {
+			createdAt = LocalDateTime.now();
+		}
+		if (discountAmount == null) {
+			discountAmount = 0;
+		}
 	}
 	
 }

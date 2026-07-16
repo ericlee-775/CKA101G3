@@ -36,11 +36,13 @@ public class AdminReviewViewController {
     // 查某小農所有審核紀錄
     @GetMapping("/farmer/{farmerId}")
     public String historyByFarmer(@PathVariable Integer farmerId,
+                                  @AuthenticationPrincipal AdminUserDetails me,
                                   ModelMap model) {
         List<FarmerReviewResponse> reviews = adminReviewService.listByFarmer(farmerId);
 
         model.addAttribute("reviews", reviews);
         model.addAttribute("farmerId", farmerId);
+        model.addAttribute("currentAdminId", me.getAdminId());  // 文件僅負責此案件的管理員可見
         if (!reviews.isEmpty()) {
             model.addAttribute("farmName", reviews.get(0).getFarmName());
             model.addAttribute("farmerEmail", reviews.get(0).getFarmerEmail());
@@ -83,8 +85,9 @@ public class AdminReviewViewController {
     @GetMapping("/{reviewId}/cert/{type}")
     @ResponseBody
     public ResponseEntity<byte[]> cert(@PathVariable Integer reviewId,
-                                       @PathVariable String type) {
-        byte[] bytes = adminReviewService.getCertFile(reviewId, type);
+                                       @PathVariable String type,
+                                       @AuthenticationPrincipal AdminUserDetails me) {
+        byte[] bytes = adminReviewService.getCertFile(reviewId, type, me.getAdminId());
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).body(bytes);
     }
 }

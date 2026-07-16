@@ -46,15 +46,24 @@
                 <td th:text="${r.reviewedAt != null ? #temporals.format(r.reviewedAt,'yyyy-MM-dd HH:mm') : '—'}"></td>
                 <td th:text="${r.adminName} ?: '—'"></td>
                 <td th:text="${r.rejectReason} ?: '—'"></td>
+                <!-- 文件僅負責（認領/審核）此案件的管理員可見，與「小農審核」頁一致 -->
                 <td style="white-space:nowrap;">
-                    <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
-                         th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
-                    <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
-                         th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
-                    <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
-                         th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
-                    <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
-                          class="text-muted">—</span>
+                    <th:block th:if="${r.adminId == currentAdminId}">
+                        <img th:if="${r.hasCertLand}"     width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/land(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertProduct}"  width="56" height="56" class="cert-img mr-1"
+                             th:src="@{/admin/reviews/{id}/cert/product(id=${r.reviewId})}"/>
+                        <img th:if="${r.hasCertIdentity}" width="56" height="56" class="cert-img"
+                             th:src="@{/admin/reviews/{id}/cert/identity(id=${r.reviewId})}"/>
+                        <span th:if="${!r.hasCertLand and !r.hasCertProduct and !r.hasCertIdentity}"
+                              class="text-muted">—</span>
+                    </th:block>
+                    <span th:if="${r.adminId == null}" class="text-muted">
+                        尚未被認領
+                    </span>
+                    <span th:if="${r.adminId != null and r.adminId != currentAdminId}" class="text-muted">
+                        由其他管理員負責
+                    </span>
                 </td>
             </tr>
             <tr th:if="${reviews.isEmpty()}">
