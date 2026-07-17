@@ -168,7 +168,7 @@ public class NotificationService {
 	public Page<NotificationResponseDTO> getNotifByRecipient(NotificationRecipientType recipientType, Integer recipientId, int page){
 		// pageable (起始頁, 每頁筆數, 排序: 未讀在前-日期先後)
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE);
-		Page<NotificationVO> list = repository.findNotifs(recipientType, recipientId, NotificationStatus.unread, pageable);
+		Page<NotificationVO> list = repository.findNotifs(recipientType, recipientId, pageable);
 		Page<NotificationResponseDTO> dtoList = list.map(this::toDTO);
 		return dtoList;
 	}
@@ -178,7 +178,7 @@ public class NotificationService {
 	@Transactional(readOnly = true)
 	public Page<NotificationResponseDTO> getNotifBytarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, int page){
 		Pageable pageable = PageRequest.of(page, PAGE_SIZE);
-		Page<NotificationVO> list = repository.findnNotifsByTargetType(recipientType, recipientId, targetType, NotificationStatus.unread, pageable);
+		Page<NotificationVO> list = repository.findnNotifsByTargetType(recipientType, recipientId, targetType, pageable);
 		Page<NotificationResponseDTO> dtoList = list.map(this::toDTO);
 		return dtoList;
 	}
@@ -201,7 +201,7 @@ public class NotificationService {
 	// ============== 通知小鈴鐺 ==============
 	// 取得小鈴鐺預覽最新通知列表
 	public List<NotificationResponseDTO> getNotifForPreview(NotificationRecipientType recipientType, Integer recipientId){
-		List<NotificationVO> list = repository.findTop5ByRecipientTypeAndRecipientIdOrderByCreatedAtDesc(recipientType, recipientId);
+		List<NotificationVO> list = repository.findTop5ByRecipientTypeAndRecipientIdOrderByNotificationIdDesc(recipientType, recipientId);
 		List<NotificationResponseDTO> dtoList = list.stream().map(this::toDTO).toList();
 		
 		return dtoList;
