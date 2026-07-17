@@ -1,8 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import notificationApi from '@/api/memberNotification';
 import { confirm } from '@/composables/useConfirm';
 import notificationStore from '@/stores/memberNotification';
+
+const router = useRouter()
 
 const notifs = ref([])
 const loading = ref(true)
@@ -108,6 +111,31 @@ async function markOne(n) {
   }
 }
 
+// 依 targetType 決定這則通知要導向哪一頁；目前只有 blog 有對應頁面，其餘回 null
+function resolveTarget(n) {
+  if (n.targetType === 'blog' && n.targetId != null) {
+    return { name: 'member-blogs-detail', params: { id: n.targetId } }
+  }
+  return null
+}
+
+// 點整列：能導向的先標已讀再跳頁；不能導向的維持原本「只標已讀」行為
+function openNotif(n) {
+  const to = resolveTarget(n)
+  if (to) {
+    // 要跳頁，不必等列表重載；標已讀採 fire-and-forget，並樂觀更新本列狀態
+    if (n.status === 'unread') {
+      n.status = 'read'
+      notificationApi.markOneAsRead(n.notificationId)
+        .then(() => notificationStore.markRead(n.notificationId))
+        .catch(() => {})
+    }
+    router.push(to)
+  } else {
+    markOne(n)
+  }
+}
+
 // 格式化顯示時間
 // dt = 後端 LocalDateTime，序列化成 JSON 後的 ISO 字串 (ex. "2026-07-07T10:30:00")
 function formateDateTime(dt) {
@@ -144,16 +172,20 @@ function formateDateTime(dt) {
 
       <!-- 非以上三種狀態，載入通知列表 -->
       <ul v-else class="notif-list">
-        <li 
+        <li
           v-for="n in notifs" :key="n.notificationId"
-          class="notif-item" :class="{ unread: n.status === 'unread' }"
-          @click="markOne(n)"
+          class="notif-item"
+          :class="{ unread: n.status === 'unread', 'notif-item--link': resolveTarget(n) }"
+          @click="openNotif(n)"
         >
           <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
             {{ TYPE_LABEL[n.targetType] || '其他' }}
           </span>
           <div class="notif-main">
-            <p class="notif-contnet">{{ n.content }}</p>
+            <p class="notif-content">
+              {{ n.content }}
+              <span v-if="resolveTarget(n)" class="notif-go">查看文章 →</span>
+            </p>
             <span class="notif-time">{{ formateDateTime(n.createdAt) }}</span>
           </div>
           <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
@@ -285,6 +317,18 @@ function formateDateTime(dt) {
 .notif-time {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* 可導向的通知：內文後面的「查看文章 →」連結提示 */
+.notif-go {
+  margin-left: 8px;
+  white-space: nowrap;
+  color: var(--leaf-dark);
+  font-size: 13px;
+  font-weight: 600;
+}
+.notif-item--link:hover .notif-go {
+  text-decoration: underline;
 }
 
 /* 未讀圓點 */
