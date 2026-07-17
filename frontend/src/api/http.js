@@ -39,6 +39,18 @@ export async function extractError(response) {
   return cleanMessage(msg) || `發生錯誤 (${response.status})`
 }
 
+// 從後端錯誤回應取出「程式判斷用」的錯誤碼（對應 ApiError.code），取不到回 null
+async function extractErrorCode(response) {
+  const text = await response.text().catch(() => '')
+  if (!text) return null
+  try {
+    const data = JSON.parse(text)
+    return data && typeof data === 'object' ? (data.code || null) : null
+  } catch {
+    return null
+  }
+}
+
 // 核心請求方法
 async function request(url, { method = 'GET', body, headers = {} } = {}) {
   const options = {
@@ -60,9 +72,11 @@ async function request(url, { method = 'GET', body, headers = {} } = {}) {
   const response = await fetch(url, options)
 
   if (!response.ok) {
-    const message = await extractError(response)
+    // response body 只能讀一次，clone 一份給 code 解析用
+    const message = await extractError(response.clone())
     const err = new Error(message)
     err.status = response.status
+    err.code = await extractErrorCode(response)   // 後端 ApiError.code，例如 EMAIL_NOT_VERIFIED
     throw err
   }
 

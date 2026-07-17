@@ -19,6 +19,8 @@ const remember = ref(false)
 const error = ref('')
 const done = ref(false)
 const loading = ref(false)
+// 只有登入失敗且原因是「帳號未驗證」時,才顯示重寄驗證信入口
+const showResend = ref(false)
 
 // ===== 植物生長階段 =====
 // 0 種子 / 1 信箱填好發芽 / 2 密碼填好結綠果 / 3 登入成功收成
@@ -48,6 +50,7 @@ const plantClass = computed(() => ({
 // 送出登入:呼叫後端 POST /api/member/login
 async function handleLogin() {
   error.value = ''
+  showResend.value = false
 
   if (!email.value || !password.value) {
     error.value = '請輸入信箱與密碼'
@@ -71,6 +74,8 @@ async function handleLogin() {
     setTimeout(afterLogin, 2000)
   } catch (e) {
     error.value = e.message || '登入失敗，請確認帳號密碼'
+    // 後端回 EMAIL_NOT_VERIFIED（HTTP 403）才亮出重寄入口
+    showResend.value = e.code === 'EMAIL_NOT_VERIFIED'
   } finally {
     loading.value = false
   }
@@ -173,6 +178,10 @@ function handleGoogleError(e) {
           </div>
 
           <p v-if="error" class="auth-error">{{ error }}</p>
+          <p v-if="showResend" class="auth-resend">
+            帳號尚未完成 Email 驗證，
+            <router-link :to="{ name: 'resend-verification', query: { email } }">重寄驗證信</router-link>
+          </p>
           <p v-if="done" class="auth-ok">登入成功!正在帶你進入市集…</p>
 
           <button class="btn" :class="{ done }" type="submit" :disabled="loading || done">
@@ -190,10 +199,10 @@ function handleGoogleError(e) {
           還沒有帳號?
           <router-link to="/register">前往註冊</router-link>
         </p>
-        <p class="foot">
-          沒收到驗證信?
-          <router-link to="/resend-verification">重寄驗證信</router-link>
-        </p>
+<!--        <p class="foot">-->
+<!--          沒收到驗證信?-->
+<!--          <router-link to="/resend-verification">重寄驗證信</router-link>-->
+<!--        </p>-->
       </section>
     </div>
   </main>
@@ -689,6 +698,10 @@ function handleGoogleError(e) {
 
 .auth-error { margin: 0; color: #c0392b; font-size: 13px; }
 .auth-ok    { margin: 0; color: var(--leaf-g); font-size: 13px; }
+
+.auth-resend { margin: 0; color: var(--ink-soft); font-size: 13px; }
+.auth-resend a { color: var(--leaf-g); font-weight: 600; text-decoration: none; }
+.auth-resend a:hover { text-decoration: underline; }
 
 .btn {
   margin-top: 6px;
