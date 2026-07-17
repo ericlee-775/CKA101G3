@@ -19,9 +19,9 @@ async function refresh(){
     try {
         const [count, preview] = await Promise.all([
             notificationApi.getNotifUnreadCount(),
-            notificationApi.getNotifPreview(),
+            notificationApi.getNotifPreview()
         ])
-        state.unreadCount = count,
+        state.unreadCount = count
         state.preview = preview
     } catch {
     }

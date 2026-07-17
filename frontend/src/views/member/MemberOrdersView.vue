@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, Transition } from 'vue'
 import memberOrdersApi from '@/api/memberOrders'
 import { confirm } from '@/composables/useConfirm'
 import noImage from '@/assets/no-image.svg'
@@ -95,10 +95,13 @@ async function toggleOrderItems(orderId){
   }
 }
 
-function goPage(p){
-  if (p < 0 || p >= totalPages.value) return
+async function changePage(p){
+  if (p < 0 || p >= totalPages.value) { return }
+  
+  window.scrollTo({ top: 0 })
   page.value = p
-  loadOrders()
+  await loadOrders()
+
 }
 
 
@@ -135,112 +138,115 @@ async function markReceived(orderId, group){
       <h1>🧾 我的訂單</h1>
       <!-- <p class="hint-sub">每筆訂單來自多個農場商品，展開明細後可依農場分別確認收貨</p> -->
     </header>
-
-    <p v-if="loading" class="state-box">載入中...</p>
-
-    <div v-else-if="loadError" class="state-box">
-      <span class="state-icon">😵</span>
-      <p>{{ loadError }}</p>
-      <button class="btn-ghost" @click="loadOrders">重新載入</button>
-    </div>
-
-    <div v-else-if="orders.length === 0" class="state-box">
-      <span class="state-icon">🧾</span>
-      <p>您還沒有任何訂單</p>
-      <router-link class="btn-ghost" to="/products">快來逛逛商品 →</router-link>
-    </div>
-
-    <div v-else class="order-list">
-      <article v-for="o in orders" :key="o.orderId" class="order-card">
-        <header class="order-head">
-          <div>
-            <span class="order-id">訂單編號 #{{ o.orderId }}</span>
-            <time class="order-date" :datetime="o.createdAt">{{ fmdt(o.createdAt) }}</time>
-          </div>
-        </header>
-
-        <dl class="order-grid">
-          <div class="order-cell">
-            <dt>商品小計</dt>
-            <dd>{{ fmm(o.totalAmount) }}</dd>
-          </div>
-          <div class="order-cell">
-            <dt>折扣</dt>
-            <dd :class="{ 'is-discount': o.discountAmount > 0 }">
-              {{ o.discountAmount > 0 ? fmm(o.discountAmount) : '-' }}
-            </dd>
-          </div>
-          <div class="order-cell">
-            <dt>實付金額</dt>
-            <dd class="order-money">{{ fmm(o.finalPayment) }}</dd>
-          </div>
-        </dl>
-
-        <footer class="order-foot">
-          <button class="btn-ghost" @click="toggleOrderItems(o.orderId)">
-            {{ openOrderId === o.orderId ? '收合明細 ▲' : '查看明細 ▼' }}
-          </button>
-        </footer>
-
-        <div v-if="openOrderId === o.orderId" class="item-panel">
-          <p v-if="itemsLoading" class="hint">明細載入中...</p>
-          <p v-else-if="itemsError" class="msg-err">{{ itemsError }}</p>
-
-          <div v-else v-for="g in groups[o.orderId]" :key="g.farmerId" class="farmer-group">
-            <header class="farmer-head">
-              <span class="farmer-name">🧑‍🌾 {{ g.farmerName || `小農 #${g.farmerId}` }}</span>
-              <span class="badge" :class="`badge--${badgeOf(SHIPPED_STATUS, g.shippedStatus).tone}`">
-                {{ badgeOf(SHIPPED_STATUS, g.shippedStatus).label }}
-              </span>
+    <Transition name="tab-fade" mode="out-in">
+      <div :key="page">
+        <p v-if="loading" class="state-box">載入中...</p>
+    
+        <div v-else-if="loadError" class="state-box">
+          <span class="state-icon">😵</span>
+          <p>{{ loadError }}</p>
+          <button class="btn-ghost" @click="loadOrders">重新載入</button>
+        </div>
+    
+        <div v-else-if="orders.length === 0" class="state-box">
+          <span class="state-icon">🧾</span>
+          <p>您還沒有任何訂單</p>
+          <router-link class="btn-ghost" to="/products">快來逛逛商品 →</router-link>
+        </div>
+    
+        <div v-else class="order-list">
+          <article v-for="o in orders" :key="o.orderId" class="order-card">
+            <header class="order-head">
+              <div>
+                <span class="order-id">訂單編號 #{{ o.orderId }}</span>
+                <time class="order-date" :datetime="o.createdAt">{{ fmdt(o.createdAt) }}</time>
+              </div>
             </header>
-
-            <table class="item-table">
-                <colgroup>
-                  <col style="width: 50%" />
-                  <col style="width: 18%" />
-                  <col style="width: 12%" />
-                  <col style="width: 20%" />
-                </colgroup>
-              <thead>
-                <tr>
-                  <th>商品</th>
-                  <th>單價</th>
-                  <th>數量</th>
-                  <th>小計</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in g.items" :key="item.productId">
-                  <td class="item-name">
-                    <img :src="`/api/products/${item.productId}/image`" @error="onImagError" alt="" class="item-img" />
-                    <span>{{ item.productName }}</span>
-                  </td>
-                  <td>{{ fmm(item.price) }}</td>
-                  <td>{{ item.quantity }}</td>
-                  <td>{{ fmm(item.itemSubtotal) }}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <footer class="farmer-foot">
-              <span class="farmer-subtotal">農場小計 {{ fmm(g.subtotal) }}</span>
-              <button v-if="g.shippedStatus === 'shipping'" 
-                class="btn-primary" :disabled="receivingKey === `${o.orderId}-${g.farmerId}`"
-                @click="markReceived(o.orderId, g)"
-              >
-                {{ receivingKey === `${o.orderId}-${g.farmerId}` ? '處理中...' : '確認收貨' }}
+    
+            <dl class="order-grid">
+              <div class="order-cell">
+                <dt>商品小計</dt>
+                <dd>{{ fmm(o.totalAmount) }}</dd>
+              </div>
+              <div class="order-cell">
+                <dt>折扣</dt>
+                <dd :class="{ 'is-discount': o.discountAmount > 0 }">
+                  {{ o.discountAmount > 0 ? fmm(o.discountAmount) : '-' }}
+                </dd>
+              </div>
+              <div class="order-cell">
+                <dt>實付金額</dt>
+                <dd class="order-money">{{ fmm(o.finalPayment) }}</dd>
+              </div>
+            </dl>
+    
+            <footer class="order-foot">
+              <button class="btn-ghost" @click="toggleOrderItems(o.orderId)">
+                {{ openOrderId === o.orderId ? '收合明細 ▲' : '查看明細 ▼' }}
               </button>
             </footer>
-          </div>
+    
+            <div v-if="openOrderId === o.orderId" class="item-panel">
+              <p v-if="itemsLoading" class="hint">明細載入中...</p>
+              <p v-else-if="itemsError" class="msg-err">{{ itemsError }}</p>
+    
+              <div v-else v-for="g in groups[o.orderId]" :key="g.farmerId" class="farmer-group">
+                <header class="farmer-head">
+                  <span class="farmer-name">🧑‍🌾 {{ g.farmerName || `小農 #${g.farmerId}` }}</span>
+                  <span class="badge" :class="`badge--${badgeOf(SHIPPED_STATUS, g.shippedStatus).tone}`">
+                    {{ badgeOf(SHIPPED_STATUS, g.shippedStatus).label }}
+                  </span>
+                </header>
+    
+                <table class="item-table">
+                    <colgroup>
+                      <col style="width: 50%" />
+                      <col style="width: 18%" />
+                      <col style="width: 12%" />
+                      <col style="width: 20%" />
+                    </colgroup>
+                  <thead>
+                    <tr>
+                      <th>商品</th>
+                      <th>單價</th>
+                      <th>數量</th>
+                      <th>小計</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in g.items" :key="item.productId">
+                      <td class="item-name">
+                        <img :src="`/api/products/${item.productId}/image`" @error="onImagError" alt="" class="item-img" />
+                        <span>{{ item.productName }}</span>
+                      </td>
+                      <td>{{ fmm(item.price) }}</td>
+                      <td>{{ item.quantity }}</td>
+                      <td>{{ fmm(item.itemSubtotal) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+    
+                <footer class="farmer-foot">
+                  <span class="farmer-subtotal">農場小計 {{ fmm(g.subtotal) }}</span>
+                  <button v-if="g.shippedStatus === 'shipping'" 
+                    class="btn-primary" :disabled="receivingKey === `${o.orderId}-${g.farmerId}`"
+                    @click="markReceived(o.orderId, g)"
+                  >
+                    {{ receivingKey === `${o.orderId}-${g.farmerId}` ? '處理中...' : '確認收貨' }}
+                  </button>
+                </footer>
+              </div>
+            </div>
+          </article>
         </div>
-      </article>
-    </div>
-
-    <div v-if="totalPages > 1" class="pager">
-      <button class="btn-ghost" :disabled="page === 0" @click="goPage(page - 1)">上一頁</button>
-      <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
-      <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="goPage(page + 1)">下一頁</button>
-    </div>
+    
+        <div v-if="totalPages > 1" class="pager">
+          <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
+          <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
+          <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
+        </div>
+      </div>
+    </Transition>
   </section>
 </template>
 
@@ -310,10 +316,20 @@ async function markReceived(orderId, group){
   text-align: right;
 }
 
+/* 列表淡入轉場 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tab-fade-enter-from { opacity: 0; transform: translateY(8px); }   /* 進場: 從下淡入 (translateY 淡入幅度) */
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-8px); }  /* 離場: 往上淡出 */
+
+
 /* 按鈕 / 狀態 */
 .btn-ghost { padding: 7px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
              color: var(--ink-soft); cursor: pointer; font-size: 14px; text-decoration: none; }
 .btn-ghost:hover:not(:disabled) { border-color: var(--leaf); color: var(--leaf); }
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
 .btn-primary { padding: 7px 18px; border: 1px solid var(--leaf); border-radius: 10px;
                background: var(--leaf); color: #fff; cursor: pointer; font-size: 14px; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
