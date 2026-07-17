@@ -92,7 +92,7 @@ public class NotificationSender {
 	
 	
 	// ====================== 團購 ======================
-	// 團購申請通過	gb_request_approved, 通知團主(hostUserId)
+	// 團購申請通過	gb_request_approved, 通知團主(hostUserId)ok
 	@Transactional
 	public void sendGBApproved(Integer hostUserId, Integer groupBuyId) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -105,7 +105,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購申請被拒	gb_request_rejected, 通知團主(hostUserId)
+	// 團購申請被拒	gb_request_rejected, 通知團主(hostUserId)ok
 	@Transactional
 	public void sendGBRejected(Integer hostUserId, Integer groupBuyId, String rejectReason) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -118,7 +118,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購達標成團	gb_success, 所有參與者 userId
+	// 團購達標成團	gb_success, 所有參與者 userId ok
 	@Transactional
 	public void sendGBSuccess(Set<Integer> userIds, Integer groupBuyId, Integer orderId) {
 
@@ -129,7 +129,7 @@ public class NotificationSender {
 		
 	}
 	
-	// 團購未達標	gb_failed, 所有參與者 userId
+	// 團購未達標	gb_failed, 所有參與者 userId ok
 	@Transactional
 	public void sendGBFailed(Set<Integer> userIds, Integer groupBuyId) {
 
@@ -140,7 +140,8 @@ public class NotificationSender {
 		
 	}
 	
-	// 團購取消	gb_cancelled, 所有參與者 userId
+	// 團購取消	gb_cancelled, 所有參與者 userId x
+	
 	@Transactional
 	public void sendGBCancelled(Set<Integer> userIds, Integer groupBuyId) {
 
@@ -151,7 +152,7 @@ public class NotificationSender {
 		
 	}
 	
-	// 團購訂單出貨	gb_shipped, 團主 host
+	// 團購訂單出貨	gb_shipped, 團主 host x
 	@Transactional
 	public void sendGBShipped(Integer hostUserId, Integer groupBuyId, Integer orderId, LocalDateTime shippedAt) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -164,7 +165,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購訂單送達	gb_delivered, 團主 host
+	// 團購訂單送達	gb_delivered, 團主 host ok
 	@Transactional
 	public void sendGBDelivered(Integer hostUserId, Integer groupBuyId, Integer orderId, LocalDateTime receivedAt) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -177,7 +178,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購發起請求	gb_request_created, 小農 farmerId
+	// 團購發起請求	gb_request_created, 小農 farmerId ok
 	@Transactional
 	public void sendGBRequestCreated(Integer farmerId, Integer groupBuyId, String productName) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -190,7 +191,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購成團出貨	gb_order_created, 小農 farmerId
+	// 團購成團出貨	gb_order_created, 小農 farmerId ok
 	@Transactional
 	public void sendGBOrderCreated(Integer farmerId, Integer groupBuyId) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
@@ -203,7 +204,7 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	// 團購撥款	gb_payout, 小農 farmerId
+	// 團購撥款	gb_payout, 小農 farmerId ok
 	@Transactional 
 	public void sendGBPayout(Integer farmerId, Integer groupBuyId, Integer orderId, Integer totalAmount) {
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();

@@ -16,9 +16,16 @@
 // 能呼叫，後端會擋非本人。DTO 沒有 hostUserId，只有 hostUserEmail，前端用信箱比對目前登入的會員是不是本人
 // 來決定要不要顯示按鈕；後端仍會再做一次真正的權限檢查，這裡只是先把不相關的人畫面上就不要有按鈕。
 // 確認過一次（orderStatus 變成 COMPLETED）就不能再按。實測過：只有本人能按、按過不能重按、非本人會被後端擋。
+//
+// 團購主看到的內容不一樣：
+//   - 一般參加者 → 顯示「團購主聯絡方式」（要找誰問配達時間）
+//   - 團購主本人 → 顯示自己聯絡方式沒有意義，改成打 GET /api/member/groupBuy/host/orders/{orderId}
+//     （HostOrderDTO，含 participants 參與人清單與聯絡方式），讓團購主知道要聯絡誰／分貨給誰。
+//     團購主自己買了多少（buyQty/paidAmount）仍然照常顯示。
 import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 import authStore from '@/stores/auth'
+import { confirm } from '@/composables/useConfirm'
 import { shippedStatusInfo } from '@/utils/orderStatus'
 import { usePagination } from '@/composables/usePagination'
 import Pagination from '@/components/Pagination.vue'
@@ -27,7 +34,11 @@ import noImage from '@/assets/no-image.svg'
 // 通知父層（MemberGroupBuysView）目前有幾筆，顯示在 tab 的數字小徽章
 const emit = defineEmits(['count'])
 
-const orders = ref([])
+const rawOrders = ref([])
+// 越新的訂單排越上面（依訂單建立時間由新到舊）。
+const orders = computed(() =>
+  [...rawOrders.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+)
 const loading = ref(true)
 const error = ref('')
 
@@ -80,13 +91,35 @@ function orderImage(order) {
   return imageUrls.value[order.productId] || FALLBACK_IMAGE
 }
 
+// 團購主專用：每筆自己作主的訂單的參與人清單，用 orderId 當 key。
+const hostOrders = ref({})
+async function loadHostOrders() {
+  for (const order of orders.value) {
+    if (!isHost(order)) continue
+    fetchHostOrder(order.orderId)
+  }
+}
+async function fetchHostOrder(orderId) {
+  if (hostOrders.value[orderId]) return
+  try {
+    const detail = await memberGroupBuyApi.hostOrder(orderId)
+    hostOrders.value = { ...hostOrders.value, [orderId]: detail }
+  } catch {
+    // 拿不到參與人清單不影響訂單卡片其他內容，安靜忽略。
+  }
+}
+function participantsOf(order) {
+  return hostOrders.value[order.orderId]?.participants || []
+}
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    orders.value = (await memberGroupBuyApi.mySuccessOrders()) || []
-    emit('count', orders.value.length)
+    rawOrders.value = (await memberGroupBuyApi.mySuccessOrders()) || []
+    emit('count', rawOrders.value.length)
     loadImages()
+    loadHostOrders()
   } catch (e) {
     error.value = e.message || '載入失敗，請稍後再試'
   } finally {
@@ -100,6 +133,14 @@ function isConfirming(id) {
   return confirmingIds.value.has(id)
 }
 async function confirmReceipt(order) {
+  // 確認收貨是不可逆的（後端確認過一次就不給再改），送出前先跳彈窗再確認一次。
+  const ok = await confirm({
+    title: '確認收貨',
+    message: '已點收完畢，確認要收貨了嗎？確認後將無法變更，系統會在三日內撥款給小農。',
+    confirmText: '確認收貨',
+  })
+  if (!ok) return
+
   const next = new Set(confirmingIds.value)
   next.add(order.orderId)
   confirmingIds.value = next
@@ -184,13 +225,39 @@ onMounted(load)
               </div>
             </dl>
 
-            <!-- 團購主聯絡方式：配達確切時間請自行聯繫團購主，不是找小農 -->
-            <div class="host-contact">
+            <!-- 一般參加者：顯示團購主聯絡方式（配達時間要找團購主問，不是找小農） -->
+            <div v-if="!isHost(order)" class="host-contact">
               <h4>團購主聯絡方式</h4>
               <p>{{ order.hostUserName || '—' }}</p>
               <p>📞 {{ order.hostUserPhone || '—' }}</p>
               <p>✉️ {{ order.hostUserEmail || '—' }}</p>
               <p class="host-contact__note">請自行聯繫團購主確認配達時間</p>
+            </div>
+
+            <!-- 團購主本人：顯示自己的聯絡方式沒有意義，改成列出這團有誰參加、要分貨給誰 -->
+            <div v-else class="participants">
+              <h4>參與人清單（共 {{ participantsOf(order).length }} 人）</h4>
+              <p v-if="participantsOf(order).length === 0" class="participants__empty">
+                參與人資料載入中…
+              </p>
+              <ul v-else class="participants__list">
+                <li v-for="p in participantsOf(order)" :key="p.userId" class="participant">
+                  <div class="participant__head">
+                    <span class="participant__name">
+                      {{ p.userName || '—' }}
+                      <span v-if="p.isHost" class="participant__me">（你）</span>
+                    </span>
+                    <span class="participant__qty">
+                      {{ p.buyQty ?? '—' }} 件 · {{ formatMoney(p.paidAmount) }}
+                    </span>
+                  </div>
+                  <div class="participant__contact">
+                    <span>📞 {{ p.userPhoneNum || '—' }}</span>
+                    <span>✉️ {{ p.userEmail || '—' }}</span>
+                  </div>
+                </li>
+              </ul>
+              <p class="participants__note">商品送達後請聯繫參與人分貨，並確認點收</p>
             </div>
 
             <!-- 確認收貨：只有團購主看得到按鈕，確認過一次就不能再按 -->
@@ -257,6 +324,9 @@ onMounted(load)
 .order-img-wrap {
   flex: 0 0 100px;
   aspect-ratio: 1 / 1;
+  /* flex 容器預設 align-items:stretch 會把圖片框拉成整列高度，蓋掉 aspect-ratio 讓圖片變形；
+     團購主的卡片多了參與人清單、內容更高，變形會更明顯，所以要固定不跟著拉伸。 */
+  align-self: flex-start;
   border-radius: 12px;
   overflow: hidden;
   background: var(--line);
@@ -351,6 +421,79 @@ onMounted(load)
 }
 .host-contact__note {
   margin-top: 8px;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+/* ===== 團購主：參與人清單 =====
+   用奶油色底（跟站上 header 的 --cream 同一個色系）而不是綠色，
+   跟一般參加者看到的綠底「團購主聯絡方式」區塊做出區隔；
+   裡面每一列參與人再用淺綠底，在奶油底上有層次又不會出現刺眼的純白。 */
+.participants {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  background: #faf6ec;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.participants h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.participants__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.participants__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.participant {
+  padding: 8px 10px;
+  background: var(--leaf-soft);
+  border-radius: 8px;
+  border: 1px solid #d6e5db;
+}
+.participant__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.participant__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.participant__me {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--leaf-dark);
+}
+.participant__qty {
+  font-size: 13px;
+  color: var(--leaf-dark);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.participant__contact {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.participants__note {
+  margin: 10px 0 0;
+  font-size: 13px;
   font-weight: 600;
   color: #c2410c;
 }
