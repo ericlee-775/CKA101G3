@@ -247,7 +247,9 @@ public class NotificationSender {
 	
 	// 體驗活動預約成功	trip_booking_confirmed, 一般會員 userId
 	@Transactional
-	public void sendTripBookConfirmed(Integer userId, Integer farmSessionId, Integer farmTripOrderId) {
+	public void sendTripBookConfirmed(Integer userId, Integer farmerId, Integer farmSessionId, Integer farmTripOrderId) {
+		
+		// 發送通知給會員
 		NotificationCreateRequestDTO req = new NotificationCreateRequestDTO();
 		req.setTypeCode("trip_booking_confirmed");			
 		req.setRecipientType(NotificationRecipientType.user);
@@ -256,6 +258,16 @@ public class NotificationSender {
 		req.setTargetId(farmTripOrderId);
 		req.setVariables(Map.of("farm_trip_order_id", String.valueOf(farmTripOrderId)));
 		nSvc.sendOneNotif(req);
+		
+		// 發送通知給小農
+		NotificationCreateRequestDTO reqFarmer = new NotificationCreateRequestDTO();
+		reqFarmer.setTypeCode("trip_booking_new");			
+		reqFarmer.setRecipientType(NotificationRecipientType.farmer);
+		reqFarmer.setRecipientId(farmerId);
+		reqFarmer.setTargetType("trip");
+		reqFarmer.setTargetId(farmSessionId);
+		reqFarmer.setVariables(Map.of("farm_session_id", String.valueOf(farmSessionId)));
+		nSvc.sendOneNotif(reqFarmer);
 	}
 	
 	// 體驗活動取消預約	trip_booking_cancelled, 一般會員 userId
@@ -270,7 +282,7 @@ public class NotificationSender {
 		req.setVariables(Map.of("farm_trip_order_id", String.valueOf(farmTripOrderId)));
 		nSvc.sendOneNotif(req);
 	}
-	
+
 	// 體驗活動取消	trip_cancelled, 所有參與者 userId
 	@Transactional
 	public void sendTripCancelled(Set<Integer> userIds, Integer farmSessionId, Integer farmTripOrderId) {
