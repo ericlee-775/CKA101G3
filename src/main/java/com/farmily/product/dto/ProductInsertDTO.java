@@ -20,6 +20,7 @@ public class ProductInsertDTO {
 	public ProductInsertDTO() {
 	}
 
+	// 注意：這些驗證訊息在前端 FarmerProductsView.vue 的送出前檢查也抄了一份，改字記得兩邊同步
 	@NotNull(message = "請選擇商品分類")
 	private Integer subCatClassId; // 子分類(對應 ProductVO.subCategoryVO 的 sub_cat_class_id)
 	@NotBlank(message = "商品名稱不可為空")
