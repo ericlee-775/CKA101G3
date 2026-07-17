@@ -136,7 +136,8 @@ public class BlogDaoImpl implements BlogDao {
                 "COALESCE(u.user_nickname, u.user_name) AS author_name " +
                 "FROM blog_comment c " +
                 "LEFT JOIN `USER` u ON c.user_id = u.user_id " +
-                "WHERE c.blog_id = :blogId AND c.comment_status = 'VISIBLE'";
+                "WHERE c.blog_id = :blogId AND c.comment_status = 'VISIBLE' " +
+                "ORDER BY c.comment_time DESC, c.comment_id DESC";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
