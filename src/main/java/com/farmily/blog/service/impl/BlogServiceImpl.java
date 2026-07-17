@@ -318,15 +318,19 @@ public class BlogServiceImpl implements BlogService {
         Integer commentId = blogDao.addComment(blogComment); //建立
         BlogComment newComment = blogDao.getBlogCommentById(commentId); //撈出剛建立的
 
-        // 通知文章作者「有人留言」。作者是會員(userId)才發；小農作者(farmerId)待 sender farmer 版
-        // 自己留自己文章就不用通知自己
-        Integer authorUserId = blog.getUserId();
-        if (authorUserId != null && !authorUserId.equals(userId)) {
-            try {
-                notificationSender.sendBlogComment(authorUserId, blogId);
-            } catch (Exception e) {
-                // 通知失敗不影響留言本身
+        // 通知文章作者「有人留言」：會員作者走會員版（自己留自己不通知）、小農作者走小農版
+        String title = blog.getBlogTitle();
+        try {
+            if (blog.getUserId() != null) {
+                if (!blog.getUserId().equals(userId)) {
+                    notificationSender.sendBlogComment(blog.getUserId(), blogId, title);
+                }
+            } else if (blog.getFarmerId() != null) {
+                // 留言者一定是會員，不會是小農作者本人，照發
+                notificationSender.sendFarmerBlogComment(blog.getFarmerId(), blogId, title);
             }
+        } catch (Exception e) {
+            // 通知失敗不影響留言本身
         }
         return BlogCommentResponse.from(newComment); //轉DTO
     }
@@ -364,11 +368,16 @@ public class BlogServiceImpl implements BlogService {
 
         Integer reportId = blogDao.reportBlog(blogId , blogReportRequest);
 
-        // 通知文章作者「你的文章被檢舉，審核中」。作者是會員(userId)才發；小農作者待 sender farmer 版
+        // 通知文章作者「你的文章被檢舉，審核中」：會員作者走會員版、小農作者走小農版
         Blog blog = blogDao.getBlogById(blogId);
-        if (blog != null && blog.getUserId() != null) {
+        if (blog != null) {
+            String title = blog.getBlogTitle();
             try {
-                notificationSender.sendBlogReportPending(blog.getUserId(), blogId);
+                if (blog.getUserId() != null) {
+                    notificationSender.sendBlogReportPending(blog.getUserId(), blogId, title);
+                } else if (blog.getFarmerId() != null) {
+                    notificationSender.sendFarmerBlogReportPending(blog.getFarmerId(), blogId, title);
+                }
             } catch (Exception e) {
                 // 通知失敗不影響檢舉本身
             }
@@ -395,11 +404,13 @@ public class BlogServiceImpl implements BlogService {
         }
         Integer reportId = blogDao.reportComment(commentId, blogComment.getBlogId(), request);
 
-        // 通知留言作者「你的留言被檢舉」。留言作者一定是會員，直接用 comment 的 userId
+        // 通知留言作者「你的留言被檢舉」。留言作者一定是會員；標題取「留言所在文章」的標題
         Integer commentAuthorUserId = blogComment.getUserId();
         if (commentAuthorUserId != null) {
+            Blog blog = blogDao.getBlogById(blogComment.getBlogId());
+            String title = (blog != null) ? blog.getBlogTitle() : null;
             try {
-                notificationSender.sendBlogCommentReport(commentAuthorUserId, blogComment.getBlogId());
+                notificationSender.sendBlogCommentReport(commentAuthorUserId, blogComment.getBlogId(), title);
             } catch (Exception e) {
                 // 通知失敗不影響檢舉本身
             }

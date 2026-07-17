@@ -20,8 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
@@ -82,30 +80,35 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         Blog blog = blogRepository.findById(report.getBlogId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + report.getBlogId()));
 
-        // 通知收件人＝文章作者。小農作者(farmerId)目前 sender 無 farmer 版，暫只通知會員作者
-        // TODO: 待 notification 負責人在 NotificationSender 加 farmer 版後，補上小農作者通知
+        // 通知收件人＝文章作者：會員作者走會員版、小農作者走小農版
         Integer authorUserId = blog.getUserId();
+        Integer authorFarmerId = blog.getFarmerId();
+        Integer blogId = blog.getBlogId();
+        String title = blog.getBlogTitle() != null ? blog.getBlogTitle() : "";  // sender 的 Map.of 不吃 null
 
         if (approve) {
             report.setReportStatus(BlogReportStatus.APPROVED_VISIBLE);
             blog.setBlogStatus(BlogStatus.VISIBLE);
             // 維持顯示：通知作者「檢舉未成立、文章維持顯示」
             if (authorUserId != null) {
-                Integer blogId = blog.getBlogId();
-                afterCommit(() -> notificationSender.sendBlogReportVisible(authorUserId, blogId));
+                notificationSender.sendBlogReportVisible(authorUserId, blogId, title);
+            } else if (authorFarmerId != null) {
+                notificationSender.sendFarmerBlogReportVisible(authorFarmerId, blogId, title);
             }
         } else {
             report.setReportStatus(BlogReportStatus.REJECTED_HIDDEN);
             blog.setBlogStatus(BlogStatus.HIDDEN);
             // 隱藏：通知作者「文章因檢舉被隱藏」，附上檢舉原因
+            String reason = report.getReportReason() != null ? report.getReportReason() : "";
             if (authorUserId != null) {
-                Integer blogId = blog.getBlogId();
-                String reason = report.getReportReason();
-                afterCommit(() -> notificationSender.sendBlogReportHidden(authorUserId, blogId, reason));
+                notificationSender.sendBlogReportHidden(authorUserId, blogId, reason, title);
+            } else if (authorFarmerId != null) {
+                notificationSender.sendFarmerBlogReportHidden(authorFarmerId, blogId, reason, title);
             }
         }
         report.setAdminId(adminId);
-        return report; // 改完欄位即可，交易結束 JPA 自動 UPDATE（不用 save）
+        // 通知與審核在同一交易一起 commit（可靠送達）；改完欄位交易結束 JPA 自動 UPDATE
+        return report;
     }
 
     @Override
@@ -143,21 +146,23 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         // 通知收件人＝留言作者（留言一定是會員），不是檢舉人(report.getUserId())
         Integer commentAuthorUserId = comment.getUserId();
         Integer blogId = report.getBlogId();
+        // 標題取「留言所在文章」的標題（文章可能已刪則給空字串，sender 的 Map.of 不吃 null）
+        String title = blogRepository.findById(blogId).map(Blog::getBlogTitle).orElse("");
 
         if (approve) {
             report.setReportStatus(BlogReportStatus.APPROVED_VISIBLE);
             comment.setCommentStatus(BlogStatus.VISIBLE);
             // 維持顯示：通知留言作者「檢舉未成立、留言維持顯示」
             if (commentAuthorUserId != null) {
-                afterCommit(() -> notificationSender.sendBlogCommentReportVisible(commentAuthorUserId, blogId));
+                notificationSender.sendBlogCommentReportVisible(commentAuthorUserId, blogId, title);
             }
         } else {
             report.setReportStatus(BlogReportStatus.REJECTED_HIDDEN);
             comment.setCommentStatus(BlogStatus.HIDDEN);
             // 隱藏：通知留言作者「留言因檢舉被隱藏」，附上檢舉原因
             if (commentAuthorUserId != null) {
-                String reason = report.getReportReason();
-                afterCommit(() -> notificationSender.sendBlogCommentReportHidden(commentAuthorUserId, blogId, reason));
+                String reason = report.getReportReason() != null ? report.getReportReason() : "";
+                notificationSender.sendBlogCommentReportHidden(commentAuthorUserId, blogId, reason, title);
             }
         }
         report.setAdminId(adminId);
@@ -175,36 +180,6 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
     }
 
     /* ===== 方法 ===== */
-
-    /*
-     * 把通知動作排到「交易成功 commit 之後」才執行。
-     * 原因：本方法標了 @Transactional，而 NotificationSender 最終呼叫的 sendOneNotif 也是 @Transactional，
-     * 預設 propagation=REQUIRED 會「加入」目前這個交易。若通知過程丟例外，整個交易會被標記 rollback-only，
-     * 就算這裡 try/catch 也救不回來 —— 審核結果(文章顯示/隱藏)會跟著被回滾。
-     * 用 afterCommit：等審核交易確定 commit 後，才在「新的一個交易」裡發通知；通知失敗也只影響通知本身，
-     * 不會回滾已完成的審核。
-     */
-    private void afterCommit(Runnable action) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        action.run();
-                    } catch (Exception e) {
-                        // 通知失敗不影響審核結果，吞掉即可（可視需要改成記 log）
-                    }
-                }
-            });
-        } else {
-            // 理論上不會走到（本方法一定在交易內）；保險起見仍執行一次
-            try {
-                action.run();
-            } catch (Exception e) {
-                // 同上
-            }
-        }
-    }
 
     // 依 id 清單批次撈文章，回傳 id -> Blog 對照表（找不到的 id 就不在 map 裡）
     private Map<Integer, Blog> loadBlogs(List<Integer> blogIds) {
