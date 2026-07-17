@@ -11,6 +11,8 @@ public class TripListResponse {
     private Integer starNumbers;
     private String farmName;
     private Integer farmerId;
+    private String registrationStatus;   // OPEN / CLOSED / CANCELLED（由場次計算）
+
 
     public Integer getFarmTripId() { return farmTripId; }
     public void setFarmTripId(Integer farmTripId) { this.farmTripId = farmTripId; }
@@ -35,5 +37,8 @@ public class TripListResponse {
 
     public Integer getFarmerId() { return farmerId; }
     public void setFarmerId(Integer farmerId) { this.farmerId = farmerId; }
+
+    public String getRegistrationStatus() { return registrationStatus; }
+    public void setRegistrationStatus(String registrationStatus) { this.registrationStatus = registrationStatus; }
     
 }
