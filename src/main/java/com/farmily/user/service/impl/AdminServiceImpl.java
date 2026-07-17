@@ -2,6 +2,9 @@ package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
 import com.farmily.user.event.AdminPasswordChangedEvent;
+import com.farmily.user.exception.AccountSuspendedException;
+import com.farmily.user.exception.AdminNotFoundException;
+import com.farmily.user.exception.BusinessException;
 import com.farmily.user.model.Admin;
 import com.farmily.user.model.AdminRole;
 import com.farmily.user.repository.AdminRepository;
@@ -10,6 +13,7 @@ import com.farmily.user.service.AdminService;
 import com.farmily.user.service.EmailService;
 import com.farmily.user.service.EmailUniquenessChecker;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,15 +52,15 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminProfileResponse login(LoginRequest log) {
         Admin admin = adminRepository.findByAdminEmail(log.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("帳號或密碼錯誤"));
+                .orElseThrow(() -> new BadCredentialsException("帳號或密碼錯誤")); // 401
 
         // 檢查 hash 密碼是否相等
         if (!passwordEncoder.matches(log.getPassword(), admin.getAdminPassword()))
-            throw new IllegalStateException("帳號或密碼錯誤");
+            throw new BadCredentialsException("帳號或密碼錯誤");   // 401
 
         if (admin.getAdminStatus() == Admin.AdminStatus.SUSPENDED ||
                 admin.getAdminStatus() == Admin.AdminStatus.DELETED) {
-            throw new IllegalStateException("此帳號已被停權或終止");
+            throw new AccountSuspendedException();
         }
         // 登入也查權限
         List<String> codes = adminRepository.findPermissionCodesByAdminId(admin.getAdminId());
@@ -68,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminProfileResponse updateMyProfile(Integer adminId, AdminSelfUpdateRequest req) {
         Admin admin = adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
 
         if (req.getName() != null) {
             admin.setAdminName(req.getName());
@@ -85,7 +89,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public AdminProfileResponse getMyProfile(Integer adminId) {
         Admin admin = adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
 
         // 查權限代碼
         List<String> codes = adminRepository.findPermissionCodesByAdminId(adminId);
@@ -97,11 +101,11 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public void changeMyPassword(Integer adminId, ChangePasswordRequest pw) {
         Admin admin = adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
 
         if (pw.getOldPassword() == null
                 || !passwordEncoder.matches(pw.getOldPassword(), admin.getAdminPassword())) {
-            throw new BadCredentialsException("舊密碼錯誤");
+            throw new BadCredentialsException("舊密碼錯誤"); // 401
         }
 
         admin.setAdminPassword(passwordEncoder.encode(pw.getNewPassword()));
@@ -180,7 +184,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminProfileResponse getById(Integer adminId) {
         Admin admin = adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
 
         List<String> codes = adminRepository.findPermissionCodesByAdminId(adminId);
         return AdminProfileResponse.from(admin, codes);
@@ -202,7 +206,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminProfileResponse updateAdmin(Integer adminId, AdminUpdateRequest req) {
         Admin admin = adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
+//                .orElseThrow(AdminNotFoundException::new);
 
         // 同階保護：超級管理員不能相互修改
         if (isSuperAdmin(adminId)) {
@@ -215,7 +220,13 @@ public class AdminServiceImpl implements AdminService {
         }
         // 改狀態 - 有填才改
         if (req.getUpdateStatus() != null) {
-            admin.setAdminStatus(Admin.AdminStatus.valueOf(req.getUpdateStatus()));   // 字串轉 enum
+            // 字串轉 enum；valueOf 對無效字串會丟 IllegalArgumentException，包成 400 才不會被當成伺服器錯誤
+            try {
+                admin.setAdminStatus(Admin.AdminStatus.valueOf(req.getUpdateStatus()));
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException("UNSUPPORTED_ADMIN_STATUS", HttpStatus.BAD_REQUEST,
+                        "不支援的管理員狀態: " + req.getUpdateStatus());
+            }
         }
         admin.setUpdatedAt(LocalDateTime.now());
         adminRepository.save(admin);
@@ -234,9 +245,9 @@ public class AdminServiceImpl implements AdminService {
     // 刪除管理員（軟刪除：改成 DELETED，不真的移除）
     @Override
     public void deleteAdmin(Integer adminId, Integer currentAdminId) {
-        // 不能刪除自己
+        // 不能刪除自己 409
         if (adminId.equals(currentAdminId)) {
-            throw new IllegalStateException("不能刪除自己的帳號!");
+            throw new BusinessException("CANNOT_DELETE_SELF", HttpStatus.CONFLICT, "不能刪除自己的帳號!");
         }
 
         // 同階保護：超級管理員不能相互刪除
@@ -261,7 +272,7 @@ public class AdminServiceImpl implements AdminService {
         for (String code : codes) {
             Integer permissionId = adminRepository.findPermissionIdByCode(code);
             if (permissionId == null) {
-                throw new IllegalArgumentException("查無此權限代碼: " + code);
+                throw new BusinessException("PERMISSION_NOT_FOUND", HttpStatus.BAD_REQUEST, "查無此權限代碼: " + code);    // 400
             }
             adminRepository.addPermission(adminId, permissionId);
         }

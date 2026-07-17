@@ -3,6 +3,9 @@ package com.farmily.user.service.impl;
 import com.farmily.user.dto.FarmerReviewResponse;
 import com.farmily.user.dto.LoginRequest;
 import com.farmily.user.dto.PublicFarmerResubmitRequest;
+import com.farmily.user.exception.BusinessException;
+import com.farmily.user.exception.DistrictNotFoundException;
+import com.farmily.user.exception.ReviewNotFoundException;
 import com.farmily.user.model.CityDistrict;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
@@ -11,6 +14,7 @@ import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.EmailVerificationService;
 import com.farmily.user.service.FarmerApplicationService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -50,7 +54,7 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
 
         // latest 防呆（active 小農理論上至少有一筆審核
         if (latest == null) {
-            throw new IllegalArgumentException("查無審核紀錄");
+            throw new ReviewNotFoundException();
         }
         FarmerReviewResponse res = FarmerReviewResponse.from(latest);
         res.maskAdminInfo();   // 小農端（含公開查詢進度）不能看到承辦管理員與內部備註
@@ -72,11 +76,13 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
     public void resendActivation(LoginRequest log) {
         Farmer farmer = authByCredentials(log.getEmail(), log.getPassword());
 
+        // 409
         if (farmer.getEmailVerified() != null && farmer.getEmailVerified()) {
-            throw new IllegalStateException("此帳號已完成 Email 驗證，請直接登入");
+            throw new BusinessException("EMAIL_ALREADY_VERIFIED", HttpStatus.CONFLICT, "此帳號已完成 Email 驗證，請直接登入");
         }
+        // 403
         if (farmer.getFarmerStatus() != Farmer.FarmerStatus.ACTIVE) {
-            throw new IllegalStateException("帳號尚未通過審核，審核通過後才會寄出啟用信");
+            throw new BusinessException("FARMER_NOT_APPROVED", HttpStatus.FORBIDDEN, "帳號尚未通過審核，審核通過後才會寄出啟用信");
         }
         emailVerificationService.sendFarmerActivation(farmer.getEmail());
     }
@@ -90,13 +96,14 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
         // 查最新審核
         FarmerReview latest = farmerReviewRepository.findTopByFarmer_FarmerIdOrderByReviewRoundDesc(farmer.getFarmerId());
 
+        // 409
         if (farmer.getFarmerStatus() != Farmer.FarmerStatus.PENDING) {
-            throw new IllegalStateException("此帳號已通過審核，請登入後操作");
+            throw new BusinessException("FARMER_ALREADY_APPROVED", HttpStatus.CONFLICT, "此帳號已通過審核，請登入後操作");
         }
 
-        // 僅最新一輪審核狀態為 REJECTED 才能重新送審；審核中 PENDING/REVIEWING 一律擋下
+        // 僅最新一輪審核狀態為 REJECTED 才能重新送審；審核中 PENDING/REVIEWING 一律擋下 (409)
         if (latest == null || latest.getReviewStatus() != FarmerReview.ReviewStatus.REJECTED) {
-            throw new IllegalStateException("尚在審核中，需審核完成後才能重新送審");
+            throw new BusinessException("FARMER_REVIEW_PENDING", HttpStatus.CONFLICT, "尚在審核中，需審核完成後才能重新送審");
         }
 
         // 審核狀態為 REJECTED:
@@ -154,7 +161,8 @@ public class FarmerApplicationServiceImpl implements FarmerApplicationService {
             return null;
         }
         return cityDistrictRepository.findById(districtId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此區域 districtId=" + districtId));
+                .orElseThrow(() -> new DistrictNotFoundException());
+//                .orElseThrow(DistrictNotFoundException::new);
     }
 
 }
