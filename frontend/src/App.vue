@@ -1,6 +1,7 @@
 <script setup>
   import { onMounted, onBeforeUnmount, ref } from 'vue';
   import ConfirmDialog from './components/ConfirmDialog.vue';
+  import ToastMessage from './components/ToastMessage.vue';
   import authStore from '@/stores/auth';
 
   // ===== 全站自訂游標:小圓點 + 慢半拍的外圈,滑到可點元素時外圈放大 =====
@@ -95,6 +96,9 @@
     <!-- 全域確認彈窗：任何地方呼叫 confirm() 都由這個元件顯示 -->
     <ConfirmDialog></ConfirmDialog>
 
+    <!-- 全域輕量通知：任何地方呼叫 toast() 都由這個元件顯示（取代 alert） -->
+    <ToastMessage></ToastMessage>
+
     <!-- 全站自訂游標(僅桌機啟用,元素永遠 pointer-events:none 不擋點擊) -->
     <div class="cursor-dot" ref="cursorDot" aria-hidden="true"></div>
     <div class="cursor-ring" ref="cursorRing" aria-hidden="true"></div>
@@ -106,6 +110,13 @@
 
 
 <style>
+
+/* vue-datepicker 彈窗上恢復原生游標，避免被自訂游標蓋掉變不見 */
+html.custom-cursor .dp__menu,
+html.custom-cursor .dp__menu * {
+  cursor: auto !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;

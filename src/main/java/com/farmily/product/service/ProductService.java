@@ -42,7 +42,10 @@ public interface ProductService {
 	boolean deleteWishList(Integer productId, Integer userId);
 
 	List<ProductSummaryDTO> getAllWishLists(Integer userId);
-	//熱銷產品
+	//熱銷產品（原始結算結果，可能為空——管理員後台用）
 	List<ProductSummaryDTO> getHotProducts();
+
+	//首頁熱門清單：結算結果不足時用上架中商品補滿，保證有東西顯示（只給公開首頁用）
+	List<ProductSummaryDTO> getHomeHotProducts();
 
 }

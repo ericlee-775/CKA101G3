@@ -1,13 +1,17 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 // 「暫無圖片」佔位圖（放在 src/assets，打包後 Vite 會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
 import authStore from '@/stores/auth' // 收藏功能：判斷使用者是否已登入、是不是會員身分
+import { toast } from '@/composables/useToast'
+import { requireMemberLogin } from '@/composables/useAuthGuard'
+import { categoryIcon } from '@/constants/categoryIcons'
 
 // 從網址帶進來的農場篩選：農場專頁點「查看全部商品」時會帶 ?farmerId=&farmName=。
 // 有 farmerId → 只顯示該農場的商品；farmName 只是拿來顯示標題用。
 const route = useRoute()
+const router = useRouter()
 const farmerId = computed(() => route.query.farmerId || '')
 const farmName = computed(() => route.query.farmName || '')
 
@@ -169,10 +173,8 @@ async function loadFavoriteIds() {
 
 // 收藏功能：點愛心切換收藏狀態；已收藏就取消(DELETE)，沒收藏就加入(POST)。
 async function toggleFavorite(product) {
-  if (!authStore.isLoggedIn || !authStore.isMember) {
-    alert('請先登入才能收藏')
-    return
-  }
+  // 未登入會員：共用守門彈窗（useAuthGuard），按「前往登入」自動導登入頁
+  if (!(await requireMemberLogin(router, '登入會員後即可收藏喜歡的商品，隨時回來查看。'))) return
   const id = product.productId
   const alreadyFavorited = favoriteIds.value.has(id)
   try {
@@ -184,7 +186,7 @@ async function toggleFavorite(product) {
     if (alreadyFavorited) favoriteIds.value.delete(id)
     else favoriteIds.value.add(id)
   } catch (e) {
-    alert(alreadyFavorited ? '取消收藏失敗，請稍後再試' : '加入收藏失敗，請稍後再試')
+    toast(alreadyFavorited ? '取消收藏失敗，請稍後再試' : '加入收藏失敗，請稍後再試', 'error')
   }
 }
 
@@ -254,10 +256,11 @@ onUnmounted(() => {
 
       <select v-model="draft.subCatClassId" class="filters__input">
         <option value="">全部分類</option>
+        <!-- 主分類群組標題掛 icon（emoji），對照表在 constants/categoryIcons.js -->
         <optgroup
           v-for="[mainName, subs] in groupedCategories"
           :key="mainName"
-          :label="mainName"
+          :label="`${categoryIcon(mainName)} ${mainName}`"
         >
           <option v-for="sub in subs" :key="sub.id" :value="sub.id">{{ sub.name }}</option>
         </optgroup>

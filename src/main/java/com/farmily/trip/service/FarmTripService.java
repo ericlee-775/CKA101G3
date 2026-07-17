@@ -60,6 +60,9 @@ public interface FarmTripService {
 	// 小農取消場次（連帶取消該場次報名並 email 通知報名者）
 	SessionResponse cancelSession(Integer farmSessionId);
 
+	// 小農重啟已取消的場次（改回 ACTIVE 開放重新報名）
+	SessionResponse reopenSession(Integer farmSessionId);
+	
 	// 小農主動寄提醒信給該場次「未取消」的報名者，回傳實際寄出的人數
 	int notifySessionRegistrants(Integer farmSessionId, SessionNotifyRequest request);
 

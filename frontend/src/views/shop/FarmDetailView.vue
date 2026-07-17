@@ -71,6 +71,16 @@ function onImageError(event) {
   event.target.src = noImage
 }
 
+function tripImg(e, id) {
+  const el = e.target
+  if (!el.dataset.fallback) {
+    el.dataset.fallback = '1'
+    el.src = `/api/farm-trips/${id}/image`
+  } else {
+    el.style.display = 'none'
+  }
+}
+
 async function loadFarmDetail() {
   loading.value = true
   error.value = ''
@@ -212,9 +222,9 @@ watch(farmerId, loadFarmDetail)
           >
             <img
               class="trip-card__image"
-              :src="`/api/farm-trips/${trip.farmTripId}/image`"
+              :src="`/farmily-web/trips/${trip.farmTripId}.jpg`"
               :alt="trip.farmTripTitle"
-              @error="$event.target.style.display = 'none'"
+              @error="tripImg($event, trip.farmTripId)"
             />
             <div class="trip-card__body">
               <span>{{ tripTypeLabel(trip.farmTripType) }}</span>
