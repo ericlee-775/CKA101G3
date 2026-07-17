@@ -3,6 +3,7 @@ package com.farmily.product.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,7 @@ public class ProductClickService {
 
 	private static final String CLICKS_KEY = "farmily:product:clicks";
 	private static final String HOT_KEY = "farmily:product:hot";
-	private static final int HOT_SIZE = 4;
+	public static final int HOT_SIZE = 4; // 熱門商品固定取前 4 名（getHotProducts 的 fallback 也共用這個數字）
 
 	private final JedisPool jedisPool;
 
@@ -55,6 +56,7 @@ public class ProductClickService {
 
 	// 從左到右：秒 分 時 日 月 星期
 	@Scheduled(cron = "0 0 3 * * MON")
+	@CacheEvict(cacheNames = "hotProducts", allEntries = true) // 結算後榜單換了，清掉首頁熱門清單的快取
 	public void settleHotProductIds() {
 		List<Integer> topIds = getTopProductIds(HOT_SIZE);
 		if (topIds.isEmpty()) {

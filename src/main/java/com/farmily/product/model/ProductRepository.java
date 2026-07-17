@@ -84,6 +84,14 @@ public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 	@Query("SELECT p.productImage FROM ProductVO p WHERE p.productId = :id")
 	byte[] findImageById(@Param("id") Integer id);
 	
+	// 首頁熱門清單 fallback 用：撈前幾筆上架中的商品（回 List 不回 Page，省掉用不到的 COUNT 查詢）
+	@Query("SELECT new com.farmily.product.dto.ProductSummaryDTO("
+			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "
+			+ "FROM ProductVO p JOIN p.farmer f "
+			+ "WHERE p.status = com.farmily.product.model.ProductStatus.ACTIVE "
+			+ "AND f.farmerStatus = ACTIVE")
+	List<ProductSummaryDTO> findActiveSummaries(Pageable pageable);
+
 	//用 id 撈單筆摘要
 	@Query("SELECT new com.farmily.product.dto.ProductSummaryDTO("
 			+ "p.productId, p.retailPrice, p.unitPricingMeasure, p.productName) "

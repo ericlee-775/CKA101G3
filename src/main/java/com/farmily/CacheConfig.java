@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Configuration;
 public class CacheConfig {
 	@Bean
 	public CacheManager cacheManager() {
-		return new ConcurrentMapCacheManager("categories");
+		// 快取名要在這裡註冊過才能用：categories=商品分類、hotProducts=首頁熱門清單
+		return new ConcurrentMapCacheManager("categories", "hotProducts");
 	}
 
 }
