@@ -21,6 +21,10 @@ export const memberGroupBuyApi = {
 
   // 團購主確認收貨（只有該筆團購的發起人可以呼叫，後端會擋非本人；確認過一次就不能再確認）
   confirmReceipt: (orderId) => http.patch(`${BASE}/orders/${orderId}/confirm-receipt`),
+
+  // 團購主看的單筆訂單詳情（含所有參與人與聯絡方式）→ HostOrderDTO
+  // 只有該筆團購的發起人能呼叫，後端用 findByOrderIdAndGroupBuyId_HostUser_UserId 擋非本人。
+  hostOrder: (orderId) => http.get(`${BASE}/host/orders/${orderId}`),
 }
 
 export default memberGroupBuyApi

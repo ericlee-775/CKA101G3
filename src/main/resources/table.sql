@@ -910,7 +910,7 @@ CREATE TABLE GROUP_BUY (
 -- 參數
 INSERT INTO GROUP_BUY (group_buy_id,product_id,host_user_id,target_amount,group_price,open_datetime,ddl_datetime,`status`,created_at,request_status,request_datetime,reply_datetime,reject_reason,pickup_address
 ) VALUES
-(1, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'open', '2026-03-04 18:00:00', 'approved', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'桃園市中壢區復興路46號9樓'),
+(1, 1, 1, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'open', '2026-03-04 18:00:00', 'approved', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'桃園市中壢區復興路46號9樓'),
 (2, 4, 5, 5000, 180, '2026-03-02 00:00:00', '2026-03-20 23:59:59', 'pending', '2026-03-10 09:00:00', 'pending', '2026-03-10 09:00:00', NULL, NULL,'桃園市蘆竹區南崁路一段10號'),
 (3, 5, 2, 2000, 350,'2026-03-04 00:00:00', '2026-03-18 23:59:59', 'cancelled', '2026-03-09 14:30:00', 'rejected', '2026-03-09 14:30:00', '2026-03-09 16:00:00', '商品庫存不足，無法開團','台北市中山區中正路66號'),
 (4, 3, 3, 3000, 220, '2026-03-05 00:00:00', '2026-03-12 23:59:59', 'pending', '2026-03-02 18:00:00', 'pending', '2026-03-04 10:00:00', '2026-03-04 11:00:00', NULL,'我是地址');
@@ -1304,7 +1304,7 @@ INSERT INTO notification_template VALUES ('gb_success', '團購編號 {group_buy
 INSERT INTO notification_template VALUES ('gb_failed', '團購編號 {group_buy_id} 未達標，活動已取消，款項將全額退還，期待您再次參與。');
 INSERT INTO notification_template VALUES ('gb_cancelled', '團購編號 {group_buy_id} 已取消，款項將全額退還。');
 INSERT INTO notification_template VALUES ('gb_shipped', '團購訂單編號 {order_id} 商品已於 {shipped_at} 出貨，請留意近期收貨。');
-INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 配達，感謝您的參與，快聯繫團員取貨吧!');
+INSERT INTO notification_template VALUES ('gb_delivered', '團購訂單編號 {order_id} 商品已於 {received_at} 確認配達，感謝您的參與，快聯繫團員取貨吧!');
 INSERT INTO notification_template VALUES ('gb_request_created', '您收到 {product_name} 的新團購申請，請儘速審核回覆。');
 INSERT INTO notification_template VALUES ('gb_order_created', '團購訂單 {group_buy_id} 已成團，請準備出貨。');
 INSERT INTO notification_template VALUES ('gb_payout', '團購訂單 {order_id} 已確認收貨，貨款 NT$ {total_amount} 已撥款，請查收。');

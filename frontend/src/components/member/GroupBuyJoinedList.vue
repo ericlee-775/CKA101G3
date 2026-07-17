@@ -8,6 +8,12 @@
 // 但成團的訂單已經有獨立的「訂單」分頁（GroupBuyOrderList.vue，資料源是 /mySuccessOrders），
 // 所以這裡改成前端自己把 success 的濾掉，避免同一筆團購兩邊都出現；未成團（failed）的會留下來，
 // 卡片下方顯示「金額未達標」提示。
+//
+// 排序：這一頁沒有做「越新越上面」的排序，因為 ShowJoinedGroupBuyDTO 沒有任何「我何時參加」的時間欄位
+//（只有 ddlDatetime 截止時間，那是團購的截止日、不是參加時間），前端排不出真正的新舊。
+// 「訂單」分頁有 createdAt、「開團申請」分頁有 requestDatetime，那兩頁都已經照時間由新到舊排了。
+// 等後端在這支 DTO 補上參加時間（GroupBuyParticipationVO 本身就有 joinDatetime，
+// HostParticipantDTO 也有帶出來），這裡就能加上排序。
 import { ref, onMounted, computed } from 'vue'
 import memberGroupBuyApi from '@/api/memberGroupBuy'
 import { usePagination } from '@/composables/usePagination'

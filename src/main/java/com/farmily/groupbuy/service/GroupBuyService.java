@@ -2,6 +2,7 @@ package com.farmily.groupbuy.service;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ import com.farmily.groupbuy.model.GroupBuyVO;
 import com.farmily.groupbuy.model.GroupBuyWishListId;
 import com.farmily.groupbuy.model.GroupBuyWishListRepository;
 import com.farmily.groupbuy.model.GroupBuyWishListVO;
+import com.farmily.groupbuy.model.HostOrderDTO;
+import com.farmily.groupbuy.model.HostParticipantDTO;
 import com.farmily.groupbuy.model.JoinStatus;
 import com.farmily.groupbuy.model.OrderStatus;
 import com.farmily.groupbuy.model.PaidStatus;
@@ -31,6 +34,7 @@ import com.farmily.groupbuy.model.ShippedStatus;
 import com.farmily.groupbuy.model.ShowJoinedGroupBuyDTO;
 import com.farmily.groupbuy.model.UnderReviewDTO;
 import com.farmily.groupbuy.model.WishListDTO;
+import com.farmily.notification.service.NotificationSender;
 import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.model.ProductVO;
 import com.farmily.product.service.ProductServiceImpl;
@@ -56,6 +60,9 @@ public class GroupBuyService {
 
 	@Autowired
 	GroupBuyParticipationRepository participationRepository;
+
+	@Autowired
+	NotificationSender notificationSender;
 
 	// 會員加入單筆團購收藏
 	@Transactional
@@ -126,27 +133,75 @@ public class GroupBuyService {
 		if (product == null) {
 			throw new RuntimeException("查無此商品");
 		}
-		Integer minimumTargetAmount=product.getGroupPrice()*2;
+		Integer minimumTargetAmount = product.getGroupPrice() * 2;
 		User hostUser = userRepository.findById(hostUserId).orElseThrow(() -> new RuntimeException("查無此會員"));
 		GroupBuyVO groupBuyVO = new GroupBuyVO();
 		groupBuyVO.setHostUser(hostUser);
 		groupBuyVO.setProduct(product);
-		if(form.getTargetAmount()<minimumTargetAmount){
-			throw new RuntimeException("達標金額不得低於"+minimumTargetAmount+"元");
-		}else {
-		groupBuyVO.setTargetAmount(form.getTargetAmount());
-		groupBuyVO.setOpenDatetime(Timestamp.valueOf(form.getOpenDatetime().atStartOfDay()));
-		groupBuyVO.setDdlDatetime(Timestamp.valueOf(form.getDdlDatetime().atTime(23, 59, 59)));
-		groupBuyVO.setPickupAddress(form.getPickupAddress());
-		// 系統預設
-		groupBuyVO.setRequestStatus(RequestStatus.pending);
-		groupBuyVO.setStatus(GroupBuyStatus.pending);
-		groupBuyVO.setRequestDatetime(new Timestamp(System.currentTimeMillis()));
-		groupBuyVO.setGroupPrice(product.getGroupPrice());
+		if (form.getTargetAmount() < minimumTargetAmount) {
+			throw new RuntimeException("達標金額不得低於" + minimumTargetAmount + "元");
+		} else {
+			groupBuyVO.setTargetAmount(form.getTargetAmount());
+			groupBuyVO.setOpenDatetime(Timestamp.valueOf(form.getOpenDatetime().atStartOfDay()));
+			groupBuyVO.setDdlDatetime(Timestamp.valueOf(form.getDdlDatetime().atTime(23, 59, 59)));
+			groupBuyVO.setPickupAddress(form.getPickupAddress());
+			// 系統預設
+			groupBuyVO.setRequestStatus(RequestStatus.pending);
+			groupBuyVO.setStatus(GroupBuyStatus.pending);
+			groupBuyVO.setRequestDatetime(new Timestamp(System.currentTimeMillis()));
+			groupBuyVO.setGroupPrice(product.getGroupPrice());
 
-		repository.save(groupBuyVO);
+			repository.save(groupBuyVO);
+
+			notificationSender.sendGBRequestCreated(groupBuyVO.getProduct().getFarmer().getFarmerId(),
+					groupBuyVO.getGroupBuyId(), groupBuyVO.getProduct().getProductName());
 		}
 	}
+	
+	//給團購主看團員資料以便聯繫
+	@Transactional(readOnly = true)
+	public HostOrderDTO showHostOrderDetail(Integer orderId,Integer hostUserId) {
+	    // 查詢訂單，同時驗證登入者是否為此團購的團購主
+	    GroupBuyOrderVO order = groupBuyOrderRepository.findByOrderIdAndGroupBuyId_HostUser_UserId(orderId,hostUserId)
+	            .orElseThrow(() -> new RuntimeException("查無此訂單或你不是此團購的團購主"));
+
+	    Integer groupBuyId =order.getGroupBuyId().getGroupBuyId();
+
+	    List<GroupBuyParticipationVO> participationList =participationRepository
+	                    .findByGroupBuyId_GroupBuyIdAndJoinStatus(groupBuyId,JoinStatus.active);
+
+	    List<HostParticipantDTO> participants =participationList.stream().map(p -> new HostParticipantDTO(
+	                            p.getUserId().getUserId(),
+	                            p.getUserId().getUserName(),
+	                            p.getUserId().getUserPhoneNum(),
+	                            p.getUserId().getEmail(),
+	                            p.getBuyQty(),
+	                            p.getPaidAmount(),
+	                            p.getJoinDatetime(),
+	                            p.getPaidDatetime(),
+	                            p.isHost()
+	                    )).toList();
+
+	    HostOrderDTO dto = new HostOrderDTO();
+	    dto.setOrderId(order.getOrderId());
+	    dto.setGroupBuyId(groupBuyId);
+	    dto.setTotalQuantity(order.getTotalQuantity());
+	    dto.setGroupPrice(order.getGroupPrice());
+	    dto.setTotalAmount(order.getTotalAmount());
+	    dto.setShippingAddress(order.getGroupBuyId().getPickupAddress());
+	    dto.setShippedStatus(order.getShippedStatus());
+	    dto.setShippedAt(order.getShippedAt());
+	    dto.setCreatedAt(order.getCreatedAt());
+	    dto.setReceivedAt(order.getReceivedAt());
+	    dto.setOrderStatus(order.getOrderStatus());
+	    dto.setPaidStatus(order.getPaidStatus());
+	    dto.setCompletedAt(order.getCompletedAt());
+	    dto.setProductId(order.getGroupBuyId().getProduct().getProductId());
+	    dto.setParticipants(participants);
+	    return dto;
+	}
+	
+	
 
 	// 給會員看已成立之團購訂單
 	public List<GroupBuyOrderDTO> showMySuccessGroupBuyOrders(Integer userId) {
@@ -216,15 +271,16 @@ public class GroupBuyService {
 		orderVO.setCompletedAt(now);
 
 		groupBuyOrderRepository.save(orderVO);
+		notificationSender.sendGBDelivered(orderVO.getGroupBuyId().getHostUser().getUserId(),
+				orderVO.getGroupBuyId().getGroupBuyId(), orderVO.getOrderId(), now.toLocalDateTime());
+		notificationSender.sendGBPayout(orderVO.getGroupBuyId().getProduct().getFarmer().getFarmerId(), orderVO.getGroupBuyId().getGroupBuyId(), orderVO.getOrderId(), orderVO.getTotalAmount());
 	}
-	
 
-	//給小農看團購總收益
-	@Transactional(readOnly=true)
+	// 給小農看團購總收益
+	@Transactional(readOnly = true)
 	public Long getGroupBuyTotalRevenue(Integer farmerId) {
-		return groupBuyOrderRepository.sumTotalAmountByPaidStatusAndFarmerId(PaidStatus.PAID,farmerId);
+		return groupBuyOrderRepository.sumTotalAmountByPaidStatusAndFarmerId(PaidStatus.PAID, farmerId);
 	}
-	
 
 	// 給小農審核團購申請用
 	@Transactional
@@ -259,6 +315,13 @@ public class GroupBuyService {
 		}
 
 		repository.save(groupBuyVO);
+
+		if (requestStatus == RequestStatus.approved) {
+			notificationSender.sendGBApproved(groupBuyVO.getHostUser().getUserId(), groupBuyVO.getGroupBuyId());
+		} else if (requestStatus == RequestStatus.rejected) {
+			notificationSender.sendGBRejected(groupBuyVO.getHostUser().getUserId(), groupBuyVO.getGroupBuyId(),
+					groupBuyVO.getRejectReason());
+		}
 	}
 
 	// 給一般消費者抓的單筆團購資料(公開頁面無須登入)
@@ -266,10 +329,11 @@ public class GroupBuyService {
 		GroupBuyVO gb = repository.findById(groupBuyId).orElseThrow(() -> new RuntimeException("查無此團購"));
 		return new GroupBuyDetailDTO(gb.getProduct().getProductId(), gb.getGroupBuyId(),
 				gb.getProduct().getProductName(), gb.getGroupPrice(), gb.getTargetAmount(), gb.getOpenDatetime(),
-				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice(),gb.getProduct().getFarmer().getFarmName());
+				gb.getDdlDatetime(), gb.getPickupAddress(), gb.getStatus(), gb.getProduct().getRetailPrice(),
+				gb.getProduct().getFarmer().getFarmName());
 	}
 
-	// 給團購主看的團購訂單
+	// 給團購主看的團購請求
 	@Transactional(readOnly = true)
 	public List<UnderReviewDTO> showMyGroupBuyRequests(Integer userId) {
 
@@ -278,7 +342,7 @@ public class GroupBuyService {
 		return groupBuyList.stream()
 				.map(vo -> new UnderReviewDTO(vo.getGroupBuyId(), vo.getProduct().getProductName(), vo.getGroupPrice(),
 						vo.getRequestStatus(), vo.getTargetAmount(), vo.getOpenDatetime(), vo.getDdlDatetime(),
-						vo.getRejectReason(), vo.getReplyDatetime(),vo.getRequestDatetime()))
+						vo.getRejectReason(), vo.getReplyDatetime(), vo.getRequestDatetime()))
 				.toList();
 	}
 
@@ -463,6 +527,8 @@ public class GroupBuyService {
 			totalAmount = 0;
 		}
 
+		Set<Integer> userIds = participationRepository.findParticipantUserIds(groupBuy.getGroupBuyId(),
+				JoinStatus.active);
 		if (totalAmount >= groupBuy.getTargetAmount()) {
 			groupBuy.setStatus(GroupBuyStatus.success);
 
@@ -480,13 +546,25 @@ public class GroupBuyService {
 			order.setPaidStatus(PaidStatus.UNPAID);
 			order.setCompletedAt(null);
 
-			groupBuyOrderRepository.save(order);
+			GroupBuyOrderVO saveOrder = groupBuyOrderRepository.save(order);
+
+			repository.save(groupBuy);
+
+			if (userIds != null && !userIds.isEmpty()) {
+				notificationSender.sendGBSuccess(userIds, groupBuy.getGroupBuyId(), saveOrder.getOrderId());
+			}
 
 		} else {
 			groupBuy.setStatus(GroupBuyStatus.failed);
-		}
+			repository.save(groupBuy);
 
-		repository.save(groupBuy);
+			if (userIds != null && !userIds.isEmpty()) {
+				notificationSender.sendGBFailed(userIds, groupBuy.getGroupBuyId());
+			}
+		}
+		if(groupBuy.getStatus()==GroupBuyStatus.success) {
+			notificationSender.sendGBOrderCreated(groupBuy.getProduct().getFarmer().getFarmerId(), groupBuy.getGroupBuyId());
+		}
 	}
 
 	// 排程器自動檢測前一天團購結算
@@ -520,7 +598,7 @@ public class GroupBuyService {
 				.map(groupBuy -> new ProductGroupBuyDTO(groupBuy.getGroupBuyId(), groupBuy.getProduct().getProductId(),
 						groupBuy.getProduct().getProductName(), groupBuy.getGroupPrice(), groupBuy.getTargetAmount(),
 						groupBuy.getOpenDatetime(), groupBuy.getDdlDatetime(), groupBuy.getPickupAddress(),
-						groupBuy.getStatus(),groupBuy.getProduct().getFarmer().getFarmName()))
+						groupBuy.getStatus(), groupBuy.getProduct().getFarmer().getFarmName()))
 				.toList();
 	}
 
