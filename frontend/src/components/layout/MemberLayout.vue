@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import authApi from '@/api/auth'
 import { confirm } from '@/composables/useConfirm'
+import notificationStore from '@/stores/memberNotification'
 
 const router = useRouter()
 
@@ -27,8 +28,15 @@ const menu = [
   { label: '已報名活動', icon: '🌱', to: '/member/farm-trips' },
   { label: '我的文章', icon: '✍️', to: '/member/blogs' },
   { label: '優惠券', icon: '🎟️', to: '/member/coupons' },
-  { label: '通知', icon: '🔔', to: '/member/notifications' },
+  { label: '通知', icon: '🔔', to: '/member/notifications', badge: 'notification' },
 ]
+
+// menu item 的 badge 欄位對到這張表的 key，沒有 badge 欄位的項目就不顯示數字。
+// 之後訂單想顯示待出貨數，只要在這裡加一個 key、menu 該項加 badge: 'order' 即可。
+// 未讀數的抓取與輪詢由 ShopHeader 的鈴鐺負責（會員中心巢狀掛在 ShopLayout 底下），這裡只讀不抓。
+const badgeCounts = computed(() => ({
+  notification: notificationStore.unreadCount.value,
+}))
 
 // 登出：先跳彈窗確認，再打後端清 session、清前端狀態，導回首頁
 async function logout() {
@@ -58,6 +66,9 @@ async function logout() {
         <router-link v-for="item in menu" :key="item.to" class="side-link" :to="item.to">
           <span class="side-icon">{{ item.icon }}</span>
           <span>{{ item.label }}</span>
+          <span v-if="item.badge && badgeCounts[item.badge] > 0" class="side-badge">
+            {{ badgeCounts[item.badge] > 99 ? '99+' : badgeCounts[item.badge] }}
+          </span>
         </router-link>
       </nav>
 
@@ -153,6 +164,31 @@ async function logout() {
   font-size: 16px;
   width: 20px;
   text-align: center;
+}
+
+/* 未讀數：靠 margin-left:auto 推到選單最右側，不用 absolute，
+   所以不需要父層 position:relative，也不會蓋到文字 */
+.side-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+/* 選中時整條是綠底，紅底數字會跟綠色互斥刺眼，改白底綠字 */
+.side-link.router-link-active .side-badge {
+  background: #fff;
+  color: var(--leaf);
 }
 
 .side-logout {

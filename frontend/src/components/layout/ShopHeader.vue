@@ -106,6 +106,7 @@ let BellTimer = null
 onMounted(() => {
   loadBell()
   BellTimer = setInterval(loadBell, 300000)
+  
 })
 onBeforeUnmount(() => {
   if (BellTimer) clearInterval(BellTimer)
