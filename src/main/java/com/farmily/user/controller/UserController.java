@@ -60,7 +60,7 @@ public class UserController {
         // step2: 呼叫 MemberUserDetailsService 查出 + 驗證身分
         UserDetails userDetails = memberUserDetailsService.loadUserByUsername(log.getEmail());
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+        SecurityContextHolder.getContext().setAuthentication(authToken);    // (1)建立 Authentication，放進 SecurityContext
 
         // step3: 把登入狀態存進 session，並回一個 session cookie 給前端
         HttpSession session = request.getSession(true);         // getSession(true) 若已有 Session 就回傳，沒有就建立一個新的
