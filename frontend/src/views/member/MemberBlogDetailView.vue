@@ -2,7 +2,7 @@
 // 會員中心：文章詳情頁
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { memberBlogApi as blogApi, listBlogTypes } from '@/api/blog'
+import { memberBlogApi as blogApi, listBlogTypes, publicBlogComments } from '@/api/blog'
 import { confirm } from '@/composables/useConfirm'
 
 const route = useRoute()
@@ -11,6 +11,8 @@ const blogId = computed(() => Number(route.params.id))
 
 const blog = ref(null)
 const photos = ref([])
+const comments = ref([])          // 讀者留言（唯讀）
+const commentsFailed = ref(false) // 文章隱藏時公開留言端點會 404
 const typeName = ref('')
 const loadState = ref('loading') // loading | ready | error
 const errorMsg = ref('')
@@ -51,6 +53,15 @@ async function load() {
   } catch (e) {
     errorMsg.value = e.message
     loadState.value = 'error'
+    return
+  }
+  // 留言獨立抓：失敗(文章隱藏時公開留言端點會 404)不影響整頁載入
+  try {
+    comments.value = (await publicBlogComments(blogId.value)) || []
+    commentsFailed.value = false
+  } catch {
+    comments.value = []
+    commentsFailed.value = true
   }
 }
 
@@ -117,6 +128,19 @@ onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
              @click="openLightbox(idx)"
              @error="$event.target.style.display = 'none'" alt="" />
       </div>
+
+      <!-- 留言（唯讀：作者檢視讀者留言） -->
+      <section class="comments">
+        <h3 class="c-title">留言（{{ comments.length }}）</h3>
+        <p v-if="commentsFailed" class="c-empty">目前無法載入留言（文章隱藏時無法讀取）。</p>
+        <ul v-else-if="comments.length" class="c-list">
+          <li v-for="c in comments" :key="c.commentId">
+            <div class="c-head">{{ c.authorName || '會員' }} · {{ fmt(c.commentTime) }}</div>
+            <div class="c-body">{{ c.commentPost }}</div>
+          </li>
+        </ul>
+        <p v-else class="c-empty">目前還沒有留言。</p>
+      </section>
     </article>
 
     <div v-if="lightboxIndex >= 0" class="lightbox" @click="closeLightbox">
@@ -202,4 +226,13 @@ onUnmounted(() => window.removeEventListener('keydown', onLightboxKey))
 }
 .btn-ghost:hover { border-color: var(--leaf); color: var(--leaf-dark); }
 .btn-danger:hover { border-color: #c0392b; color: #c0392b; }
+
+/* 留言（唯讀） */
+.comments { margin: 28px 32px 0; }
+.c-title { font-size: 16px; color: var(--ink); margin: 0 0 12px; }
+.c-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.c-list li { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.c-head { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.c-body { color: var(--ink); font-size: 15px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.c-empty { color: var(--muted); font-size: 14px; }
 </style>

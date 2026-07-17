@@ -16,7 +16,8 @@ public class BlogImage implements CommandLineRunner {//CommandLineRunner spring 
 
     @Override
     public void run(String... args) throws Exception {
-        int [] blogIds = {9001, 9002, 9003, 9004, 9005, 9006};
+        int [] blogIds = {9001, 9002, 9003, 9004, 9005, 9006,
+                          9007, 9008, 9009, 9010, 9011, 9012, 9013, 9014, 9015, 9016};
         for (int blogId : blogIds) {
             try {
                 Integer len = jdbc.query(

@@ -148,7 +148,7 @@ onMounted(async () => {
             <img class="blog-card__image" :src="`/api/blogs/${b.blogId}/image`"
                  @error="$event.target.style.display = 'none'" alt="" />
             <div class="blog-card__body">
-              <span class="type-badge">{{ typeName(b.blogTypeId) }}</span>
+              <span class="type-badge" :class="'cat-' + b.blogTypeId">{{ typeName(b.blogTypeId) }}</span>
               <h3>{{ b.blogTitle }}</h3>
               <!-- 作者：小農文=🏡農場名、會員文=👤會員名；後端沒帶名字時整行不顯示 -->
               <p v-if="b.authorName" class="author">
@@ -280,7 +280,7 @@ onMounted(async () => {
 .blog-card:hover {
   transform: translateY(-4px);
   border-color: var(--leaf);
-  box-shadow: var(--shadow-hover);
+  box-shadow: 0 14px 30px rgba(55, 45, 28, 0.18);   /* 加深，滑過明顯浮起 */
 }
 .blog-card__image {
   width: 100%;
@@ -288,6 +288,10 @@ onMounted(async () => {
   object-fit: cover;
   display: block;
   background: var(--leaf-soft);
+  transition: transform 0.45s ease;   /* 滑過封面微放大 */
+}
+.blog-card:hover .blog-card__image {
+  transform: scale(1.05);
 }
 .blog-card__body {
   display: flex;
@@ -305,11 +309,24 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
 }
+/* 分類配色（產地日記綠 / 蔬果知識藍 / 體驗回顧黃 / 食譜橘）與首頁一致 */
+.type-badge.cat-1 { background: #e5f0dd; color: #3f6a23; }
+.type-badge.cat-2 { background: #e3eefb; color: #2f5fa5; }
+.type-badge.cat-3 { background: #faf3c9; color: #8a7a12; }
+.type-badge.cat-4 { background: #fdeede; color: #b5651d; }
 .blog-card__body h3 {
   margin: 0 0 8px;
   color: var(--ink);
   font-size: 17px;
+  transition: color 0.18s ease;   /* hover 變綠用 */
+  /* 標題最多 2 行，超長不撐歪卡片 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+/* hover 時標題變品牌綠，暗示可點擊 */
+.blog-card:hover .blog-card__body h3 { color: var(--leaf-dark); }
 .author {
   display: flex;
   align-items: center;
@@ -323,7 +340,10 @@ onMounted(async () => {
   font-size: 14px;
   line-height: 1.7;
   margin: 0 0 14px;
-  max-height: 4.4em;
+  /* 多行截斷：滿 3 行就以「…」收尾，不會切在字中間 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .meta {

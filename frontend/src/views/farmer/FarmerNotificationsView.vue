@@ -121,6 +121,11 @@ async function markOne(n) {
       return
     }
   }
+  // blog 通知導到「那篇文章」(小農自己的文章頁，隱藏也看得到)；其他類型導到對應區塊清單
+  if (n.targetType === 'blog' && n.targetId != null) {
+    router.push({ name: 'farmer-blog-detail', params: { id: n.targetId } })
+    return
+  }
   const path = TARGET_ROUTE[n.targetType]
   if(path) {
     router.push(path)
