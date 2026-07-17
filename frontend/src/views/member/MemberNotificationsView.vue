@@ -86,7 +86,7 @@ async function markAll() {
   marking.value = true
   try {
     await notificationApi.markAllAsRead()
-    notificationStore.reset()
+    notificationStore.markAllRead()
     await loadNotif()
   } catch (e) {
     alert(e.message || '操作失敗')
@@ -100,7 +100,7 @@ async function markOne(n) {
   if (n.status === 'unread') {
     try {
       await notificationApi.markOneAsRead(n.notificationId)
-      notificationStore.decrement()
+      notificationStore.markRead(n.notificationId)
       await loadNotif()
     } catch (e) {
       alert(e.message || '操作失敗')
