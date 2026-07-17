@@ -14,7 +14,11 @@ public class OrderResponse {
     private String userName;
     private String userPhoneNum;
     private String note;
-
+    private Integer farmTripId;
+    private String farmTripTitle;
+    private java.sql.Timestamp farmTripEnd;
+    private java.sql.Timestamp farmTripStart;
+    
     public Integer getFarmTripOrderId() { return farmTripOrderId; }
     public void setFarmTripOrderId(Integer farmTripOrderId) { this.farmTripOrderId = farmTripOrderId; }
 
@@ -41,4 +45,17 @@ public class OrderResponse {
 
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+
+    public Integer getFarmTripId() { return farmTripId; }
+    public void setFarmTripId(Integer farmTripId) { this.farmTripId = farmTripId; }
+
+    public String getFarmTripTitle() { return farmTripTitle; }
+    public void setFarmTripTitle(String farmTripTitle) { this.farmTripTitle = farmTripTitle; }
+
+    public java.sql.Timestamp getFarmTripEnd() { return farmTripEnd; }
+    public void setFarmTripEnd(java.sql.Timestamp farmTripEnd) { this.farmTripEnd = farmTripEnd; }
+    
+    public java.sql.Timestamp getFarmTripStart() { return farmTripStart; }
+    public void setFarmTripStart(java.sql.Timestamp farmTripStart) { this.farmTripStart = farmTripStart; }
+    
 }

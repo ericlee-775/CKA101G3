@@ -106,6 +106,13 @@
 
 
 <style>
+
+/* vue-datepicker 彈窗上恢復原生游標，避免被自訂游標蓋掉變不見 */
+html.custom-cursor .dp__menu,
+html.custom-cursor .dp__menu * {
+  cursor: auto !important;
+}
+
 html, body {
   margin: 0;
   padding: 0;

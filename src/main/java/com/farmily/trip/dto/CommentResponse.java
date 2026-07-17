@@ -11,6 +11,7 @@ public class CommentResponse {
     private Integer star;
     private String content;
     private Timestamp createdAt;
+    private String maskedAccount;   // 遮罩後的帳號，例如 usXXX@gmail.com
 
     public Integer getCommentId() { return commentId; }
     public void setCommentId(Integer commentId) { this.commentId = commentId; }
@@ -29,4 +30,8 @@ public class CommentResponse {
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+
+    public String getMaskedAccount() { return maskedAccount; }
+    public void setMaskedAccount(String maskedAccount) { this.maskedAccount = maskedAccount; }
+
 }

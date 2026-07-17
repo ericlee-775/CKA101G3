@@ -10,6 +10,7 @@
     "start:proxy": "node server.js"
   },
   "dependencies": {
+    "@vuepic/vue-datepicker": "^8.8.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "leaflet": "^1.9.4",
