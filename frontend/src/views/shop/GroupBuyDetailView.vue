@@ -370,7 +370,7 @@ watch(() => [route.params.groupBuyId, route.params.productId], loadGroupBuy)
           </button>
           <form v-if="showHostForm" class="action-form" @submit.prevent="submitHostCreate">
             <label>
-              達標金額<span v-if="minTargetAmount != null" class="action-form__hint">（不得低於 {{ formatPrice(minTargetAmount) }}）</span>
+              達標金額<span v-if="minTargetAmount != null" class="action-form__hint"></span>
               <input type="number" :min="minTargetAmount || 1" v-model.number="hostForm.targetAmount" />
             </label>
             <label>開團時間 <input type="date" :min="todayStr" v-model="hostForm.openDatetime" /></label>
