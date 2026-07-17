@@ -1,6 +1,8 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.UserProfileResponse;
+import com.farmily.user.exception.BusinessException;
+import com.farmily.user.exception.UserNotFoundException;
 import com.farmily.user.model.SpendingTier;
 import com.farmily.user.model.User;
 import com.farmily.user.repository.SpendingTierRepository;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,7 +101,8 @@ public class AdminMemberServiceImpl implements AdminMemberService {
     @Transactional(readOnly = true)
     public UserProfileResponse getById(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此會員"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
 
         // +消費級距
         BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
@@ -111,12 +115,14 @@ public class AdminMemberServiceImpl implements AdminMemberService {
     @Override
     public UserProfileResponse updateStatus(Integer userId, String status) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此會員"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
+
         User.UserStatus newStatus;
         try {
             newStatus = User.UserStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("不支援的會員狀態: " + status);
+            throw new BusinessException("UNSUPPORTED_MEMBER_STATUS", HttpStatus.BAD_REQUEST, "不支援的會員狀態: " + status);
         }
         user.setUserStatus(newStatus);
         return UserProfileResponse.from(userRepository.save(user));

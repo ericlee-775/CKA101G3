@@ -15,6 +15,8 @@ import cartStore from '@/stores/cart'
 import authStore from '@/stores/auth' // 收藏功能：判斷使用者是否已登入、是不是會員身分
 // 「暫無圖片」佔位圖（放在 src/assets，Vite 打包會處理成正確路徑）。
 import noImage from '@/assets/no-image.svg'
+import { toast } from '@/composables/useToast'
+import { requireMemberLogin } from '@/composables/useAuthGuard'
 
 const route = useRoute()
 const router = useRouter()
@@ -144,10 +146,8 @@ async function loadFavoriteStatus() {
 
 // 收藏功能：點愛心切換收藏狀態；已收藏就取消(DELETE)，沒收藏就加入(POST)。
 async function toggleFavorite() {
-  if (!authStore.isLoggedIn || !authStore.isMember) {
-    alert('請先登入才能收藏')
-    return
-  }
+  // 未登入會員：共用守門彈窗（useAuthGuard），按「前往登入」自動導登入頁
+  if (!(await requireMemberLogin(router, '登入會員後即可收藏喜歡的商品，隨時回來查看。'))) return
   const id = route.params.productId
   try {
     const res = await fetch(`/api/member/wishlists/${id}`, {
@@ -157,7 +157,7 @@ async function toggleFavorite() {
     if (!res.ok) throw new Error(`伺服器回應${res.status}`)
     isFavorited.value = !isFavorited.value
   } catch (e) {
-    alert(isFavorited.value ? '取消收藏失敗，請稍後再試' : '加入收藏失敗，請稍後再試')
+    toast(isFavorited.value ? '取消收藏失敗，請稍後再試' : '加入收藏失敗，請稍後再試', 'error')
   }
 }
 

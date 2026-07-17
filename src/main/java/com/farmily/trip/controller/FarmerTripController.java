@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import com.farmily.trip.dto.SessionNotifyRequest;
 import com.farmily.trip.dto.TripUpdateRequest;
 
-
 @RestController
 @RequestMapping("/api/farmer/farm-trips")
 public class FarmerTripController {
@@ -89,6 +88,12 @@ public class FarmerTripController {
 	@PutMapping("/sessions/{farmSessionId}/cancel")
 	public ResponseEntity<SessionResponse> cancelSession(@PathVariable Integer farmSessionId) {
 		return ResponseEntity.ok(farmTripService.cancelSession(farmSessionId));
+	}
+
+	// PUT /api/farmer/farm-trips/sessions/{farmSessionId}/reopen → 重啟已取消的場次
+	@PutMapping("/sessions/{farmSessionId}/reopen")
+	public ResponseEntity<SessionResponse> reopenSession(@PathVariable Integer farmSessionId) {
+		return ResponseEntity.ok(farmTripService.reopenSession(farmSessionId));
 	}
 
 	// POST /api/farmer/farm-trips/sessions/{farmSessionId}/notify → 寄提醒信給該場次未取消的報名者
