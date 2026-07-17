@@ -12,6 +12,15 @@ const categories = ref([])
 const selectedMainCat = ref('')
 const newProduct = ref({ productName: '', subCatClassId: '', retailPrice: '', groupPrice: '', unitPricingMeasure: '', isGroupBuy: false, description: '' })
 const selectedImage = ref(null)
+// 商品內圖（多張，詳情頁顯示）；送出時封面會固定排在第一張
+const selectedImages = ref([])
+// 圖片預覽網址（URL.createObjectURL 產生的本機暫存網址；換圖/送出後要 revoke 釋放記憶體）
+const coverPreview = ref('')
+const imagePreviews = ref([])
+// 對到 template 的兩個 file input：<input type="file"> 不受 v-model 控制，
+// 送出成功後要靠這兩個 ref 手動清掉畫面上殘留的檔名
+const coverInputEl = ref(null)
+const imagesInputEl = ref(null)
 const addMsg = ref('')
 const addErr = ref('')
 const adding = ref(false)
@@ -121,12 +130,45 @@ function onFileChange(event) {
 
   const file = event.target.files[0]
   selectedImage.value = file
+  // 產生本機預覽網址前，先釋放上一張的，避免記憶體越吃越多（同 blog 的 filePreview 做法）
+  if (coverPreview.value) URL.revokeObjectURL(coverPreview.value)
+  coverPreview.value = file ? URL.createObjectURL(file) : ''
 
+}
+
+// 內圖多選：FileList 不是真的陣列，先轉成陣列存起來（同 blog 的 onAlbumChange 做法）
+function onFilesChange(event) {
+  imagePreviews.value.forEach((url) => URL.revokeObjectURL(url))
+  selectedImages.value = Array.from(event.target.files || [])
+  imagePreviews.value = selectedImages.value.map((f) => URL.createObjectURL(f))
 }
 
 async function addProduct() {
   addMsg.value = ''
   addErr.value = ''
+
+  // 前端先擋圖片大小，不然使用者只會看到看不懂的「伺服器回應413」。
+  // 數字要跟 application.properties 的 multipart 上限一致（單檔 5MB、整筆請求 10MB）
+  const MB = 1024 * 1024
+  const cover = selectedImage.value || selectedImages.value[0] || null
+  const gallery = selectedImages.value.filter((f) => f !== cover)
+  const allFiles = cover ? [cover, ...gallery] : []
+  if (allFiles.some((f) => f.size > 5 * MB)) {
+    addErr.value = '圖片太大，單張最多 5MB'
+    return
+  }
+  // 封面實際會送兩份（列表縮圖一份＋詳情第一張一份），總量要照實算
+  const totalSize = (cover ? cover.size * 2 : 0) + gallery.reduce((sum, f) => sum + f.size, 0)
+  if (totalSize > 10 * MB) {
+    addErr.value = '圖片總量超過 10MB，請減少張數或改用較小的圖'
+    return
+  }
+  // 團購價不得高於零售價：後端 service 也會擋（雙保險），前端先擋讓使用者馬上看到原因
+  if (newProduct.value.groupPrice !== '' && newProduct.value.retailPrice !== ''
+    && Number(newProduct.value.groupPrice) > Number(newProduct.value.retailPrice)) {
+    addErr.value = '團購價不得高於零售價'
+    return
+  }
 
   try {
 
@@ -138,7 +180,13 @@ async function addProduct() {
     fd.append('unitPricingMeasure', newProduct.value.unitPricingMeasure)
     fd.append('isGroupBuy', newProduct.value.isGroupBuy)
     fd.append('description', newProduct.value.description)
-    if (selectedImage.value) { fd.append('productImage', selectedImage.value) }
+    // 封面＋內圖（cover/gallery 在上面大小檢查時已算好）：
+    // 封面存 PRODUCT_DETAIL 當列表縮圖，內圖固定把封面排第一張，維持「詳情第一張＝封面」
+    if (cover) {
+      fd.append('productImage', cover)
+      fd.append('productImages', cover)
+      for (const f of gallery) { fd.append('productImages', f) }
+    }
 
     adding.value = true
     const res = await fetch(`/api/farmer/products`, {
@@ -155,7 +203,17 @@ async function addProduct() {
     addMsg.value = '已新增'
     loadProducts()
     newProduct.value = { productName: '', subCatClassId: '', retailPrice: '', groupPrice: '', unitPricingMeasure: '', isGroupBuy: false, description: '' }
+    selectedMainCat.value = '' // 大分類回到「請選擇大分類」
     selectedImage.value = null
+    selectedImages.value = []
+    // 預覽也要一起清掉並釋放
+    if (coverPreview.value) URL.revokeObjectURL(coverPreview.value)
+    imagePreviews.value.forEach((url) => URL.revokeObjectURL(url))
+    coverPreview.value = ''
+    imagePreviews.value = []
+    // file input 不受 v-model 控制，畫面上的檔名要用 ref 手動清
+    if (coverInputEl.value) coverInputEl.value.value = ''
+    if (imagesInputEl.value) imagesInputEl.value.value = ''
   } catch (e) {
     addErr.value = e.message || '無法新增商品,請稍後再試'
   }
@@ -172,8 +230,20 @@ function onModalKeydown(e) {
   if (e.key === 'Escape') showAddModal.value = false
 }
 watch(showAddModal, (open) => {
-  if (open) window.addEventListener('keydown', onModalKeydown)
-  else window.removeEventListener('keydown', onModalKeydown)
+  if (open) {
+    // 每次打開先清掉上一輪的成功/錯誤訊息，不然會看到過期的「已新增」
+    addMsg.value = ''
+    addErr.value = ''
+    window.addEventListener('keydown', onModalKeydown)
+  } else {
+    window.removeEventListener('keydown', onModalKeydown)
+  }
+})
+
+// 換大分類就把子分類清掉：不清的話畫面看起來空白，
+// 但 subCatClassId 還存著上一個大類的子類 id，送出會變成「新大類配舊子類」
+watch(selectedMainCat, () => {
+  newProduct.value.subCatClassId = ''
 })
 onUnmounted(() => window.removeEventListener('keydown', onModalKeydown))
 
@@ -204,7 +274,8 @@ onMounted(loadCategories)
       <p v-else-if="products.length === 0" class="state">目前沒有商品。</p>
 
       <div v-else class="product-list">
-        <article v-for="(product, index) in pagedProducts" :key="product.productId" class="product-row">
+        <article v-for="(product, index) in pagedProducts" :key="product.productId" class="product-row"
+          :class="{ 'product-row--inactive': product.status !== 'ACTIVE' }">
           <div class="product-row__head">
             <h3>{{ product.productName }}</h3>
             <!-- 上架/下架用不同顏色的小標籤，一眼就能分辨狀態 -->
@@ -217,10 +288,17 @@ onMounted(loadCategories)
           </p>
 
           <div class="product-row__actions">
-            <input type="number" v-model="product.retailPrice" class="price-input">
-            <button type="button" class="btn" @click="savePrice(product)">存價格</button>
-            <button type="button" class="btn-ghost" @click="changeStatus(product, 'ACTIVE')">上架</button>
-            <button type="button" class="btn-ghost" @click="changeStatus(product, 'INACTIVE')">下架</button>
+            <!-- 已下架的商品改價沒有意義，把改價相關控件一併停用，整列只留「上架」一個動作 -->
+            <input type="number" v-model="product.retailPrice" class="price-input"
+              :disabled="product.status !== 'ACTIVE'">
+            <button type="button" class="btn" :disabled="product.status !== 'ACTIVE'"
+              @click="savePrice(product)">存價格</button>
+            <!-- 只顯示「反向動作」那一顆：上架中→給下架鈕、已下架→給上架鈕。
+                 「上架」用實心主要按鈕：它是灰列上唯一可用的動作，要夠顯眼 -->
+            <button v-if="product.status === 'ACTIVE'" type="button" class="btn-ghost"
+              @click="changeStatus(product, 'INACTIVE')">下架</button>
+            <button v-else type="button" class="btn"
+              @click="changeStatus(product, 'ACTIVE')">上架</button>
           </div>
         </article>
 
@@ -304,9 +382,18 @@ onMounted(loadCategories)
               </label>
 
               <label>
-                <span>商品圖片（選填）</span>
-                <input type="file" @change="onFileChange">
+                <span>封面圖（選填，商品列表顯示）</span>
+                <input ref="coverInputEl" type="file" accept="image/*" @change="onFileChange">
               </label>
+              <img v-if="coverPreview" class="cover-preview" :src="coverPreview" alt="封面預覽">
+
+              <label>
+                <span>商品內圖（可多張，選填，詳情頁顯示；封面會自動排第一張）</span>
+                <input ref="imagesInputEl" type="file" accept="image/*" multiple @change="onFilesChange">
+              </label>
+              <div v-if="imagePreviews.length" class="thumb-list">
+                <img v-for="url in imagePreviews" :key="url" :src="url" alt="內圖預覽">
+              </div>
 
               <!-- 用固定高度的容器包住訊息，不管有沒有訊息、訊息多長，
                    這塊空間都在，下面的送出按鈕才不會被推來推去 -->
@@ -414,6 +501,23 @@ onMounted(loadCategories)
   border-radius: 12px;
   padding: 14px 16px;
 }
+/* 已下架的商品：灰底＋標題文字變淡。
+   刻意不用 opacity 蓋整列——那樣唯一要讓人按的「上架」鈕也會跟著變淡 */
+.product-row--inactive {
+  background: #f6f6f3;
+}
+.product-row--inactive h3,
+.product-row--inactive .product-row__unit {
+  color: var(--muted);
+}
+
+/* 停用狀態的改價輸入框：灰底＋禁止游標，跟可用狀態做出區隔 */
+.price-input:disabled {
+  background: #efefec;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 /* 商品名稱 + 狀態標籤 排在同一行、左右對齊 */
 .product-row__head {
   display: flex;
@@ -536,6 +640,28 @@ onMounted(loadCategories)
 }
 .checkbox-row input {
   width: auto;
+}
+
+/* ===== 圖片預覽 ===== */
+
+/* 封面預覽：單張稍大，一眼確認選對圖 */
+.cover-preview {
+  max-width: 160px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+/* 內圖預覽：一排小縮圖，太多時自動換行 */
+.thumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.thumb-list img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
 }
 
 /* 主要動作按鈕（存價格／新增商品）：實心主題綠，最顯眼 */

@@ -14,14 +14,24 @@ const features = ref([
   { icon: '🤝', title: '支持在地', desc: '每一筆訂單，都是對台灣土地與小農的支持。' },
 ])
 
-// 精選商品（示範資料，之後可改成從 /api/products 抓）。
+// 熱門商品（管理員結算的點擊排行前 4 名）。還沒結算過時是空陣列，整個區塊會隱藏。
 // 加入購物車統一在商品詳情頁進行（可選數量），首頁卡片點了就導過去。
-const products = ref([
-  { id: 1, name: '有機小番茄', price: 120, image: 'https://picsum.photos/seed/tomato/400/300' },
-  { id: 2, name: '溫室水蜜桃', price: 380, image: 'https://picsum.photos/seed/peach/400/300' },
-  { id: 3, name: '高山高麗菜', price: 90,  image: 'https://picsum.photos/seed/cabbage/400/300' },
-  { id: 4, name: '產地鮮乳',   price: 95,  image: 'https://picsum.photos/seed/milk/400/300' },
-])
+const products = ref([])
+
+async function loadHotProducts() {
+  try {
+    const res = await fetch('/api/products/hot')
+    if (!res.ok) {
+      throw new Error(`伺服器回應${res.status}`)
+    }
+    products.value = await res.json()
+  } catch (e) {
+    // 抓不到就維持空陣列讓區塊隱藏，不影響首頁其他內容
+    console.error('無法載入熱門商品', e)
+  }
+}
+
+onMounted(loadHotProducts)
 
 /* ========== 首頁各區塊（最新消息 / 農場 / 團購 / 體驗活動 / 部落格）==========
    每區各抓幾筆真實資料，統一整理成 { image, badge, title, desc, meta, to } 卡片格式，
@@ -151,24 +161,26 @@ const sections = computed(() => [
       </article>
     </section>
 
-    <!-- ========== 精選商品 ========== -->
-    <section class="section">
+    <!-- ========== 熱門商品（點擊排行，管理員結算後顯示；沒資料整區隱藏） ========== -->
+    <section v-if="products.length > 0" class="section">
       <div class="section-head">
-        <h2>本週精選</h2>
+        <h2>熱門商品</h2>
         <router-link class="more-link" to="/products">看全部商品 →</router-link>
       </div>
 
       <div class="product-grid">
         <router-link
           v-for="p in products"
-          :key="p.id"
+          :key="p.productId"
           class="product-card"
-          :to="{ name: 'product-detail', params: { productId: p.id } }"
+          :to="{ name: 'product-detail', params: { productId: p.productId } }"
         >
-          <img :src="p.image" :alt="p.name" />
+          <!-- 用後端圖片端點當 src；沒圖（404）時 @error 換成預設圖，同 FavoriteProducts 做法 -->
+          <img :src="`/api/products/${p.productId}/image`" :alt="p.productName"
+               loading="lazy" @error="$event.target.src = noImage" />
           <div class="product-body">
-            <h3>{{ p.name }}</h3>
-            <p class="price">NT$ {{ p.price }}</p>
+            <h3>{{ p.productName }}</h3>
+            <p class="price">NT$ {{ p.retailPrice }}</p>
             <span class="product-cta">查看商品 →</span>
           </div>
         </router-link>

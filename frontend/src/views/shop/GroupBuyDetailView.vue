@@ -102,7 +102,8 @@ async function loadHostOnlyProduct(productId) {
     ddlDatetime: null,
     pickupAddress: null,
     status: null,
-    farmName: null,
+    // 商品 API（ProductDetailDTO）本身就有帶 farmName，可發起頁面也能顯示農場名稱。
+    farmName: product.farmName,
   }
 }
 
@@ -124,6 +125,7 @@ async function loadGroupBuy() {
       const productId = route.params.productId
       await loadHostOnlyProduct(productId)
       await loadImage(productId)
+      resolveFarmerId(groupBuy.value.farmName)
     } else {
       groupBuy.value = await groupBuyApi.getOne(route.params.groupBuyId)
       await loadImage(groupBuy.value.productId)

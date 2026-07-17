@@ -1,5 +1,6 @@
 package com.farmily.product.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -16,7 +17,7 @@ import com.farmily.product.model.ProductVO;
 
 public interface ProductService {
 
-	Integer addProduct(ProductInsertDTO dto, Integer farmerId);
+	Integer addProduct(ProductInsertDTO dto, Integer farmerId) throws IOException;
 
 	boolean updateProduct(Integer productId, ProductUpdatedDTO dto, Integer farmerId);
 
@@ -41,5 +42,7 @@ public interface ProductService {
 	boolean deleteWishList(Integer productId, Integer userId);
 
 	List<ProductSummaryDTO> getAllWishLists(Integer userId);
+	//熱銷產品
+	List<ProductSummaryDTO> getHotProducts();
 
 }
