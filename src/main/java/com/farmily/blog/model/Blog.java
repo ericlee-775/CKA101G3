@@ -46,6 +46,12 @@ public class Blog implements java.io.Serializable {
 	@Column(name = "blog_status")
 	private BlogStatus blogStatus;
 
+	@Transient   // @Transient = 這欄不對應資料表欄位，JPA 不會拿去存/建表，只是用來裝查詢帶回的顯示值
+	private String authorName;
+
+	@Transient
+	private String authorType;
+
 	public Blog() {
 		super();
 	}
@@ -130,5 +136,21 @@ public class Blog implements java.io.Serializable {
 
 	public void setBlogStatus(BlogStatus blogStatus) {
 		this.blogStatus = blogStatus;
+	}
+
+	public String getAuthorName() {
+		return authorName;
+	}
+
+	public void setAuthorName(String authorName) {
+		this.authorName = authorName;
+	}
+
+	public String getAuthorType() {
+		return authorType;
+	}
+
+	public void setAuthorType(String authorType) {
+		this.authorType = authorType;
 	}
 }

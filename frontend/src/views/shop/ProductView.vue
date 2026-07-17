@@ -293,7 +293,12 @@ watch(() => route.params.productId, loadProduct)
             </p>
           </div>
 
-          <div v-if="product.isGroupBuy" class="badge">可團購</div>
+          <!-- 可團購徽章本身可點：按下導到這個商品的團購頁（現成路由 group-buy-host） -->
+          <RouterLink
+            v-if="product.isGroupBuy"
+            class="badge"
+            :to="{ name: 'group-buy-host', params: { productId: product.productId } }"
+          >可團購</RouterLink>
 
           <!-- 購買區：選數量 → 加入購物車 -->
           <div class="buybox">
@@ -579,6 +584,14 @@ watch(() => route.params.productId, loadProduct)
   color: #c2410c;
   font-size: 13px;
   margin-bottom: 20px;
+  /* 徽章現在是連結（點了去團購頁）：拿掉底線、hover 加深提示可點 */
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.badge:hover {
+  background: #ffedd5;
+  border-color: #fdba74;
 }
 
 /* ---------- 購買區（數量 + 加入購物車） ---------- */

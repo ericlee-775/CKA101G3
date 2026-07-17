@@ -6,6 +6,10 @@ import com.farmily.user.model.FarmerReview;
 import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.AdminFarmerService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +69,39 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
     }
 
 
+
+    // 複合查詢 + 分頁：keyword 比對農場名 / email / 電話；status 比對小農狀態
+    // 最新審核狀態/輪次沿用 listAll 做法：一次撈全部 review 輕量欄位，在記憶體對應（避免 N+1）
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FarmerProfileResponse> search(String keyword, String status, int page, int size) {
+        // 預設依小農編號由小到大排序
+        Pageable pageable = PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.ASC, "farmer_id"));
+        Page<Farmer> farmers = farmerRepository.searchFarmers(blankToNull(keyword), blankToNull(status), pageable);
+
+        // 每位小農最新一輪的審核狀態 / 輪次
+        List<Object[]> rows = farmerReviewRepository.findAllReviewStatusRounds();
+        Map<Integer, String> latestStatusByFarmerId = new HashMap<>();
+        Map<Integer, Integer> latestRoundByFarmerId = new HashMap<>();
+        for (Object[] row : rows) {
+            Integer farmerId = (Integer) row[0];
+            String reviewStatus = (String) row[1];
+            Integer round = (Integer) row[2];
+            Integer currentRound = latestRoundByFarmerId.get(farmerId);
+            if (currentRound == null || round > currentRound) {
+                latestRoundByFarmerId.put(farmerId, round);
+                latestStatusByFarmerId.put(farmerId, reviewStatus);
+            }
+        }
+
+        return farmers.map(f -> toAdminResponse(
+                f, latestStatusByFarmerId.get(f.getFarmerId()), latestRoundByFarmerId.get(f.getFarmerId())));
+    }
+
+    // 空白字串視為 null（不套用該條件）
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
+    }
 
     // 查單一小農
     @Override

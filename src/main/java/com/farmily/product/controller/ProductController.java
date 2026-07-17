@@ -21,6 +21,7 @@ import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.SubCategoryOptionDTO;
 import com.farmily.product.model.SubCategoryRepository;
+import com.farmily.product.service.ProductClickService;
 import com.farmily.product.service.ProductService;
 
 @RestController
@@ -31,10 +32,12 @@ public class ProductController {
 	private ProductService productService;
 	@Autowired
 	private SubCategoryRepository subCategoryRepository;
+	@Autowired
+	private ProductClickService productClickService;
 
 	// 查詢所有商品（統一回傳 DTO，對應前端 Vue 串接）
 	@GetMapping
-	public ResponseEntity<Page<ProductSummaryDTO>> getAllProducts(@PageableDefault(size=10) Pageable pageable){
+	public ResponseEntity<Page<ProductSummaryDTO>> getAllProducts(@PageableDefault(size = 10) Pageable pageable) {
 		Page<ProductSummaryDTO> products = productService.getAllProducts(pageable);
 		return ResponseEntity.ok(products);
 	}
@@ -57,7 +60,14 @@ public class ProductController {
 	@GetMapping("/{productId}")
 	public ResponseEntity<ProductDetailDTO> getProductDetail(@PathVariable Integer productId) {
 		ProductDetailDTO detail = productService.getProductDetail(productId);
-		return (detail != null) ? ResponseEntity.ok(detail) : ResponseEntity.notFound().build();
+
+		if (detail != null) {
+			productClickService.addClick(productId);
+			return ResponseEntity.ok(detail);
+		} else {
+			return ResponseEntity.notFound().build();
+		}
+
 	}
 
 	// 讀取圖片（Spring ResponseEntity 版：header / body / 狀態碼都宣告式交給 Spring 寫）
@@ -99,12 +109,21 @@ public class ProductController {
 	// res.setStatus(HttpStatus.NOT_FOUND.value()); // ④ 沒圖自己設 404
 	// }
 	// }
-	
-	//找出所有類別
+
+	// 找出所有類別
 	@GetMapping("/categories")
 	public ResponseEntity<List<SubCategoryOptionDTO>> getCategoryOptions() {
 		List<SubCategoryOptionDTO> subCategoryOptions = subCategoryRepository.findAllOptions();
 		return ResponseEntity.ok(subCategoryOptions);
 	}
+
+	// 首頁熱門清單
+	@GetMapping("/hot")
+	public ResponseEntity<List<ProductSummaryDTO>> hotProducts() {
+		List<ProductSummaryDTO> getHotProducts = productService.getHotProducts();
+		return ResponseEntity.ok(getHotProducts);
+	}
+
 	
+
 }

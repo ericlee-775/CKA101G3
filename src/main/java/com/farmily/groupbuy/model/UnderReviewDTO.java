@@ -1,7 +1,7 @@
 package com.farmily.groupbuy.model;
 
 import java.sql.Timestamp;
-
+//給一般團員看的訂單
 public class UnderReviewDTO {
 	private Integer groupBuyId;
 	

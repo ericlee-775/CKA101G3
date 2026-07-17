@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,7 @@ class ProductRepositoryTest {
 	}
 
 	@Test
-	public void testAddProduct() {
+	public void testAddProduct() throws IOException {
 		ProductInsertDTO productDTO = new ProductInsertDTO();
 
 		productDTO.setProductName("測試商品");
@@ -83,7 +84,7 @@ class ProductRepositoryTest {
 	}
 
 	@Test
-	public void testAddProduct_WithMultipartImage() {
+	public void testAddProduct_WithMultipartImage() throws IOException {
 
 		ProductInsertDTO productDTO = new ProductInsertDTO();
 

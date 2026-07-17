@@ -14,14 +14,14 @@ const marking = ref(false)
 
 
 // 分類開選的選項
-// targetType: ACCOUNT, PRODUCT, ORDER, GROUPBUY, TRIP, BLOG,...
+// targetType: account, order, groupbuy, trip, blog,...
 const TYPE_OPTIONS = [
   { value: '', label: '全部' },
-  { value: 'ACCOUNT', label: '帳號' },
-  { value: 'ORDER', label: '訂單' },
-  { value: 'GROUPBUY', label: '團購' },
-  { value: 'TRIP', label: '體驗活動' },
-  { value: 'BLOG', label: '專欄文章' }
+  { value: 'account', label: '帳號' },
+  { value: 'order', label: '訂單' },
+  { value: 'groupbuy', label: '團購' },
+  { value: 'trip', label: '體驗活動' },
+  { value: 'blog', label: '專欄文章' }
 ]
 
 // 通知列表代碼
@@ -86,7 +86,7 @@ async function markAll() {
   marking.value = true
   try {
     await notificationApi.markAllAsRead()
-    notificationStore.reset()
+    notificationStore.markAllRead()
     await loadNotif()
   } catch (e) {
     alert(e.message || '操作失敗')
@@ -100,7 +100,7 @@ async function markOne(n) {
   if (n.status === 'unread') {
     try {
       await notificationApi.markOneAsRead(n.notificationId)
-      notificationStore.decrement()
+      notificationStore.markRead(n.notificationId)
       await loadNotif()
     } catch (e) {
       alert(e.message || '操作失敗')
@@ -122,7 +122,7 @@ function formateDateTime(dt) {
   <main class="notif-page">
     <div class="notif-wrap">
 
-      <header>
+      <header class="page-head">
         <h1>🔔 我的通知</h1>
       </header>
       
@@ -140,7 +140,7 @@ function formateDateTime(dt) {
       <!-- 載入狀態 -->
       <p v-if="loading" class="hint">載入中...</p>
       <p v-else-if="loadError" class="msg-err">{{ loadError }}</p>
-      <p v-else-if="notifs.length === 0" class="hint">暫無通知。</p>
+      <p v-else-if="notifs.length === 0" class="hint">暫無通知</p>
 
       <!-- 非以上三種狀態，載入通知列表 -->
       <ul v-else class="notif-list">
@@ -149,7 +149,7 @@ function formateDateTime(dt) {
           class="notif-item" :class="{ unread: n.status === 'unread' }"
           @click="markOne(n)"
         >
-          <span class="notif-tag" :class="'tag-' + (n.targetType.toLowerCase() || 'other')">
+          <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
             {{ TYPE_LABEL[n.targetType] || '其他' }}
           </span>
           <div class="notif-main">
@@ -173,27 +173,20 @@ function formateDateTime(dt) {
 
 <style scoped>
 .notif-page {
-  padding: 40px 18px;
-  min-height: 60vh;
-}
-
-.notif-wrap {
-  max-width: 640px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.notif-head {
+.notif-wrap {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.notif-head h1 {
+.page-head h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: 24px;
   color: var(--ink);
 }
 
@@ -243,15 +236,21 @@ function formateDateTime(dt) {
   gap: 12px;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 14px 16px;
-  cursor: pointer;
+  border-left: 4px solid var(--leaf);
+  border-radius: 16px;
+  padding: 16px 18px;
   box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: box-shadow .18s ease, transform .18s ease;
 }
 
 .notif-item.unread {
-  border-left: 3px solid var(--leaf);
   background: var(--leaf-soft);
+}
+
+.notif-item:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 
 /* 未讀:綠邊 + 淺綠底 */

@@ -101,7 +101,9 @@ public class UserSecurityConfig {
 						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
 						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
 						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
+						.requestMatchers("/admin/products/**").hasAnyAuthority("PERM_ADMIN","PERM_SHOP")
 						.requestMatchers("/api/admin/groupBuy/**").hasAuthority("PERM_GROUP_BUY")
+
 
 						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
 						.anyRequest().hasRole("ADMIN"))

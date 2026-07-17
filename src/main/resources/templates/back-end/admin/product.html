@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>熱門商品管理</title>
+</head>
+<body>
+
+<h1 class="page-title" layout:fragment="pagetitle">熱門商品管理</h1>
+
+<div layout:fragment="content">
+
+    <!-- 結算操作卡：說明 + 按鈕。結算成功的「（已結算）」提示由 layout 的全域 toast 顯示，這頁不用自己寫 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="mb-1">結算熱門商品</h4>
+            <p class="text-muted">
+                以目前累積的點擊數取前 4 名寫入熱門清單（首頁顯示用），並將點擊數歸零重新計算。
+                系統每週一凌晨 3 點也會自動結算一次。
+            </p>
+            <!-- th:action 會自動帶 CSRF token；用原生 action 會被擋 403 -->
+            <form th:action="@{/admin/products/hot/settle}" method="post">
+                <button type="submit" class="btn btn-success">立即結算</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 目前的熱門清單（上次結算結果） -->
+    <div class="table-card">
+        <!-- 還沒結算過（或熱門商品都已下架）時的空狀態 -->
+        <p th:if="${#lists.isEmpty(productTop)}" class="text-muted mb-0">
+            目前沒有熱門商品——尚未結算，或上榜商品已下架。
+        </p>
+
+        <table th:unless="${#lists.isEmpty(productTop)}"
+               class="table table-striped table-bordered" style="width:100%">
+            <thead class="thead-light">
+            <tr>
+                <th>名次</th><th>商品編號</th><th>商品名稱</th><th>零售價</th><th>計價單位</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- st 是走訪狀態物件，st.count 從 1 起算，正好當名次 -->
+            <tr th:each="p, st : ${productTop}">
+                <td th:text="${st.count}"></td>
+                <td th:text="${p.productId}"></td>
+                <td th:text="${p.productName}"></td>
+                <td th:text="${p.retailPrice}"></td>
+                <td th:text="${p.unitPricingMeasure}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
