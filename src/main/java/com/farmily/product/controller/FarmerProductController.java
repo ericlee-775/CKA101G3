@@ -1,5 +1,6 @@
 package com.farmily.product.controller;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -48,7 +49,7 @@ public class FarmerProductController {
 	// 新增商品
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Integer> addProduct(@Valid @ModelAttribute ProductInsertDTO dto,
-			@AuthenticationPrincipal FarmerUserDetails me) {
+			@AuthenticationPrincipal FarmerUserDetails me) throws IOException {
 
 		Integer productId = productService.addProduct(dto, me.getFarmerId());
 
@@ -67,6 +68,12 @@ public class FarmerProductController {
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<String> handleDataIntegrityViolation(DataIntegrityViolationException e){
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("資料關聯有誤，請確認輸入的分類或商品是否存在");
+	}
+
+	// service 的業務檢查不過（查無此分類、團購價高於原價…）；訊息不寫死，直接用丟例外時塞的那句
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 	}
 	
 	@ExceptionHandler(BindException.class)

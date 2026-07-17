@@ -2,6 +2,7 @@ package com.farmily.groupbuy.model;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +12,7 @@ import com.farmily.user.model.User;
 
 public interface GroupBuyParticipationRepository extends JpaRepository<GroupBuyParticipationVO, Integer> {
 	List<GroupBuyParticipationVO> findByUserId_UserId(Integer userId);
+	List<GroupBuyParticipationVO> findByGroupBuyId_GroupBuyIdAndJoinStatus(Integer groupBuyId,JoinStatus joinStatus);
 	boolean existsByGroupBuyIdAndUserId(GroupBuyVO groupBuyId, User userId);
 	@Query("""
 		    SELECT COALESCE(SUM(p.paidAmount), 0)
@@ -39,4 +41,17 @@ public interface GroupBuyParticipationRepository extends JpaRepository<GroupBuyP
 	        Integer groupBuyId,
 	        Integer userId
 	);
+	
+	
+	
+	@Query(""" 
+		    SELECT p.userId.userId
+			FROM GroupBuyParticipationVO p
+			WHERE p.groupBuyId.groupBuyId = :groupBuyId
+			AND p.joinStatus = :joinStatus
+			""")
+		Set<Integer> findParticipantUserIds(
+		        @Param("groupBuyId") Integer groupBuyId,
+		        @Param("joinStatus") JoinStatus joinStatus
+		);
 }

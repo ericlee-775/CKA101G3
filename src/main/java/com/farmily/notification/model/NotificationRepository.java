@@ -13,31 +13,29 @@ public interface NotificationRepository extends JpaRepository<NotificationVO, In
 	
 	// 取得該用戶所有通知，並分頁顯示
 	@Query("SELECT n FROM NotificationVO n WHERE n.recipientType = :recipientType AND n.recipientId = :recipientId "
-			 + "ORDER BY CASE WHEN n.status = :unread THEN 0 ELSE 1 END, n.createdAt DESC")
+			 + "ORDER BY n.notificationId DESC")
 	public Page<NotificationVO> findNotifs(
 			@Param("recipientType") NotificationRecipientType recipientType, 
 			@Param("recipientId") Integer recipientId, 
-			@Param("unread") NotificationStatus unread, Pageable pageable);
+			Pageable pageable);
 //	public List<NotificationVO> findByRecipientTypeAndRecipientId(NotificationRecipientType recipientType, Integer recipientId);
 
 	
 	// 取得該用戶所有通知，需要分類，並分頁顯示
+//	@Query("SELECT n FROM NotificationVO n WHERE n.recipientType = :recipientType AND n.recipientId = :recipientId AND n.targetType = :targetType "
+//			+ "ORDER BY CASE WHEN n.status = :unread THEN 0 ELSE 1 END, n.createdAt DESC")
 	@Query("SELECT n FROM NotificationVO n WHERE n.recipientType = :recipientType AND n.recipientId = :recipientId AND n.targetType = :targetType "
-			+ "ORDER BY CASE WHEN n.status = :unread THEN 0 ELSE 1 END, n.createdAt DESC")
+			+ "ORDER BY n.notificationId DESC")
 	public Page<NotificationVO> findnNotifsByTargetType(
 			@Param("recipientType") NotificationRecipientType recipientType, 
 			@Param("recipientId") Integer recipientId, 
 			@Param("targetType") String targetType, 
-			@Param("unread") NotificationStatus unread , Pageable pageable);
+			Pageable pageable);
 	
-//	@Query("FROM NotificationVO WHERE recipientType = ?1 AND recipientId = ?2 AND targetType = ?3")
-//	public Page<NotificationVO> findByRecipientAndTarget(NotificationRecipientType recipientType, Integer recipientId, String targetType, Pageable pageable);
-//	public List<NotificationVO> findByRecipientAndTarget(NotificationRecipientType recipientType, Integer recipientId, String targetType);
-
 
 	// 取得小鈴鐺預覽通知，只需要前{五}筆，
-	public List<NotificationVO> findTop5ByRecipientTypeAndRecipientIdOrderByCreatedAtDesc(NotificationRecipientType recipientType, Integer recipientId);
-	
+	public List<NotificationVO> findTop5ByRecipientTypeAndRecipientIdOrderByNotificationIdDesc(NotificationRecipientType recipientType, Integer recipientId);
+
 	
 	// 取得使用者目前未讀通知筆數
 	public long countByRecipientTypeAndRecipientIdAndStatus(NotificationRecipientType recipientType, Integer recipientId, NotificationStatus status);

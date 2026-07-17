@@ -16,6 +16,11 @@ public class BlogAdminReport {
     private BlogReportStatus reportStatus;
     private Timestamp reportTime;
 
+    // 補進來給後台審核用的顯示欄位（來自 Blog / BlogComment，非檢舉表本身）
+    private String blogTitle;      // 文章標題（取代原本只顯示 blogId）
+    private String blogContent;    // 文章內容（審核時看全文）
+    private String commentContent; // 留言內容（留言檢舉審核用）
+
     public Integer getReportId() {
         return reportId;
     }
@@ -70,5 +75,29 @@ public class BlogAdminReport {
 
     public void setReportTime(Timestamp reportTime) {
         this.reportTime = reportTime;
+    }
+
+    public String getBlogTitle() {
+        return blogTitle;
+    }
+
+    public void setBlogTitle(String blogTitle) {
+        this.blogTitle = blogTitle;
+    }
+
+    public String getBlogContent() {
+        return blogContent;
+    }
+
+    public void setBlogContent(String blogContent) {
+        this.blogContent = blogContent;
+    }
+
+    public String getCommentContent() {
+        return commentContent;
+    }
+
+    public void setCommentContent(String commentContent) {
+        this.commentContent = commentContent;
     }
 }
