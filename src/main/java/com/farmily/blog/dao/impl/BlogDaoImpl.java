@@ -72,7 +72,7 @@ public class BlogDaoImpl implements BlogDao {
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
-        //結果用blogRowMapper 轉成 List<Blog>
+        //用blogCardRowMapper 轉成 List<Blog>
         List<Blog> blogList = namedParameterJdbcTemplate.query(sql, map, new BlogCardRowMapper());
         //query執行三個參數 sql：要執行的SQL。 map：SQL裡參數的值。new BlogRowMapper()：把每一列轉成Product物件的工具
 

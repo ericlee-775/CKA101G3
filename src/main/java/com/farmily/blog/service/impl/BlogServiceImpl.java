@@ -6,6 +6,7 @@ import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
+import com.farmily.notification.service.NotificationSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,12 @@ import java.util.List;
 public class BlogServiceImpl implements BlogService {
 
     private final BlogDao blogDao;
+    private final NotificationSender notificationSender;
 
     @Autowired
-    public BlogServiceImpl(BlogDao blogDao) {
+    public BlogServiceImpl(BlogDao blogDao, NotificationSender notificationSender) {
         this.blogDao = blogDao;
+        this.notificationSender = notificationSender;
     }
 
     /* ===== 公開 ===== */
@@ -311,9 +314,20 @@ public class BlogServiceImpl implements BlogService {
         if(userId == null ||     blogId == null) {
             throw new IllegalArgumentException("使用者和文章不能為NULL");
         }
-        getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能留言
+        Blog blog = getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能留言（順便拿到作者）
         Integer commentId = blogDao.addComment(blogComment); //建立
         BlogComment newComment = blogDao.getBlogCommentById(commentId); //撈出剛建立的
+
+        // 通知文章作者「有人留言」。作者是會員(userId)才發；小農作者(farmerId)待 sender farmer 版
+        // 自己留自己文章就不用通知自己
+        Integer authorUserId = blog.getUserId();
+        if (authorUserId != null && !authorUserId.equals(userId)) {
+            try {
+                notificationSender.sendBlogComment(authorUserId, blogId);
+            } catch (Exception e) {
+                // 通知失敗不影響留言本身
+            }
+        }
         return BlogCommentResponse.from(newComment); //轉DTO
     }
 
@@ -340,7 +354,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest) {
-        Integer userId = blogReportRequest.getUserId();
+        Integer userId = blogReportRequest.getUserId();   // 檢舉人（非作者）
 
 
         if(userId == null || blogId == null) {
@@ -348,7 +362,18 @@ public class BlogServiceImpl implements BlogService {
 
         }
 
-        return blogDao.reportBlog(blogId , blogReportRequest);
+        Integer reportId = blogDao.reportBlog(blogId , blogReportRequest);
+
+        // 通知文章作者「你的文章被檢舉，審核中」。作者是會員(userId)才發；小農作者待 sender farmer 版
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog != null && blog.getUserId() != null) {
+            try {
+                notificationSender.sendBlogReportPending(blog.getUserId(), blogId);
+            } catch (Exception e) {
+                // 通知失敗不影響檢舉本身
+            }
+        }
+        return reportId;
 
     }
 
@@ -368,7 +393,18 @@ public class BlogServiceImpl implements BlogService {
         if(blogComment == null) {
             throw new IllegalArgumentException("留言不存在");
         }
-        return blogDao.reportComment(commentId, blogComment.getBlogId(), request);
+        Integer reportId = blogDao.reportComment(commentId, blogComment.getBlogId(), request);
+
+        // 通知留言作者「你的留言被檢舉」。留言作者一定是會員，直接用 comment 的 userId
+        Integer commentAuthorUserId = blogComment.getUserId();
+        if (commentAuthorUserId != null) {
+            try {
+                notificationSender.sendBlogCommentReport(commentAuthorUserId, blogComment.getBlogId());
+            } catch (Exception e) {
+                // 通知失敗不影響檢舉本身
+            }
+        }
+        return reportId;
     }
 
     @Override
