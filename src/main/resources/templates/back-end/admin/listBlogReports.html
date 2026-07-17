@@ -61,11 +61,11 @@
                 <td>
                     <form method="post" class="d-inline"
                           th:action="@{/admin/blog-reports/{id}/approve(id=${r.reportId})}">
-                        <button class="btn btn-success btn-sm">通過（維持顯示）</button>
+                        <button class="btn btn-success btn-sm">顯示</button>
                     </form>
                     <form method="post" class="d-inline ml-1"
                           th:action="@{/admin/blog-reports/{id}/reject(id=${r.reportId})}">
-                        <button class="btn btn-danger btn-sm">駁回（隱藏文章）</button>
+                        <button class="btn btn-danger btn-sm">隱藏</button>
                     </form>
                 </td>
             </tr>
@@ -137,11 +137,11 @@
                 <td>
                     <form method="post" class="d-inline"
                           th:action="@{/admin/comment-reports/{id}/approve(id=${r.reportId})}">
-                        <button class="btn btn-success btn-sm">通過</button>
+                        <button class="btn btn-success btn-sm">顯示</button>
                     </form>
                     <form method="post" class="d-inline ml-1"
                           th:action="@{/admin/comment-reports/{id}/reject(id=${r.reportId})}">
-                        <button class="btn btn-danger btn-sm">駁回</button>
+                        <button class="btn btn-danger btn-sm">隱藏</button>
                     </form>
                 </td>
             </tr>
