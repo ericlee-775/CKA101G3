@@ -69,7 +69,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 // ===== 通知小鈴鐺 =====
 
-const notifications = ref([])
+const notifications = notificationStore.preview
 const unreadCount = notificationStore.unreadCount
 
 // 小鈴鐺分類 icon (targetType)
@@ -101,10 +101,6 @@ function timeAgo(dt){
 async function loadBell(){
   if (!authStore.isMember) { return }
   await notificationStore.refresh()
-  try {
-    notifications.value = await notificationApi.getNotifPreview()
-  } catch (e){
-  }
 }
 
 // 登入後重載鈴鐺
@@ -112,8 +108,7 @@ watch(() => authStore.isMember, (isMember) => {
   if (isMember){
     loadBell()
   } else {
-    notifications.value = []
-    notificationStore.reset()
+    notificationStore.clear()
   }
 })
 
