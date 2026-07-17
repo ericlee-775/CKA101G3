@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .rim  { fill: #3f5628 }
+    .shell{ fill: #678c42 }
+    .scute{ fill: #415c2b }
+    .skin { fill: #c0cf92 }
+    .limb { fill: #a4b578 }
+    .eye  { fill: #23291c }
+    @media (prefers-color-scheme: dark) {
+      .rim   { fill: #4e6b34 }
+      .shell { fill: #7fa851 }
+      .scute { fill: #5c7f3a }
+      .skin  { fill: #cadb9c }
+      .limb  { fill: #aabd7d }
+    }
+  </style>
+
+  <path class="limb" d="M3.5 18 L0 14.5 L4 22 Z"/>
+
+  <rect class="limb" x="5.5" y="22" width="7" height="5" rx="2.5"/>
+  <rect class="limb" x="15"  y="22" width="7" height="5" rx="2.5"/>
+
+  <rect class="skin" x="19.5" y="11" width="8" height="6.5" rx="3.25"/>
+  <circle class="skin" cx="26" cy="13.5" r="5.2"/>
+  <circle class="eye" cx="27.8" cy="11.9" r="1.15"/>
+
+  <ellipse class="rim"   cx="13" cy="17"   rx="11.5" ry="8.6"/>
+  <ellipse class="shell" cx="13" cy="16.2" rx="9.8"  ry="7"/>
+  <path class="scute" d="M13 9.6 l4.1 2.2 -.7 4.3 -3.4 1.6 -3.4 -1.6 -.7 -4.3 Z"/>
+  <path class="scute" d="M4.6 13.4 l3.3 1.5 -.5 3.4 -3.2 .9 -1.8 -3 Z" opacity=".8"/>
+  <path class="scute" d="M21.4 13.4 l-3.3 1.5 .5 3.4 3.2 .9 1.8 -3 Z" opacity=".8"/>
+
+  <rect class="skin" x="7"  y="23" width="7" height="5" rx="2.5"/>
+  <rect class="skin" x="16.5" y="23" width="7" height="5" rx="2.5"/>
+</svg>
