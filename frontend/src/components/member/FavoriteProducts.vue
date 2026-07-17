@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import noImage from '@/assets/no-image.svg'
+import { toast } from '@/composables/useToast'
 
 // 會員中心：我的收藏 → 商品收藏（預設佔位元件）
 // 商品收藏的所有程式碼（打 API、清單畫面、取消收藏）都寫在這個元件裡。
@@ -44,7 +45,7 @@ async function removeWishList(productId) {
     if (!res.ok) {
       throw new Error(`伺服器回應${res.status}`)
     }
-    alert('已取消收藏')
+    toast('已取消收藏')
     loadWishList()
   } catch (e) {
     error.value = e.message || '無法取消收藏,請稍後再試'

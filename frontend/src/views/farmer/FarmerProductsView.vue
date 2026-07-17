@@ -1,6 +1,8 @@
 <script setup>
 // 小農後台：商品管理（待接後端 API）,商品管理（清單／改價／上下架）
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { toast } from '@/composables/useToast'
+import { categoryIcon } from '@/constants/categoryIcons'
 
 const products = ref([])
 // 新增商品彈窗開關：按「＋ 新增商品」設 true 跳出來，關閉/取消設回 false
@@ -80,7 +82,7 @@ async function savePrice(product) {
     if (!res.ok) {
       throw new Error(`伺服器回應${res.status}`)
     }
-    alert('已儲存')
+    toast('已儲存')
   } catch (e) {
     error.value = e.message || '無法存入商品資訊,請稍後再試'
   }
@@ -100,7 +102,7 @@ async function changeStatus(product, status) {
     if (!res.ok) {
       throw new Error(`伺服器回應${res.status}`)
     }
-    alert('已儲存')
+    toast('已儲存')
     loadProducts()
   } catch (e) {
     error.value = e.message || '無法存入商品資訊,請稍後再試'
@@ -147,26 +149,47 @@ async function addProduct() {
   addMsg.value = ''
   addErr.value = ''
 
-  // 前端先擋圖片大小，不然使用者只會看到看不懂的「伺服器回應413」。
-  // 數字要跟 application.properties 的 multipart 上限一致（單檔 5MB、整筆請求 10MB）
+  // 送出前把「所有」擋得下來的問題一次收集起來、合併成一句顯示，
+  // 不再一項一項擋（後端仍是最終防線，這裡擋不到的後端會擋）。
+  // 注意：訊息文字要跟後端 ProductInsertDTO 的驗證訊息一字不差——改任一邊記得同步另一邊
+  const errors = []
+  if (!newProduct.value.subCatClassId) errors.push('請選擇商品分類')
+  if (!newProduct.value.productName.trim()) errors.push('商品名稱不可為空')
+  // 價格要是 0 以上的「整數」：Number.isInteger 連 10.5 這種小數也擋（後端欄位是 Integer，放過去只會炸出看不懂的英文錯誤）
+  if (newProduct.value.retailPrice === '') {
+    errors.push('請輸入零售價')
+  } else if (!Number.isInteger(Number(newProduct.value.retailPrice)) || Number(newProduct.value.retailPrice) < 0) {
+    errors.push('零售價不可為負數，請輸入0以上的整數')
+  }
+  if (newProduct.value.groupPrice !== ''
+    && (!Number.isInteger(Number(newProduct.value.groupPrice)) || Number(newProduct.value.groupPrice) < 0)) {
+    errors.push('團購價不可為負數，請輸入0以上的整數')
+  }
+  // 團購價不得高於零售價：後端 service 也會擋（雙保險）
+  if (newProduct.value.groupPrice !== '' && newProduct.value.retailPrice !== ''
+    && Number(newProduct.value.groupPrice) > Number(newProduct.value.retailPrice)) {
+    errors.push('團購價不得高於零售價')
+  }
+  if (!newProduct.value.unitPricingMeasure.trim()) errors.push('計價單位不可為空，例如：包/300g')
+
+  // 圖片大小：數字要跟 application.properties 的 multipart 上限一致（單檔 5MB、整筆請求 10MB），
+  // 前端先擋，不然使用者只會看到看不懂的「伺服器回應413」
   const MB = 1024 * 1024
   const cover = selectedImage.value || selectedImages.value[0] || null
   const gallery = selectedImages.value.filter((f) => f !== cover)
   const allFiles = cover ? [cover, ...gallery] : []
   if (allFiles.some((f) => f.size > 5 * MB)) {
-    addErr.value = '圖片太大，單張最多 5MB'
-    return
+    errors.push('圖片太大，單張最多 5MB')
   }
   // 封面實際會送兩份（列表縮圖一份＋詳情第一張一份），總量要照實算
   const totalSize = (cover ? cover.size * 2 : 0) + gallery.reduce((sum, f) => sum + f.size, 0)
   if (totalSize > 10 * MB) {
-    addErr.value = '圖片總量超過 10MB，請減少張數或改用較小的圖'
-    return
+    errors.push('圖片總量超過 10MB，請減少張數或改用較小的圖')
   }
-  // 團購價不得高於零售價：後端 service 也會擋（雙保險），前端先擋讓使用者馬上看到原因
-  if (newProduct.value.groupPrice !== '' && newProduct.value.retailPrice !== ''
-    && Number(newProduct.value.groupPrice) > Number(newProduct.value.retailPrice)) {
-    addErr.value = '團購價不得高於零售價'
+
+  if (errors.length > 0) {
+    // 用換行符接起來，配合 .msg-err 的 white-space: pre-line，每個錯誤各佔一行（由上到下＝欄位順序）
+    addErr.value = errors.join('\n')
     return
   }
 
@@ -195,9 +218,10 @@ async function addProduct() {
       body: fd
     })
     if (!res.ok) {
-      // 讀後端回傳的文字內容（例如「驗證失敗」），沒有的話才退回顯示狀態碼
+      // 讀後端回傳的文字內容（例如「驗證失敗」），沒有的話才退回顯示狀態碼。
+      // 後端把多個欄位錯誤用「、」串成一句，這裡換成換行符，讓它們也一行一句顯示
       const msg = await res.text()
-      throw new Error(msg || `伺服器回應${res.status}`)
+      throw new Error(msg.replaceAll('、', '\n') || `伺服器回應${res.status}`)
     }
 
     addMsg.value = '已新增'
@@ -336,7 +360,8 @@ onMounted(loadCategories)
                   <span>大分類</span>
                   <select v-model="selectedMainCat">
                     <option value="">請選擇大分類</option>
-                    <option v-for="[id, name] in mainCategories" :key="id" :value="id">{{ name }}</option>
+                    <!-- 大分類前掛 icon（emoji），對照表在 constants/categoryIcons.js -->
+                    <option v-for="[id, name] in mainCategories" :key="id" :value="id">{{ categoryIcon(name) }} {{ name }}</option>
                   </select>
                 </label>
                 <label>
@@ -478,6 +503,7 @@ onMounted(loadCategories)
   margin: 0;
   color: #c0392b;
   font-size: 13px;
+  white-space: pre-line; /* 讓訊息裡的 \n 真的換行：多個錯誤各佔一行 */
 }
 
 /* 訊息容器：min-height 抓「合併好幾則錯誤」時大概會佔的高度，

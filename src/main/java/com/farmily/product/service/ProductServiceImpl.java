@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -70,6 +73,7 @@ public class ProductServiceImpl implements ProductService {
 
 	// 存單筆產品
 	@Override
+	@CacheEvict(cacheNames = "hotProducts", allEntries = true) // 商品變動會影響首頁熱門清單的補滿內容，清快取
 	public Integer addProduct(ProductInsertDTO dto, Integer farmerId) throws IOException {
 
 		if (!subCategoryRepository.existsById(dto.getSubCatClassId())) {
@@ -111,6 +115,7 @@ public class ProductServiceImpl implements ProductService {
 
 	// 更新價格+商品狀態(上,下架)
 	@Override
+	@CacheEvict(cacheNames = "hotProducts", allEntries = true) // 價格/上下架變動會影響首頁熱門清單，清快取
 	public boolean updateProduct(Integer productId, ProductUpdatedDTO dto, Integer farmerId) {
 		ProductVO product = productRepository.findById(productId).orElse(null);
 
@@ -233,5 +238,39 @@ public class ProductServiceImpl implements ProductService {
 		}
 		return result;
 
+	}
+
+	// 首頁熱門清單：結算結果優先，不足 HOT_SIZE 筆就用上架中的商品「補滿」（含還沒結算過的冷啟動），
+	// 首頁不會開天窗。注意管理員後台要的是原始結算結果，請走上面的 getHotProducts()，不要用這支。
+	// 快取原因：這是首頁每次載入都打的熱路徑，而內容只在「結算 / 新增商品 / 改價改狀態」時才會變，
+	// 這三處都掛了 @CacheEvict 清掉快取。
+	@Override
+	@Transactional(readOnly = true)
+	@Cacheable("hotProducts")
+	public List<ProductSummaryDTO> getHomeHotProducts() {
+
+		List<ProductSummaryDTO> result = new ArrayList<>(getHotProducts());
+
+		if (result.size() < ProductClickService.HOT_SIZE) {
+			// 多抓一倍當備品，扣掉已上榜的再補，避免補到重複的商品
+			List<ProductSummaryDTO> fillers = productRepository
+					.findActiveSummaries(PageRequest.of(0, ProductClickService.HOT_SIZE * 2));
+			for (ProductSummaryDTO filler : fillers) {
+				if (result.size() >= ProductClickService.HOT_SIZE) {
+					break;
+				}
+				boolean alreadyIn = false;
+				for (ProductSummaryDTO r : result) {
+					if (r.getProductId().equals(filler.getProductId())) {
+						alreadyIn = true;
+						break;
+					}
+				}
+				if (!alreadyIn) {
+					result.add(filler);
+				}
+			}
+		}
+		return result;
 	}
 }
