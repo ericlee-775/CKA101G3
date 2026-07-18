@@ -108,7 +108,7 @@ public class UserController {
         if (session != null) {
             currentSessionId = session.getId();
         }
-        sessionService.expireSessions(me.getUsername(), currentSessionId);
+        sessionService.expireSessions(me.getUsername(), currentSessionId);     // 保留目前登入的 session
 
         return ResponseEntity.ok("密碼修改成功！");
     }
@@ -117,8 +117,20 @@ public class UserController {
     // 註銷自己帳號
     @DeleteMapping("/me")
     public ResponseEntity<String> deleteMe(
-            @AuthenticationPrincipal MemberUserDetails me){
+            @AuthenticationPrincipal MemberUserDetails me,
+            HttpServletRequest request){
         userService.deleteUser(me.getUserId());
+
+        // 軟刪除需主動踢掉所有裝置的 session（含自己這台，keepSessionId 傳 null）
+        sessionService.expireSessions(me.getUsername(), null);
+
+        // getSession(false) - 有 session 回傳，沒有回傳 null
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+
         return ResponseEntity.ok("註銷成功!");
     }
 
