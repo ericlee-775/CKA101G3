@@ -64,6 +64,14 @@ const router = createRouter({
   // 將來你部署到 /farmily-web/ 子路徑也不用改這裡。
   history: createWebHistory(import.meta.env.BASE_URL),
 
+  history: createWebHistory(import.meta.env.BASE_URL),
+
+  // 換頁時回到頁面頂端；按上一頁/下一頁則回到原本的捲動位置
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    return { top: 0 }
+  },
+
   // 「網址 ↔ 顯示哪個元件」的對應表。
   // 用巢狀路由把頁面掛在對應的 Layout 底下：
   //   - 商城前台頁面 → 套 ShopLayout（頂部導覽 + 頁尾）
