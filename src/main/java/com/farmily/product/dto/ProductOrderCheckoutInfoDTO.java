@@ -14,7 +14,7 @@ public class ProductOrderCheckoutInfoDTO {
 	private String detailAddress;
 	private List<ProductOrderFarmerGroupDTO> farmerGroup;  	// 訂購明細按農場分組
 	private Integer totalAmount;
-	private List<MyCouponDTO> usableCoupons; 	// 可用優惠券
+	private List<MyCouponDTO> myCoupons; 	// 可用優惠券
 	private String recommendedCouponId;
 	
 	public ProductOrderCheckoutInfoDTO() {
@@ -68,13 +68,13 @@ public class ProductOrderCheckoutInfoDTO {
 	public void setTotalAmount(Integer totalAmount) {
 		this.totalAmount = totalAmount;
 	}
-
-	public List<MyCouponDTO> getUsableCoupons() {
-		return usableCoupons;
+	
+	public List<MyCouponDTO> getMyCoupons() {
+		return myCoupons;
 	}
 
-	public void setUsableCoupons(List<MyCouponDTO> usableCoupons) {
-		this.usableCoupons = usableCoupons;
+	public void setMyCoupons(List<MyCouponDTO> myCoupons) {
+		this.myCoupons = myCoupons;
 	}
 
 	public String getRecommendedCouponId() {

@@ -903,6 +903,8 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
     order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
+    recipient_name VARCHAR(50) NOT NULL,
+    recipient_phone VARCHAR(20) NOT NULL,
     coupon_id VARCHAR(50),
 	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
@@ -920,10 +922,10 @@ AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
-VALUES (3, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
-INSERT INTO ORDERS (user_id, shipping_address, payment_id, total_amount, discount_amount, final_payment)
-VALUES (3, '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, '小蔡', '0912345678', 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, shipping_address, payment_id, total_amount, discount_amount, final_payment)
+VALUES (3, '小蔡', '0912345678', '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
 
 
 -- 3-10. 農場商品 - 訂單明細
@@ -951,6 +953,8 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
 VALUES (3001, 3, '屏東香蕉', 1, 4, 250, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'paid');
+INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
+VALUES (3002, 3, '屏東香蕉', 1, 3, 250, 'delivered', '2026-04-02 10:00:00', '2026-04-03 15:30:00', 'paid');
 
 
 -- 4. 團購 - 團購活動表
