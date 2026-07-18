@@ -1,5 +1,6 @@
 package com.farmily.user.service;
 
+import com.farmily.user.exception.EmailAlreadyExistsException;
 import com.farmily.user.repository.AdminRepository;
 import com.farmily.user.repository.FarmerRepository;
 import com.farmily.user.repository.UserRepository;
@@ -29,7 +30,7 @@ public class EmailUniquenessChecker {
                 || adminRepository.existsByAdminEmail(email);
 
         if(used){
-            throw new IllegalStateException("此 Email 已被註冊，請改用其他 Email");     // 409 資源衝突
+            throw new EmailAlreadyExistsException();     // 409 資源衝突
         }
     }
 }

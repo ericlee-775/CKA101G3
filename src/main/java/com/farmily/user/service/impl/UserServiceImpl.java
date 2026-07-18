@@ -85,7 +85,8 @@ public class UserServiceImpl implements UserService {
         // 抓 city 物件前先判斷
         if (reg.getDistrictId() != null) {
             CityDistrict city = cityDistrictRepository.findById(reg.getDistrictId())
-                    .orElseThrow(() -> new IllegalArgumentException("查無此區域 districtId=" + reg.getDistrictId()));
+                    .orElseThrow(() -> new DistrictNotFoundException());
+//                    .orElseThrow(DistrictNotFoundException::new);
             newUser.setCityDistrict(city);
         }
 
@@ -158,7 +159,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getMyProfile(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
 
         // +消費級距 (不同表)
         BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
@@ -171,7 +173,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserProfileResponse updateMyProfile(Integer userId, UserUpdateRequest update) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
+
 
         if (update.getUserName() != null)
             user.setUserName(update.getUserName());
@@ -185,7 +189,8 @@ public class UserServiceImpl implements UserService {
             user.setBirthday(update.getBirthday());
         if (update.getDistrictId() != null) {
             CityDistrict city = cityDistrictRepository.findById(update.getDistrictId())
-                    .orElseThrow(() -> new IllegalArgumentException("查無此區域"));
+                    .orElseThrow(() -> new DistrictNotFoundException());
+//                    .orElseThrow(DistrictNotFoundException::new);
             user.setCityDistrict(city);
         }
         //  將修改資料存進 DB
@@ -196,7 +201,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public void changePassword(Integer userId, ChangePasswordRequest pw) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
+
 
         // 已有本地密碼，必須先驗證舊密碼正確
         if (user.getPassword() != null) {

@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import memberOrdersApi from '@/api/memberOrders'
 import cityDistrictApi from '@/api/cityDistrict'
+import cartStore from '@/stores/cart'
 import { confirm } from '@/composables/useConfirm'
 import noImage from '@/assets/no-image.svg'
 
@@ -85,6 +86,8 @@ async function submitCheckout(){
   submitting.value = true
   try {
     await memberOrdersApi.checkout(payload)
+    // 後端下單時已 clearCart，前端要重讀才不會停在結帳前的舊資料
+    await cartStore.reload()
     router.replace('/member/orders')
   } catch (e) {
     formError.value = e.message || '結帳失敗，請稍後再試'

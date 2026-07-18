@@ -1,6 +1,8 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.FarmerProfileResponse;
+import com.farmily.user.exception.BusinessException;
+import com.farmily.user.exception.FarmerNotFoundException;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
 import com.farmily.user.repository.FarmerRepository;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -108,7 +111,8 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
     @Transactional(readOnly = true)
     public FarmerProfileResponse getById(Integer farmerId) {
         Farmer farmer = farmerRepository.findById(farmerId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此小農"));
+                .orElseThrow(() -> new FarmerNotFoundException());
+//                .orElseThrow(FarmerNotFoundException::new);
         return toAdminResponse(farmer);
     }
 
@@ -117,7 +121,7 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
     public FarmerProfileResponse suspend(Integer farmerId) {
         Farmer farmer = findFarmer(farmerId);
         if (farmer.getFarmerStatus() != Farmer.FarmerStatus.ACTIVE) {
-            throw new IllegalStateException("只有啟用中(ACTIVE)的小農才能停權");
+            throw new BusinessException("FARMER_STATE_INVALID", HttpStatus.CONFLICT, "只有啟用中(ACTIVE)的小農才能停權");   // 409
         }
         farmer.setFarmerStatus(Farmer.FarmerStatus.SUSPENDED);
         return toAdminResponse(farmerRepository.save(farmer));
@@ -128,7 +132,7 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
     public FarmerProfileResponse reinstate(Integer farmerId) {
         Farmer farmer = findFarmer(farmerId);
         if (farmer.getFarmerStatus() != Farmer.FarmerStatus.SUSPENDED) {
-            throw new IllegalStateException("只有已停權(SUSPENDED)的小農才能恢復");
+            throw new BusinessException("FARMER_STATE_INVALID", HttpStatus.CONFLICT, "只有已停權(SUSPENDED)的小農才能恢復");    // 409
         }
         farmer.setFarmerStatus(Farmer.FarmerStatus.ACTIVE);
         return toAdminResponse(farmerRepository.save(farmer));
@@ -137,7 +141,8 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
     // ====== 自訂方法工具 ======
     private Farmer findFarmer(Integer farmerId) {
         return farmerRepository.findById(farmerId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此小農"));
+                .orElseThrow(() -> new FarmerNotFoundException());
+//                .orElseThrow(FarmerNotFoundException::new);
     }
 
     // 取某小農最新一輪審核（可能為 null：理論上每位小農至少有一筆）

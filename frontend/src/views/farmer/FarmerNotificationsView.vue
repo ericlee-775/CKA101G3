@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { notificationApi } from '@/api/farmerNotification';
 import { confirm } from '@/composables/useConfirm';
 import notificationStore from '@/stores/farmerNotification';
@@ -11,6 +12,7 @@ const page = ref(0)
 const totalPages = ref(0)
 const targetType = ref('')
 const marking = ref(false)
+const router = useRouter()
 
 
 // 分類開選的選項
@@ -31,6 +33,15 @@ const TYPE_LABEL = {
   groupbuy: '團購',
   trip: '體驗活動',
   blog: '專欄文章'
+}
+
+// 跳轉頁面路徑 (會員端)
+const TARGET_ROUTE = {
+  account: '/farmer/me',
+  order: '/farmer/orders',
+  groupbuy: '/farmer/group-buys',
+  trip: '/farmer/farm-trips', 
+  blog: '/farmer/blog',
 }
 
 // 已讀標籤
@@ -66,12 +77,15 @@ function changeType(t) {
 }
 
 // 換頁
-function changePage(p) {
-  if (p < 0 || p > totalPages.value) {
+async function changePage(p) {
+  if (p < 0 || p >= totalPages.value) {
     return
   }
+
+  window.scrollTo({ top: 0 })
   page.value = p
-  loadNotif()
+  await loadNotif()
+
 }
 
 // 全部標為已讀
@@ -86,7 +100,7 @@ async function markAll() {
   marking.value = true
   try {
     await notificationApi.markAllAsRead()
-    notificationStore.reset()
+    notificationStore.markAllRead()
     await loadNotif()
   } catch (e) {
     alert(e.message || '操作失敗')
@@ -100,11 +114,21 @@ async function markOne(n) {
   if (n.status === 'unread') {
     try {
       await notificationApi.markOneAsRead(n.notificationId)
-      notificationStore.decrement()
-      await loadNotif()
+      notificationStore.markRead(n.notificationId)
+      n.status = 'read'
     } catch (e) {
       alert(e.message || '操作失敗')
+      return
     }
+  }
+  // blog 通知導到「那篇文章」(小農自己的文章頁，隱藏也看得到)；其他類型導到對應區塊清單
+  if (n.targetType === 'blog' && n.targetId != null) {
+    router.push({ name: 'farmer-blog-detail', params: { id: n.targetId } })
+    return
+  }
+  const path = TARGET_ROUTE[n.targetType]
+  if(path) {
+    router.push(path)
   }
 }
 
@@ -134,32 +158,36 @@ function formateDateTime(dt) {
         </button>
       </nav>
 
-      <!-- 載入狀態 -->
-      <p v-if="loading" class="state">載入中...</p>
-      <p v-else-if="loadError" class="state state-error">{{ loadError }}</p>
-      <p v-else-if="notifs.length === 0" class="state">暫無通知</p>
-
-      <!-- 非以上三種狀態，載入通知列表 -->
-      <ul v-else class="notif-list">
-        <li v-for="n in notifs" :key="n.notificationId" class="notif-row" :class="{ unread: n.status === 'unread' }"
-          @click="markOne(n)">
-          <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
-            {{ TYPE_LABEL[n.targetType] || '其他' }}
-          </span>
-          <div class="notif-main">
-            <p class="notif-contnet">{{ n.content }}</p>
-            <time class="notif-time" :datetime="n.createdAt">{{ formateDateTime(n.createdAt) }}</time>
+      <Transition name="tab-fade" mode="out-in">
+        <div :key="targetType + '-' + page">
+          <!-- 載入狀態 -->
+          <p v-if="loading" class="state">載入中...</p>
+          <p v-else-if="loadError" class="state state-error">{{ loadError }}</p>
+          <p v-else-if="notifs.length === 0" class="state">暫無通知</p>
+    
+          <!-- 非以上三種狀態，載入通知列表 -->
+          <ul v-else class="notif-list">
+            <li v-for="n in notifs" :key="n.notificationId" class="notif-row" :class="{ unread: n.status === 'unread' }"
+              @click="markOne(n)">
+              <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
+                {{ TYPE_LABEL[n.targetType] || '其他' }}
+              </span>
+              <div class="notif-main">
+                <p class="notif-contnet">{{ n.content }}</p>
+                <time class="notif-time" :datetime="n.createdAt">{{ formateDateTime(n.createdAt) }}</time>
+              </div>
+              <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
+            </li>
+          </ul>
+    
+          <!-- 分頁 (超過一頁才顯示) -->
+          <div v-if="totalPages > 1" class="pager">
+            <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
+            <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
+            <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
           </div>
-          <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
-        </li>
-      </ul>
-
-      <!-- 分頁 (超過一頁才顯示) -->
-      <div v-if="totalPages > 1" class="pager">
-        <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
-        <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
-        <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
-      </div>
+        </div>
+      </Transition>
     </section>
   </main>
 </template>
@@ -208,6 +236,15 @@ function formateDateTime(dt) {
   color: var(--leaf-dark);
   font-weight: 600;
 }
+
+/* 列表淡入轉場 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tab-fade-enter-from { opacity: 0; transform: translateY(8px); }   /* 進場: 從下淡入 (translateY 淡入幅度) */
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-8px); }  /* 離場: 往上淡出 */
+
 
 /* 全部已讀: 推到最右 */
 .mark-all { margin-left: auto; }

@@ -116,17 +116,24 @@ async function loadTrips() {
 async function loadBlogs() {
   const types = await listBlogTypes().catch(() => [])
   const typeMap = Object.fromEntries((types || []).map((t) => [t.blogTypeId, t.blogTypeName]))
-  const data = await listPublicBlogs(0, LIMIT)
+  const data = await listPublicBlogs(0, 5)   // editorial 版型：1 大精選 + 4 小卡
   blogCards.value = (data.results || []).map((b) => ({
     key: 'blog-' + b.blogId,
     image: `/api/blogs/${b.blogId}/image`,
+    typeId: b.blogTypeId,
     badge: typeMap[b.blogTypeId] || '文章',
     title: b.blogTitle,
     author: b.authorName ? (b.authorType === 'FARMER' ? '🏡 ' : '👤 ') + b.authorName : '',
     desc: stripHtml(b.blogContent),
+    likes: b.blogLikeCount || 0,
     meta: fmtDate(b.blogTime),
     to: `/blogs/${b.blogId}`,
   }))
+}
+
+// 部落格分類 → 配色 class（1產地日記綠 / 2蔬果知識藍 / 3體驗回顧黃 / 4食譜橘）
+function typeClass(typeId) {
+  return 'cat-' + (typeId || 0)
 }
 
 onMounted(() => {
@@ -199,7 +206,69 @@ const sections = computed(() => [
         <router-link class="more-link" :to="s.moreTo">{{ s.moreText }}</router-link>
       </div>
 
-      <div class="home-grid">
+      <!-- 部落格：editorial 版型（1 大精選卡 + 側邊小卡） -->
+      <div v-if="s.key === 'blogs'" class="blog-editorial">
+        <router-link v-if="s.items[0]" class="blog-feature" :to="s.items[0].to">
+          <div class="blog-feature__media">
+            <img :src="s.items[0].image" alt="" @error="onImgError" />
+            <span class="blog-badge" :class="typeClass(s.items[0].typeId)">{{ s.items[0].badge }}</span>
+          </div>
+          <div class="blog-feature__body">
+            <h3>{{ s.items[0].title }}</h3>
+            <p v-if="s.items[0].author" class="blog-author">{{ s.items[0].author }}</p>
+            <p v-if="s.items[0].desc" class="blog-feature__desc">{{ s.items[0].desc }}</p>
+            <div class="blog-metaline">
+              <span class="blog-like">♡ {{ s.items[0].likes }}</span>
+              <time>{{ s.items[0].meta }}</time>
+            </div>
+          </div>
+        </router-link>
+
+        <div class="blog-side">
+          <router-link v-for="item in s.items.slice(1)" :key="item.key" class="blog-mini" :to="item.to">
+            <div class="blog-mini__media">
+              <img :src="item.image" alt="" @error="onImgError" />
+            </div>
+            <div class="blog-mini__body">
+              <span class="blog-badge sm" :class="typeClass(item.typeId)">{{ item.badge }}</span>
+              <h4>{{ item.title }}</h4>
+              <div class="blog-metaline sm">
+                <span class="blog-like">♡ {{ item.likes }}</span>
+                <time>{{ item.meta }}</time>
+              </div>
+            </div>
+          </router-link>
+        </div>
+      </div>
+
+      <!-- 最新消息：輕量頭條（1 橫幅大卡 + 其餘格狀），比 blog 小一號 -->
+      <div v-else-if="s.key === 'news'" class="news-editorial">
+        <router-link v-if="s.items[0]" class="news-lead" :to="s.items[0].to">
+          <div class="news-lead__media">
+            <img :src="s.items[0].image" alt="" @error="onImgError" />
+          </div>
+          <div class="news-lead__body">
+            <span class="home-card__badge">{{ s.items[0].badge }}</span>
+            <h3>{{ s.items[0].title }}</h3>
+            <p v-if="s.items[0].desc" class="news-lead__desc">{{ s.items[0].desc }}</p>
+            <p v-if="s.items[0].meta" class="home-card__meta">{{ s.items[0].meta }}</p>
+          </div>
+        </router-link>
+        <div class="home-grid">
+          <router-link v-for="item in s.items.slice(1)" :key="item.key" class="home-card" :to="item.to">
+            <img class="home-card__img" :src="item.image" alt="" @error="onImgError" />
+            <div class="home-card__body">
+              <span class="home-card__badge">{{ item.badge }}</span>
+              <h3>{{ item.title }}</h3>
+              <p v-if="item.desc" class="home-card__desc">{{ item.desc }}</p>
+              <p v-if="item.meta" class="home-card__meta">{{ item.meta }}</p>
+            </div>
+          </router-link>
+        </div>
+      </div>
+
+      <!-- 其他區塊：原本格狀卡片 -->
+      <div v-else class="home-grid">
         <router-link
           v-for="item in s.items"
           :key="item.key"
@@ -372,7 +441,9 @@ const sections = computed(() => [
   object-fit: cover;
   display: block;
   background: var(--leaf-soft);
+  transition: transform 0.45s ease;   /* hover 放大，五區一致 */
 }
+.home-card:hover .home-card__img { transform: scale(1.05); }
 .home-card__body {
   display: flex;
   flex-direction: column;
@@ -404,7 +475,10 @@ const sections = computed(() => [
   color: var(--ink-soft);
   font-size: 14px;
   line-height: 1.7;
-  max-height: 4.4em;
+  /* 多行截斷：滿 3 行以「…」收尾，不切在字中間 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .home-card__meta {
@@ -413,7 +487,145 @@ const sections = computed(() => [
   font-size: 12px;
 }
 
+/* ========== 部落格 editorial 版型（1 大精選卡 + 側邊小卡） ========== */
+.blog-editorial {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* 分類配色藥丸（產地日記/蔬果知識/體驗回顧/食譜） */
+.blog-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.blog-badge.sm { padding: 2px 9px; font-size: 11px; }
+.cat-1 { background: #e5f0dd; color: #3f6a23; }  /* 產地日記：綠 */
+.cat-2 { background: #e3eefb; color: #2f5fa5; }  /* 蔬果知識：藍 */
+.cat-3 { background: #faf3c9; color: #8a7a12; }  /* 體驗回顧：黃 */
+.cat-4 { background: #fdeede; color: #b5651d; }  /* 食譜：橘 */
+
+.blog-like { color: var(--leaf-dark); font-weight: 700; }
+.blog-author { margin: 0; color: var(--muted); font-size: 13px; }
+.blog-metaline {
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--muted); font-size: 12.5px;
+}
+.blog-metaline.sm { font-size: 11.5px; }
+
+/* 精選大卡 */
+.blog-feature {
+  display: flex; flex-direction: column;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; overflow: hidden;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.blog-feature:hover {
+  transform: translateY(-4px);
+  border-color: var(--leaf);
+  box-shadow: var(--shadow-hover);
+}
+.blog-feature__media {
+  position: relative; aspect-ratio: 16 / 9;
+  overflow: hidden; background: var(--leaf-soft);
+}
+.blog-feature__media img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .45s ease;
+}
+.blog-feature:hover .blog-feature__media img { transform: scale(1.05); }
+.blog-feature__media .blog-badge { position: absolute; top: 12px; left: 12px; }
+.blog-feature__body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+.blog-feature__body h3 {
+  margin: 0; font-size: 21px; color: var(--ink); line-height: 1.3;
+  transition: color 0.18s ease;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.blog-feature:hover .blog-feature__body h3 { color: var(--leaf-dark); }
+.blog-feature__desc {
+  margin: 0; color: var(--ink-soft); font-size: 14.5px; line-height: 1.75;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 側邊小卡（橫式縮圖 + 標題） */
+.blog-side { display: flex; flex-direction: column; gap: 14px; }
+.blog-mini {
+  display: grid; grid-template-columns: 104px 1fr; gap: 12px;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow);   /* 靜止陰影與其他卡一致 */
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.blog-mini:hover {
+  border-color: var(--leaf);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+.blog-mini__media { aspect-ratio: 1 / 1; overflow: hidden; background: var(--leaf-soft); }
+.blog-mini__media img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .35s ease;
+}
+.blog-mini:hover .blog-mini__media img { transform: scale(1.06); }
+.blog-mini__body {
+  min-width: 0; padding: 10px 12px 10px 0;
+  display: flex; flex-direction: column; gap: 5px; align-self: center;
+}
+.blog-mini__body h4 {
+  margin: 0; font-size: 14.5px; color: var(--ink); line-height: 1.4;
+  transition: color 0.18s ease;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.blog-mini:hover .blog-mini__body h4 { color: var(--leaf-dark); }
+
+/* ========== 最新消息 輕量頭條（1 橫幅 + 其餘格狀） ========== */
+.news-editorial { display: flex; flex-direction: column; gap: 20px; }
+.news-lead {
+  display: grid; grid-template-columns: 1.1fr 1fr;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; overflow: hidden;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.news-lead:hover {
+  transform: translateY(-4px);
+  border-color: var(--leaf);
+  box-shadow: var(--shadow-hover);
+}
+.news-lead__media { aspect-ratio: 16 / 9; overflow: hidden; background: var(--leaf-soft); }
+.news-lead__media img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .45s ease;
+}
+.news-lead:hover .news-lead__media img { transform: scale(1.05); }
+.news-lead__body {
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 8px; justify-content: center;
+}
+.news-lead__body h3 {
+  margin: 0; font-size: 22px; color: var(--ink); line-height: 1.3;
+  transition: color .18s ease;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.news-lead:hover .news-lead__body h3 { color: var(--leaf-dark); }
+.news-lead__desc {
+  margin: 0; color: var(--ink-soft); font-size: 14.5px; line-height: 1.75;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
 /* ========== 響應式 ========== */
+@media (max-width: 860px) {
+  .blog-editorial { grid-template-columns: 1fr; }
+  .news-lead { grid-template-columns: 1fr; }
+}
 @media (max-width: 760px) {
   .features {
     grid-template-columns: 1fr;
