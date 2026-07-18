@@ -30,6 +30,12 @@ public class ProductOrderVO implements Serializable {
 	@Column (name = "user_id")
 	private Integer userId;
 	
+	@Column (name = "recipient_name")
+	private String recipientName;
+	
+	@Column (name = "recipient_phone")
+	private String recipientPhone;
+	
 	@Column (name = "coupon_id")
 	private String couponId;
 	
@@ -79,6 +85,22 @@ public class ProductOrderVO implements Serializable {
 
 	public void setUserId(Integer userId) {
 		this.userId = userId;
+	}
+
+	public String getRecipientName() {
+		return recipientName;
+	}
+
+	public void setRecipientName(String recipientName) {
+		this.recipientName = recipientName;
+	}
+
+	public String getRecipientPhone() {
+		return recipientPhone;
+	}
+
+	public void setRecipientPhone(String recipientPhone) {
+		this.recipientPhone = recipientPhone;
 	}
 
 	public String getCouponId() {

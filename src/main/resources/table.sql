@@ -477,13 +477,13 @@ CREATE TABLE ADMIN_ROLE (
 -- 參數 (種子資料)
 INSERT INTO ADMIN_ROLE (permission_name, permission_code, description)
 VALUES
-    ('最新消息管理',       'NEWS',        '刊登/修改/刪除、即時資訊更新'),
-    ('專欄部落格內容管理', 'BLOG',        '檢舉處理、刪除違規文章'),
+    ('最新消息管理',       'NEWS',        '消息管理、發布消息通知'),
+    ('專欄部落格內容管理', 'BLOG',        '文章檢舉處理、留言審核'),
     ('會員管理',           'MEMBER',      '消費者會員資料管理、權限控管'),
-    ('小農管理',           'FARMER',      '小農帳號審核、資料管理、權限控管'),
-    ('管理員管理',         'ADMIN',       '管理員帳號新增/修改/刪除、權限控管'),
-    ('商城管理',           'SHOP',        '管理優惠券、資料統計、爭議處理'),
-    ('團購管理',           'GROUP_BUY',   '爭議處理'),
+    ('小農管理',           'FARMER',      '小農案件審核、資料管理、權限控管'),
+    ('管理員管理',         'ADMIN',       '管理員管理、權限控管'),
+    ('商城管理',           'SHOP',        '管理優惠券、資料統計、熱門商品數據管理'),
+    ('團購管理',           'GROUP_BUY',   '團購管理處理'),
     ('體驗活動管理',       'EVENT',       '活動審核、瀏覽、搜尋、狀態管理'),
     ('市場數據管理',       'MARKET_DATA', '數據更新'),
     ('網頁流量分析',       'ANALYTICS',   '用戶增加趨勢、訂單數量統計');
@@ -903,6 +903,8 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
     order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
+    recipient_name VARCHAR(50) NOT NULL,
+    recipient_phone VARCHAR(20) NOT NULL,
     coupon_id VARCHAR(50),
 	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
@@ -920,10 +922,10 @@ AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
-VALUES (3, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
-INSERT INTO ORDERS (user_id, shipping_address, payment_id, total_amount, discount_amount, final_payment)
-VALUES (3, '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, '小蔡', '0912345678', 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, shipping_address, payment_id, total_amount, discount_amount, final_payment)
+VALUES (3, '小蔡', '0912345678', '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
 
 
 -- 3-10. 農場商品 - 訂單明細
@@ -951,6 +953,8 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
 VALUES (3001, 3, '屏東香蕉', 1, 4, 250, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'paid');
+INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
+VALUES (3002, 3, '屏東香蕉', 1, 3, 250, 'delivered', '2026-04-02 10:00:00', '2026-04-03 15:30:00', 'paid');
 
 
 -- 4. 團購 - 團購活動表
@@ -1340,7 +1344,7 @@ INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_co
 (9002, '有機農場的一天',NULL, 1, 1,'農友從整地、灌溉到採收，每個步驟都堅持友善土地與自然栽培。', NULL, 32, '2026-02-21 09:30:00', 'VISIBLE'),
 
 -- 蔬果知識分享
-(9003, '當季蔬果怎麼挑', NULL, 2, 2,'<p>選購蔬果時，除了注意價格，也可以從外觀、香氣、觸感與採收日期來判斷新鮮度。挑選當季盛產的蔬果，不僅風味通常更好，價格也比較實惠，還能減少長途運輸與長時間保存造成的品質下降。</p><p>首先可以觀察蔬果的外觀。新鮮的葉菜類通常葉片完整、顏色自然，沒有大面積枯黃或腐爛；番茄、甜椒等果菜類則應表皮飽滿，避免選擇有明顯裂痕、碰傷或發霉的產品。不過，外觀不漂亮不代表品質不好，有些小農蔬果雖然大小不一或帶有自然斑點，仍然新鮮又美味。</p><p>接著可以用手輕輕觸摸。根莖類蔬菜如馬鈴薯、紅蘿蔔，摸起來應該結實，不宜過度柔軟；葉菜類的菜梗則應保持挺立、有水分。挑選時不要用力按壓，以免造成蔬果損傷，影響後續販售與保存。</p><p>香氣也是判斷成熟度的方法之一。例如成熟的水果通常會散發自然果香，但如果味道過於濃烈，或帶有酒味、酸敗味，就可能已經過熟。部分蔬菜本身香氣不明顯，因此仍需要搭配外觀與觸感一起判斷。</p><p>購買前也可以詢問農友蔬果的採收日期、產地與建議保存方式。剛採收的蔬果不一定要立刻冷藏，有些品項適合放在陰涼通風處，有些則需要冷藏保鮮。依照不同蔬果的特性保存，才能延長新鮮度並減少浪費。</p><p>最後，建議優先選擇當地、當季生產的蔬果。當季作物通常較適合當下的氣候環境，也能品嘗到自然成熟的風味。透過認識產地與農友，不只可以買得更安心，也能用實際行動支持台灣在地農業。</p>', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
+(9003, '當季蔬果怎麼挑', 4, NULL, 2,'<p>選購蔬果時，除了注意價格，也可以從外觀、香氣、觸感與採收日期來判斷新鮮度。挑選當季盛產的蔬果，不僅風味通常更好，價格也比較實惠，還能減少長途運輸與長時間保存造成的品質下降。</p><p>首先可以觀察蔬果的外觀。新鮮的葉菜類通常葉片完整、顏色自然，沒有大面積枯黃或腐爛；番茄、甜椒等果菜類則應表皮飽滿，避免選擇有明顯裂痕、碰傷或發霉的產品。不過，外觀不漂亮不代表品質不好，有些小農蔬果雖然大小不一或帶有自然斑點，仍然新鮮又美味。</p><p>接著可以用手輕輕觸摸。根莖類蔬菜如馬鈴薯、紅蘿蔔，摸起來應該結實，不宜過度柔軟；葉菜類的菜梗則應保持挺立、有水分。挑選時不要用力按壓，以免造成蔬果損傷，影響後續販售與保存。</p><p>香氣也是判斷成熟度的方法之一。例如成熟的水果通常會散發自然果香，但如果味道過於濃烈，或帶有酒味、酸敗味，就可能已經過熟。部分蔬菜本身香氣不明顯，因此仍需要搭配外觀與觸感一起判斷。</p><p>購買前也可以詢問農友蔬果的採收日期、產地與建議保存方式。剛採收的蔬果不一定要立刻冷藏，有些品項適合放在陰涼通風處，有些則需要冷藏保鮮。依照不同蔬果的特性保存，才能延長新鮮度並減少浪費。</p><p>最後，建議優先選擇當地、當季生產的蔬果。當季作物通常較適合當下的氣候環境，也能品嘗到自然成熟的風味。透過認識產地與農友，不只可以買得更安心，也能用實際行動支持台灣在地農業。</p>', NULL, 65, '2026-02-22 11:00:00', 'VISIBLE'),
 
 -- 農作體驗回顧，由一般會員發表
 (9004, '山間農場參訪記', 1, NULL, 3,'第一次走進山間農場，親手體驗採收，也更了解農作物從產地到餐桌的過程。', NULL, 41, '2026-02-23 15:20:00', 'VISIBLE'),
@@ -1349,7 +1353,25 @@ INSERT INTO BLOG (blog_id, blog_title, user_id, farmer_id, blog_type_id, blog_co
 (9005, '海風農場體驗日', 2, NULL, 3, '迎著海風參觀農場，除了認識不同的栽培方式，也體會到農友工作的辛苦。', NULL, 27, '2026-02-24 10:10:00', 'VISIBLE'),
 
 -- 食譜分享
-(9006, '香蕉燕麥鬆餅', 5, NULL, 4, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE');
+(9006, '香蕉燕麥鬆餅', 5, NULL, 4, '將熟香蕉壓成泥，加入雞蛋與燕麥拌勻，再用平底鍋煎成香甜鬆餅。', NULL, 53, '2026-02-25 13:40:00', 'VISIBLE'),
+
+-- 產地日記：只能由小農發表（user_id 必須為 NULL）
+(9007, '春耕前的土壤準備', NULL, 1, 1, '<p>春耕開始前，我們先翻鬆休耕一段時間的田地，清除雜草並檢查土壤的排水狀況。接著加入腐熟堆肥，讓有機質慢慢與土壤混合。</p><p>整地完成後不會立刻播種，而是讓土地休息幾天，再依照含水量調整畦面的高度。把基礎做好，作物後續的根系才會長得穩定。</p>', NULL, 18, '2026-03-01 08:30:00', 'VISIBLE'),
+(9008, '雨後巡田與排水紀錄', NULL, 2, 1, '<p>昨晚的大雨讓田間水位上升，今天一早先巡查排水溝與每一區作物。低窪處有些積水，我們立即清除堵住溝渠的落葉，避免根部長時間泡水。</p><p>雨後也是觀察病蟲害的重要時機。除了修剪受損葉片，也記錄各區狀況，等天氣穩定後再補強支架與土壤。</p>', NULL, 24, '2026-03-03 07:50:00', 'VISIBLE'),
+
+-- 蔬果知識分享：由一般會員發表（farmer_id 必須為 NULL）
+(9009, '夏季葉菜保存小技巧', 1, NULL, 2, '<p>葉菜買回家後先挑掉受損葉片，不要急著全部清洗。可以用廚房紙巾包住菜葉，再放入保鮮袋中冷藏，減少水分散失。</p><p>如果已經清洗，記得先瀝乾表面水分。保存時避免把葉菜壓在重物下方，並盡量在幾天內食用完畢。</p>', NULL, 31, '2026-03-05 19:20:00', 'VISIBLE'),
+(9010, '甜玉米怎麼挑才好吃', 3, NULL, 2, '<p>挑選甜玉米時，可以先觀察外葉是否翠綠、苞葉是否緊密。玉米鬚呈現褐色但不過度乾枯，通常代表成熟度較合適。</p><p>輕壓玉米粒時應飽滿有彈性，若出現明顯凹陷，可能已經失去部分水分。買回家後越早烹煮，越能保留甜味。</p>', NULL, 22, '2026-03-07 12:10:00', 'VISIBLE'),
+(9011, '根莖類蔬菜保存指南', 4, NULL, 2, '<p>馬鈴薯與地瓜適合放在陰涼、乾燥且通風的地方，避免陽光直射。若放進密閉塑膠袋，水氣不易散出，反而比較容易發芽或腐壞。</p><p>紅蘿蔔則可以去除葉梗後冷藏，並用紙巾吸收多餘水分。不同根莖類的保存方式不完全相同，分開收納會更理想。</p>', NULL, 16, '2026-03-09 18:40:00', 'VISIBLE'),
+
+-- 農作體驗回顧：由一般會員發表（farmer_id 必須為 NULL）
+(9012, '第一次參加稻田插秧', 4, NULL, 3, '<p>這次第一次踩進水田，才發現插秧不只是把秧苗放進土裡，還要控制間距與深度。剛開始常常站不穩，後來跟著農友的示範才慢慢抓到節奏。</p><p>活動結束後，看著整齊排列的秧苗很有成就感，也更能體會一碗米飯背後需要投入多少時間與心力。</p>', NULL, 45, '2026-03-12 16:30:00', 'VISIBLE'),
+(9013, '親子採番茄體驗心得', 5, NULL, 3, '<p>週末帶家人參加採番茄活動，農友先介紹成熟番茄的顏色與正確採摘方式，避免拉扯枝條。孩子一邊找果實，一邊認識作物的生長過程。</p><p>現場也能品嘗不同品種的番茄，酸甜度各有特色。整體活動安排清楚，很適合第一次接觸農作體驗的人。</p>', NULL, 38, '2026-03-14 17:15:00', 'VISIBLE'),
+
+-- 食譜分享：由一般會員發表（farmer_id 必須為 NULL）
+(9014, '三杯杏鮑菇家常做法', 1, NULL, 4, '<p>先將杏鮑菇切成滾刀塊，用少量油煎到表面金黃。加入薑片、蒜頭、醬油與少許糖拌炒，再放入九層塔增添香氣。</p><p>杏鮑菇本身會出水，調味料不需要一次加太多。收汁後即可起鍋，是簡單又下飯的家常料理。</p>', NULL, 57, '2026-03-17 11:45:00', 'VISIBLE'),
+(9015, '南瓜濃湯簡單食譜', 3, NULL, 4, '<p>南瓜去籽切塊後蒸熟，與炒軟的洋蔥一起放入果汁機，加入適量牛奶或無糖豆漿打勻。倒回鍋中用小火加熱，再以鹽和胡椒調味。</p><p>喜歡濃稠口感可以減少液體，想要清爽一些則多加少量水。南瓜本身有甜味，不需要額外加糖。</p>', NULL, 49, '2026-03-19 20:05:00', 'VISIBLE'),
+(9016, '高麗菜豬肉水餃', 5, NULL, 4, '<p>高麗菜切碎後加少量鹽抓勻，靜置幾分鐘再擠掉多餘水分。豬絞肉加入醬油、薑末與白胡椒攪拌，最後混入高麗菜。</p><p>包好的水餃可以直接下鍋，也能平鋪冷凍後分袋保存。餡料水分控制得好，煮的時候比較不容易破皮。</p>', NULL, 62, '2026-03-21 18:25:00', 'VISIBLE');
 
 -- 6. 專欄部落格 - 按讚檢查
 CREATE TABLE BLOG_LIKE (
@@ -1368,6 +1390,17 @@ INSERT INTO BLOG_LIKE (blog_id, user_id, created_at) value
 (9003, 3, '2026-02-22 14:00:00'),
 (9004, 4, '2026-02-23 17:00:00'),
 (9006, 1, '2026-02-25 16:00:00');
+
+-- 9007~9016 新增文章的按讚（(blog_id,user_id) 不重複）
+INSERT INTO BLOG_LIKE (blog_id, user_id, created_at) VALUES
+(9007, 2, '2026-03-01 21:00:00'),
+(9008, 3, '2026-03-03 19:00:00'),
+(9009, 2, '2026-03-06 09:00:00'),
+(9010, 1, '2026-03-07 22:00:00'),
+(9012, 5, '2026-03-13 11:00:00'),
+(9014, 4, '2026-03-18 20:00:00'),
+(9015, 1, '2026-03-20 09:00:00'),
+(9016, 3, '2026-03-22 14:00:00');
 
 -- 6. 專欄部落格 - 部落格評論
 CREATE TABLE BLOG_COMMENT (
@@ -1394,6 +1427,20 @@ INSERT INTO BLOG_COMMENT (comment_id, blog_id, user_id, comment_time, comment_po
 (10005, 9005, 5, '2026-02-24 14:00:00','農場環境看起來很舒服。', 1, 'VISIBLE'),
 
 (10006, 9006, 1, '2026-02-25 18:30:00', '做法簡單，下次想在家試試看。', 5, 'VISIBLE');
+
+-- 9007~9016 新增文章的留言（避免留言者＝作者本人）
+INSERT INTO BLOG_COMMENT (comment_id, blog_id, user_id, comment_time, comment_post, comment_like, comment_status) VALUES
+(10007, 9007, 2, '2026-03-01 20:15:00', '整地做得這麼細，難怪作物長得好。', 3, 'VISIBLE'),
+(10008, 9007, 3, '2026-03-02 09:40:00', '每個步驟都很用心，看了很感動。', 1, 'VISIBLE'),
+(10009, 9008, 4, '2026-03-03 18:05:00', '雨後巡田真的很重要，學到了。', 2, 'VISIBLE'),
+(10010, 9009, 2, '2026-03-06 08:30:00', '廚房紙巾這招我要來試試。', 4, 'VISIBLE'),
+(10011, 9010, 1, '2026-03-07 21:00:00', '下次買玉米知道怎麼挑了，謝謝分享。', 2, 'VISIBLE'),
+(10012, 9011, 2, '2026-03-10 12:20:00', '原來馬鈴薯不能放塑膠袋，難怪常發芽。', 5, 'VISIBLE'),
+(10013, 9012, 1, '2026-03-13 10:10:00', '看起來好好玩，也想帶小孩去體驗。', 3, 'VISIBLE'),
+(10014, 9013, 2, '2026-03-15 09:25:00', '親子活動的好選擇，記錄得很詳細。', 2, 'VISIBLE'),
+(10015, 9014, 4, '2026-03-18 19:45:00', '素食版三杯也太香，收藏了！', 6, 'VISIBLE'),
+(10016, 9015, 5, '2026-03-20 08:15:00', '作法簡單又暖胃，冬天必備。', 3, 'VISIBLE'),
+(10017, 9016, 1, '2026-03-22 13:30:00', '自己包的水餃就是不一樣，讚！', 4, 'VISIBLE');
 
 
 -- 6. 專欄部落格 - 部落格照片
@@ -1514,7 +1561,8 @@ INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動
 INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_id} 審核未通過，原因：{reason}。');
 INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的體驗活動預約 {farm_trip_order_id}，期待您的到來！');
 INSERT INTO notification_template VALUES ('trip_booking_new', '體驗活動 {farm_session_id} 收到一筆新預約！');
-INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_order_id} 的預約，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_title} 的預約，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_booking_cancelled_farmer', '消費者已取消一筆 {farm_trip_title} 體驗活動預約，請至體驗活動專區查看。');
 INSERT INTO notification_template VALUES ('trip_cancelled', '很抱歉您預約的體驗活動 {farm_session_id} 已取消，期待您再次參與。');
 INSERT INTO notification_template VALUES ('trip_review_invite', '感謝您參加體驗活動 {farm_session_id}！歡迎留下您的評分與心得，給小農鼓勵。');
 INSERT INTO notification_template VALUES ('trip_comment', '體驗活動 {farm_trip_id} 收到一則新評論。');
