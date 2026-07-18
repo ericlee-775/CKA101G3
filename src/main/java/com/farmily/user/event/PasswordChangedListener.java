@@ -5,10 +5,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-// 修改密碼寄信通知事件監聽
+// 監聽:修改密碼寄信通知事件
 @Component
 public class PasswordChangedListener {
-
     private final EmailService emailService;
 
     public PasswordChangedListener(EmailService emailService) {
