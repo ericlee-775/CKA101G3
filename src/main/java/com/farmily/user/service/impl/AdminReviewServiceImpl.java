@@ -3,6 +3,9 @@ package com.farmily.user.service.impl;
 import com.farmily.user.dto.FarmerReviewResponse;
 import com.farmily.user.event.FarmerApprovedEvent;
 import com.farmily.user.event.FarmerRejectedEvent;
+import com.farmily.user.exception.AdminNotFoundException;
+import com.farmily.user.exception.BusinessException;
+import com.farmily.user.exception.ReviewNotFoundException;
 import com.farmily.user.model.Admin;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
@@ -16,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -127,7 +131,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     public FarmerReviewResponse reviewing(Integer reviewId, Integer adminId) {
         FarmerReview review = findReview(reviewId);
         if(review.getReviewStatus() != FarmerReview.ReviewStatus.PENDING){
-            throw new IllegalStateException("此案件審核中或已審核");
+            throw new BusinessException("REVIEW_STATE_INVALID", HttpStatus.CONFLICT, "此案件審核中或已審核"); // 409
         }
         review.setReviewStatus(FarmerReview.ReviewStatus.REVIEWING);
         review.setAdmin(findAdmin(adminId));
@@ -141,7 +145,6 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     public FarmerReviewResponse approve(Integer reviewId, Integer adminId, String notes) {
         FarmerReview review = findReview(reviewId);
         ensureReviewing(review);       // 若 APPROVED/REJECTED 就擋下
-
         if (review.getAdmin() == null || !review.getAdmin().getAdminId().equals(adminId)) {
             throw new AccessDeniedException("此案件由其他管理員認領，您無法審核");
         }
@@ -222,11 +225,11 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         } else if ("identity".equals(t)) {
             bytes = review.getCertFileIdentity();
         } else {
-            throw new IllegalArgumentException("不支援的文件類型: " + type);
+            throw new BusinessException("UNSUPPORTED_DOC_TYPE", HttpStatus.BAD_REQUEST, "不支援的文件類型: " + type);   // 400
         }
 
         if (bytes == null || bytes.length == 0) {
-            throw new IllegalArgumentException("此文件未上傳");
+            throw new BusinessException("DOC_NOT_FOUND", HttpStatus.NOT_FOUND, "此文件未上傳");   // 404
         }
         return bytes;
     }
@@ -235,18 +238,20 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     // ---- 自訂方法 ----
     private FarmerReview findReview(Integer reviewId) {
         return farmerReviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此審核案件"));
+                .orElseThrow(() -> new ReviewNotFoundException());
+//                .orElseThrow(ReviewNotFoundException::new)
     }
     private Admin findAdmin(Integer adminId) {
         return adminRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此管理員"));
+                .orElseThrow(() -> new AdminNotFoundException());
+//                .orElseThrow(AdminNotFoundException::new)
     }
 
     // 確保一定要先 REVIEWING (除了 REVIEWING，擋住其他審核狀態)
     private void ensureReviewing(FarmerReview review) {
         FarmerReview.ReviewStatus s = review.getReviewStatus();
         if (s != FarmerReview.ReviewStatus.REVIEWING) {
-            throw new IllegalStateException("請先認領案件才能進行審核");
+            throw new BusinessException("REVIEW_NOT_CLAIMED", HttpStatus.CONFLICT, "請先認領案件才能進行審核"); // 409
         }
     }
 }

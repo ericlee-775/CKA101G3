@@ -5,7 +5,9 @@ import authApi, { ACCOUNT_TYPE } from '@/api/auth'
 
 const route = useRoute()
 
-const email = ref('')
+// 登入失敗時使用者已經打過信箱，帶過去可省一次輸入
+const email = ref(route.query.email || '')
+
 // 身分：預設從網址 ?type=FARMER 帶入，否則會員
 const accountType = ref(route.query.type === 'FARMER' ? ACCOUNT_TYPE.FARMER : ACCOUNT_TYPE.MEMBER)
 

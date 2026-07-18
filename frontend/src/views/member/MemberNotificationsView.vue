@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router';
 import notificationApi from '@/api/memberNotification';
 import { confirm } from '@/composables/useConfirm';
 import notificationStore from '@/stores/memberNotification';
@@ -11,6 +12,8 @@ const page = ref(0)
 const totalPages = ref(0)
 const targetType = ref('')
 const marking = ref(false)
+const router = useRouter()
+const activeIndex = computed(() => TYPE_OPTIONS.findIndex(o => o.value === targetType.value))
 
 
 // 分類開選的選項
@@ -32,6 +35,16 @@ const TYPE_LABEL = {
   trip: '體驗活動', 
   blog: '專欄文章'
 }
+
+// 跳轉頁面路徑 (會員端)
+const TARGET_ROUTE = {
+  account: '/member/me',
+  order: '/member/orders',
+  groupbuy: '/member/group-buys',
+  trip: '/member/farm-trips', 
+  blog: '/member/blogs',
+}
+
 
 // 已讀標籤
 // const STATUS_LABEL = {
@@ -66,12 +79,15 @@ function changeType(t) {
 }
 
 // 換頁
-function changePage(p) {
-  if (p < 0 || p > totalPages.value) {
+async function changePage(p) {
+  if (p < 0 || p >= totalPages.value) {
     return
   }
+
+  window.scrollTo({ top: 0 })
   page.value = p
-  loadNotif()
+  await loadNotif()
+
 }
 
 // 全部標為已讀
@@ -101,10 +117,20 @@ async function markOne(n) {
     try {
       await notificationApi.markOneAsRead(n.notificationId)
       notificationStore.markRead(n.notificationId)
-      await loadNotif()
+      n.status = 'read'
     } catch (e) {
       alert(e.message || '操作失敗')
+      return
     }
+  }
+  // blog 通知導到「那篇文章」；其他類型導到對應區塊清單
+  if (n.targetType === 'blog' && n.targetId != null) {
+    router.push({ name: 'member-blogs-detail', params: { id: n.targetId } })
+    return
+  }
+  const path = TARGET_ROUTE[n.targetType]
+  if (path) {
+    router.push(path)
   }
 }
 
@@ -125,48 +151,57 @@ function formateDateTime(dt) {
       <header class="page-head">
         <h1>🔔 我的通知</h1>
       </header>
-      
-      <nav class="filter">
-        <button v-for="opt in TYPE_OPTIONS" :key="opt.value" 
-        class="chip" :class="{ active: targetType === opt.value }"
-        @click="changeType(opt.value)">{{ opt.label }}</button>
-        <!-- :class="{active: 條件}" 用來高亮目前的分類 -->
-        
+
+      <div class="notif-toolbar">
+        <div class="seg" role="tablist">
+          <span class="seg-pill" :style="{ transform: `translateX(${activeIndex * 100}%)` }"></span>
+
+          <button v-for="opt in TYPE_OPTIONS" :key="opt.value" type="button"
+          class="seg-btn" :class="{ 'is-active': targetType === opt.value }"
+          role="tab" :aria-selected="targetType === opt.value"
+          @click="changeType(opt.value)">
+            {{ opt.label }}
+          </button>
+        </div>
+          
         <button class="btn-ghost mark-all" :disabled="marking" @click="markAll">
           {{ marking ? '處理中...' : '全部已讀' }} <!-- 處理中 marking == true，換字並禁用 -->
         </button>
-      </nav>
-
-      <!-- 載入狀態 -->
-      <p v-if="loading" class="hint">載入中...</p>
-      <p v-else-if="loadError" class="msg-err">{{ loadError }}</p>
-      <p v-else-if="notifs.length === 0" class="hint">暫無通知</p>
-
-      <!-- 非以上三種狀態，載入通知列表 -->
-      <ul v-else class="notif-list">
-        <li 
-          v-for="n in notifs" :key="n.notificationId"
-          class="notif-item" :class="{ unread: n.status === 'unread' }"
-          @click="markOne(n)"
-        >
-          <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
-            {{ TYPE_LABEL[n.targetType] || '其他' }}
-          </span>
-          <div class="notif-main">
-            <p class="notif-contnet">{{ n.content }}</p>
-            <span class="notif-time">{{ formateDateTime(n.createdAt) }}</span>
-          </div>
-          <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
-        </li>
-      </ul>
-
-      <!-- 分頁 (超過一頁才顯示) -->
-      <div v-if="totalPages > 1" class="pager">
-        <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
-        <span class="pager-info">第 {{ page + 1}} / {{ totalPages }} 頁</span>
-        <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
       </div>
 
+      <!-- 載入狀態 -->
+      <Transition name="tab-fade" mode="out-in">
+        <div :key="targetType + '-' + page">
+          <p v-if="loading" class="hint">載入中...</p>
+          <p v-else-if="loadError" class="msg-err">{{ loadError }}</p>
+          <p v-else-if="notifs.length === 0" class="hint">暫無通知</p>
+    
+          <!-- 非以上三種狀態，載入通知列表 -->
+          <ul v-else class="notif-list">
+            <li 
+              v-for="n in notifs" :key="n.notificationId"
+              class="notif-item" :class="{ unread: n.status === 'unread' }"
+              @click="markOne(n)"
+            >
+              <span class="notif-tag" :class="'tag-' + (n.targetType || 'other')">
+                {{ TYPE_LABEL[n.targetType] || '其他' }}
+              </span>
+              <div class="notif-main">
+                <p class="notif-contnet">{{ n.content }}</p>
+                <span class="notif-time">{{ formateDateTime(n.createdAt) }}</span>
+              </div>
+              <span v-if="n.status === 'unread'" class="dot" title="unread"></span>
+            </li>
+          </ul>
+    
+          <!-- 分頁 (超過一頁才顯示) -->
+          <div v-if="totalPages > 1" class="pager">
+            <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
+            <span class="pager-info">第 {{ page + 1}} / {{ totalPages }} 頁</span>
+            <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
+          </div>
+        </div>
+      </Transition>
     </div>
   </main>
 </template>
@@ -190,34 +225,70 @@ function formateDateTime(dt) {
   color: var(--ink);
 }
 
-/* 分類 chip */
-.filter {
+/* 分類列容器: seg 靠左、全部已讀靠右 */
+.notif-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 4px;
 }
 
-.chip {
-  padding: 6px 14px;
+/* 切換膠囊 */
+.seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  padding: 4px;
+  background: #fff;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+/* 會滑動的綠藥丸: 寬度 = 一格, transform 由 activeIndex 控制 */
+.seg-pill {
+  position: absolute;
+  top: 4px; bottom: 4px; left: 4px;
+  width: calc((100% - 8px) / 6);           /* 內容區寬度 ÷ 6 = 一格 */
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--leaf), var(--leaf-dark));
+  box-shadow: 0 3px 10px rgba(59, 138, 87, 0.35);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);  /* 滑動 (滑動速度: 0.28s) */
+}
+
+.seg-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
   color: var(--ink-soft);
-  cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.22s ease;
+}
+.seg-btn:hover { color: var(--leaf-dark); }
+.seg-btn.is-active { color: #fff; }          /* 選中變白字 (蓋在綠藥丸上) */
+
+/* 列表淡入轉場 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tab-fade-enter-from { opacity: 0; transform: translateY(8px); }   /* 進場: 從下淡入 (translateY 淡入幅度) */
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-8px); }  /* 離場: 往上淡出 */
+
+/* 全部已讀: 獨立靠右 + 膠囊圓角 */
+.btn-ghost.mark-all {
+  margin-left: auto;          /* 推到最右 */
+  border-radius: 999px;       /* 圓角膠囊, 跟 seg 風格一致 */
 }
 
-/* 選中高亮 */
-.chip.active {
-  background: var(--leaf);
-  color: #fff;
-  border-color: var(--leaf);
-}
-
-.mark-all {
-  margin-left: auto;
-}
 
 /* 通知清單 */
 .notif-list {
@@ -253,7 +324,7 @@ function formateDateTime(dt) {
   transform: translateY(-2px);
 }
 
-/* 未讀:綠邊 + 淺綠底 */
+/* 未讀: 綠邊 + 淺綠底 */
 .notif-main {
   display: flex;
   flex: 1;

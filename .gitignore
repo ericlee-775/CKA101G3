@@ -81,3 +81,8 @@ Thumbs.db
 /test-output/
 /surefire-reports/
 /jacoco.exec
+
+##############################
+# Redis（本機開發：redis-server 在專案目錄啟動時會產生快照檔）
+##############################
+dump.rdb

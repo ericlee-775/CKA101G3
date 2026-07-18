@@ -117,11 +117,11 @@ public class ProductController {
 		return ResponseEntity.ok(subCategoryOptions);
 	}
 
-	// 首頁熱門清單
+	// 首頁熱門清單（結算結果不足 4 筆時後端會自動用上架中商品補滿）
 	@GetMapping("/hot")
 	public ResponseEntity<List<ProductSummaryDTO>> hotProducts() {
-		List<ProductSummaryDTO> getHotProducts = productService.getHotProducts();
-		return ResponseEntity.ok(getHotProducts);
+		List<ProductSummaryDTO> hotProducts = productService.getHomeHotProducts();
+		return ResponseEntity.ok(hotProducts);
 	}
 
 	

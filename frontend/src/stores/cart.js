@@ -182,6 +182,8 @@ export const cartStore = {
   removeItem,
   clear,
   sync,
+  // 後端已經改動購物車（例如結帳時 clearCart）時，讓前端重讀一次
+  reload: reloadFromServer,
 
   totalCount,
   totalPrice,

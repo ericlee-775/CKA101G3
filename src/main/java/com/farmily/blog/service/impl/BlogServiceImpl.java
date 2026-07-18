@@ -6,6 +6,7 @@ import com.farmily.blog.dto.*;
 import com.farmily.blog.model.*;
 import com.farmily.blog.service.BlogService;
 import com.farmily.blog.util.Page;
+import com.farmily.notification.service.NotificationSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,12 @@ import java.util.List;
 public class BlogServiceImpl implements BlogService {
 
     private final BlogDao blogDao;
+    private final NotificationSender notificationSender;
 
     @Autowired
-    public BlogServiceImpl(BlogDao blogDao) {
+    public BlogServiceImpl(BlogDao blogDao, NotificationSender notificationSender) {
         this.blogDao = blogDao;
+        this.notificationSender = notificationSender;
     }
 
     /* ===== 公開 ===== */
@@ -311,9 +314,24 @@ public class BlogServiceImpl implements BlogService {
         if(userId == null ||     blogId == null) {
             throw new IllegalArgumentException("使用者和文章不能為NULL");
         }
-        getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能留言
+        Blog blog = getVisibleBlogOr404(blogId);   // 隱藏/不存在文章不能留言（順便拿到作者）
         Integer commentId = blogDao.addComment(blogComment); //建立
         BlogComment newComment = blogDao.getBlogCommentById(commentId); //撈出剛建立的
+
+        // 通知文章作者「有人留言」：會員作者走會員版（自己留自己不通知）、小農作者走小農版
+        String title = blog.getBlogTitle();
+        try {
+            if (blog.getUserId() != null) {
+                if (!blog.getUserId().equals(userId)) {
+                    notificationSender.sendBlogComment(blog.getUserId(), blogId, title);
+                }
+            } else if (blog.getFarmerId() != null) {
+                // 留言者一定是會員，不會是小農作者本人，照發
+                notificationSender.sendFarmerBlogComment(blog.getFarmerId(), blogId, title);
+            }
+        } catch (Exception e) {
+            // 通知失敗不影響留言本身
+        }
         return BlogCommentResponse.from(newComment); //轉DTO
     }
 
@@ -340,7 +358,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public Integer reportBlog(Integer blogId ,BlogReportRequest blogReportRequest) {
-        Integer userId = blogReportRequest.getUserId();
+        Integer userId = blogReportRequest.getUserId();   // 檢舉人（非作者）
 
 
         if(userId == null || blogId == null) {
@@ -348,7 +366,23 @@ public class BlogServiceImpl implements BlogService {
 
         }
 
-        return blogDao.reportBlog(blogId , blogReportRequest);
+        Integer reportId = blogDao.reportBlog(blogId , blogReportRequest);
+
+        // 通知文章作者「你的文章被檢舉，審核中」：會員作者走會員版、小農作者走小農版
+        Blog blog = blogDao.getBlogById(blogId);
+        if (blog != null) {
+            String title = blog.getBlogTitle();
+            try {
+                if (blog.getUserId() != null) {
+                    notificationSender.sendBlogReportPending(blog.getUserId(), blogId, title);
+                } else if (blog.getFarmerId() != null) {
+                    notificationSender.sendFarmerBlogReportPending(blog.getFarmerId(), blogId, title);
+                }
+            } catch (Exception e) {
+                // 通知失敗不影響檢舉本身
+            }
+        }
+        return reportId;
 
     }
 
@@ -368,7 +402,20 @@ public class BlogServiceImpl implements BlogService {
         if(blogComment == null) {
             throw new IllegalArgumentException("留言不存在");
         }
-        return blogDao.reportComment(commentId, blogComment.getBlogId(), request);
+        Integer reportId = blogDao.reportComment(commentId, blogComment.getBlogId(), request);
+
+        // 通知留言作者「你的留言被檢舉」。留言作者一定是會員；標題取「留言所在文章」的標題
+        Integer commentAuthorUserId = blogComment.getUserId();
+        if (commentAuthorUserId != null) {
+            Blog blog = blogDao.getBlogById(blogComment.getBlogId());
+            String title = (blog != null) ? blog.getBlogTitle() : null;
+            try {
+                notificationSender.sendBlogCommentReport(commentAuthorUserId, blogComment.getBlogId(), title);
+            } catch (Exception e) {
+                // 通知失敗不影響檢舉本身
+            }
+        }
+        return reportId;
     }
 
     @Override
