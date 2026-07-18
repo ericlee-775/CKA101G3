@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.DeleteAccountEvent;
 import com.farmily.user.event.MemberRegisteredEvent;
 import com.farmily.user.event.PasswordChangedEvent;
 import com.farmily.user.exception.*;
@@ -194,7 +195,13 @@ public class UserServiceImpl implements UserService {
             user.setCityDistrict(city);
         }
         //  將修改資料存進 DB
-        return UserProfileResponse.from(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+
+        // +消費級距 (不同表)：與 getMyProfile 回傳同樣的欄位，避免前端存檔後級距暫時消失
+        BigDecimal amount = savedUser.getMonthlySpending() != null ? savedUser.getMonthlySpending() : BigDecimal.ZERO;
+        String tierName = spendingTierRepository.findTierNameByAmount(amount);
+
+        return UserProfileResponse.from(savedUser, tierName);
     }
 
     // 修改密碼
@@ -221,13 +228,18 @@ public class UserServiceImpl implements UserService {
         eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail()));
     }
 
-    // 刪除資料
+    // 註銷帳號（軟刪除），不能硬刪除：有外鍵都指向 user_id 且為 RESTRICT
+    // 更新狀態 DELETED，登入檢查會擋住後續登入
     @Override
     public void deleteUser(Integer userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException();
-        }
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException());
+
+        user.setUserStatus(User.UserStatus.DELETED);
+        userRepository.save(user);
+
+        // 用事件監聽確保註銷帳號成功 commit 後才寄通知信
+        eventPublisher.publishEvent(new DeleteAccountEvent(user.getEmail()));
     }
 
     // OAuth 2.0 註冊登入
