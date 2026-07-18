@@ -10,11 +10,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.farmily.notification.service.NotificationSender;
+import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.model.FarmTripOrder;
 import com.farmily.trip.model.FarmTripSession;
 import com.farmily.trip.model.OrderStatus;
 import com.farmily.trip.model.SessionStatus;
 import com.farmily.trip.repository.FarmTripOrderRepository;
+import com.farmily.trip.repository.FarmTripRepository;
 import com.farmily.trip.repository.FarmTripSessionRepository;
 
 @Component
@@ -22,12 +24,15 @@ public class FarmTripReviewInviteScheduler {
 
 	private final FarmTripSessionRepository sessionRepo;
 	private final FarmTripOrderRepository orderRepo;
+	private final FarmTripRepository tripRepo;
 	private final NotificationSender notificationSender;
 
 	public FarmTripReviewInviteScheduler(FarmTripSessionRepository sessionRepo,
-			FarmTripOrderRepository orderRepo, NotificationSender notificationSender) {
+			FarmTripOrderRepository orderRepo, FarmTripRepository tripRepo,
+			NotificationSender notificationSender) {
 		this.sessionRepo = sessionRepo;
 		this.orderRepo = orderRepo;
+		this.tripRepo = tripRepo;
 		this.notificationSender = notificationSender;
 	}
 
@@ -47,8 +52,10 @@ public class FarmTripReviewInviteScheduler {
 				}
 			}
 			if (!userIds.isEmpty()) {
+				String tripTitle = tripRepo.findById(s.getFarmerTripId())
+						.map(FarmTrip::getFarmTripTitle).orElse("體驗活動");
 				try {
-					notificationSender.sendTripReviewInvite(userIds, s.getFarmSessionId(), anyOrderId);
+					notificationSender.sendTripReviewInvite(userIds, anyOrderId, tripTitle);
 				} catch (Exception e) {
 					System.out.println("[通知] 邀評失敗：" + e.getMessage());
 				}

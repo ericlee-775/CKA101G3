@@ -275,10 +275,11 @@ public class FarmTripServiceImpl implements FarmTripService {
 		session.setAttendance(attendance + request.getNumPeople());
 		farmTripSessionRepository.save(session);
 
-		Integer bookFarmerId = farmTripRepository.findById(session.getFarmerTripId())
-				.map(FarmTrip::getFarmerId).orElse(null);
+		FarmTrip bookTrip = farmTripRepository.findById(session.getFarmerTripId()).orElse(null);
+		Integer bookFarmerId = bookTrip == null ? null : bookTrip.getFarmerId();
+		String bookTitle = bookTrip == null ? "" : bookTrip.getFarmTripTitle();
 		try {
-			notificationSender.sendTripBookConfirmed(saved.getUserId(), bookFarmerId, saved.getFarmSessionId(), saved.getFarmTripOrderId());
+			notificationSender.sendTripBookConfirmed(saved.getUserId(), bookFarmerId, saved.getFarmTripOrderId(), bookTitle);
 		} catch (Exception e) {
 			System.out.println("[通知] 報名通知失敗：" + e.getMessage());
 		}
@@ -412,8 +413,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 
 		if (!affectedUserIds.isEmpty()) {                                     // ★新增④：迴圈跑完後，一次通知所有被取消的報名者
 			try {
-				notificationSender.sendTripCancelled(affectedUserIds, farmSessionId, anyOrderId);
-			} catch (Exception e) {
+				notificationSender.sendTripCancelled(affectedUserIds, anyOrderId, tripTitle);			} catch (Exception e) {
 				System.out.println("[通知] 場次取消通知失敗：" + e.getMessage());
 			}
 		}
@@ -637,7 +637,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 		farmTripRepository.save(trip);
 
 		try {
-			notificationSender.sendTripComment(trip.getFarmerId(), farmTripId);
+			notificationSender.sendTripComment(trip.getFarmerId(), farmTripId, trip.getFarmTripTitle());
 		} catch (Exception e) {
 			System.out.println("[通知] 評論通知失敗：" + e.getMessage());
 		}
