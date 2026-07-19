@@ -20,7 +20,10 @@ const relatedErrors = ref({
   blogs: '',
 })
 
-const heroImage = computed(() => noImage)
+// 農場封面走靜態檔 /farmily-web/farms/{farmerId}.jpg；沒有就靠 @error 退回佔位圖
+const heroImage = computed(() =>
+  farmerId.value ? `/farmily-web/farms/${farmerId.value}.jpg` : noImage
+)
 
 const farmAddress = computed(() => {
   if (!farm.value) return ''
