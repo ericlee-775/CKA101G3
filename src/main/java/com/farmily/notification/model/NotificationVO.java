@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -45,7 +46,7 @@ public class NotificationVO implements java.io.Serializable {
 	@Enumerated(EnumType.STRING)
 	private NotificationStatus status;
 	
-	@Column(name = "created_at", insertable=false, updatable=false)
+	@Column(name = "created_at", updatable=false)
 	private LocalDateTime createdAt;
 	
 	public Integer getNotificationId() {
@@ -122,6 +123,13 @@ public class NotificationVO implements java.io.Serializable {
 
 	public NotificationVO() {
 		super();
+	}
+	
+	@PrePersist
+	protected void onCreate() {
+		if (createdAt == null) {
+			createdAt = LocalDateTime.now();
+		}
 	}
 
 }

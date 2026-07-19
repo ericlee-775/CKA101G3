@@ -187,7 +187,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("groupbuy");
 		req.setTargetId(groupBuyId);
-		req.setVariables(Map.of("product_name", String.valueOf(productName)));
+		req.setVariables(Map.of("product_name", productName));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -228,7 +228,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("trip");
 		req.setTargetId(farmTripId);
-		req.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		req.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -241,7 +241,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("trip");
 		req.setTargetId(farmTripId);
-		req.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle), "reason", reason));
+		req.setVariables(Map.of("farm_trip_title", farmTripTitle, "reason", reason));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -256,7 +256,7 @@ public class NotificationSender {
 		req.setRecipientId(userId);
 		req.setTargetType("trip");
 		req.setTargetId(farmTripOrderId);
-		req.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		req.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(req);
 		
 		// 發送通知給小農
@@ -266,7 +266,7 @@ public class NotificationSender {
 		reqFarmer.setRecipientId(farmerId);
 		reqFarmer.setTargetType("trip");
 		reqFarmer.setTargetId(farmTripOrderId);
-		reqFarmer.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		reqFarmer.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(reqFarmer);
 	}
 	
@@ -281,7 +281,7 @@ public class NotificationSender {
 		req.setRecipientId(userId);
 		req.setTargetType("trip");
 		req.setTargetId(farmTripOrderId);
-		req.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		req.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(req);
 		
 		// 發送通知給小農
@@ -291,7 +291,7 @@ public class NotificationSender {
 		reqFarmer.setRecipientId(farmerId);
 		reqFarmer.setTargetType("trip");
 		reqFarmer.setTargetId(farmTripOrderId);
-		reqFarmer.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		reqFarmer.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(reqFarmer);
 	}
 
@@ -301,7 +301,7 @@ public class NotificationSender {
 		// sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, 
 		// String typeCode, String targetType, Integer targetId, Map<String, String> variables) 
 		nSvc.sendMultipleNotif(userIds, NotificationRecipientType.user, 
-				"trip_cancelled", "trip", farmTripOrderId, Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+				"trip_cancelled", "trip", farmTripOrderId, Map.of("farm_trip_title", farmTripTitle));
 	}
 	
 	// 體驗活動完成	trip_review_invite, 所有參與者 userId
@@ -310,7 +310,7 @@ public class NotificationSender {
 		// sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, 
 		// String typeCode, String targetType, Integer targetId, Map<String, String> variables) 
 		nSvc.sendMultipleNotif(userIds, NotificationRecipientType.user, 
-				"trip_review_invite", "trip", farmTripOrderId, Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+				"trip_review_invite", "trip", farmTripOrderId, Map.of("farm_trip_title", farmTripTitle));
 	}
 	
 	// 體驗活動評論	trip_comment, 小農 farmerId
@@ -322,7 +322,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("trip");
 		req.setTargetId(farmTripId);
-		req.setVariables(Map.of("farm_trip_title", String.valueOf(farmTripTitle)));
+		req.setVariables(Map.of("farm_trip_title", farmTripTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -337,7 +337,7 @@ public class NotificationSender {
 		req.setRecipientId(userId);
 		req.setTargetType("blog");
 		req.setTargetId(blogId);
-		req.setVariables(Map.of("blog_title", String.valueOf(blogTitle)));
+		req.setVariables(Map.of("blog_title", blogTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -350,7 +350,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("blog");
 		req.setTargetId(blogId);
-		req.setVariables(Map.of("blog_title", String.valueOf(blogTitle)));
+		req.setVariables(Map.of("blog_title", blogTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -364,7 +364,7 @@ public class NotificationSender {
 		req.setRecipientId(userId);
 		req.setTargetType("blog");
 		req.setTargetId(blogId);
-		req.setVariables(Map.of("blog_title", String.valueOf(blogTitle)));
+		req.setVariables(Map.of("blog_title", blogTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -377,7 +377,7 @@ public class NotificationSender {
 		req.setRecipientId(farmerId);
 		req.setTargetType("blog");
 		req.setTargetId(blogId);
-		req.setVariables(Map.of("blog_title", String.valueOf(blogTitle)));
+		req.setVariables(Map.of("blog_title", blogTitle));
 		nSvc.sendOneNotif(req);
 	}
 	
@@ -475,24 +475,9 @@ public class NotificationSender {
 		nSvc.sendOneNotif(req);
 	}
 	
-	
-	// ====================== 管理員 ======================
-	// 發送系統通知, 所有一般會員 userId
-//	@Transactional
-//	public void sendSystemToUser(Set<Integer> userIds, String targetType) {
-//		
-//	}
-//	
-//	// 發送系統通知, 所有小農 farmerId
-//	@Transactional
-//	public void sendSystemToFarmer(Set<Integer> farmerIds, String targetType) {
-//		
-//	}
-//	
-	
-	
-	
-	
+
+
+		
 	// 日期時間格式轉換 (String shippedStr = shippedAt.format(fmt); // "2026-07-06 19:53" )
 	private static final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 

@@ -1,5 +1,6 @@
 package com.farmily.notification.service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,25 +14,45 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.farmily.notification.dto.NotificationAnnouncementResponseDTO;
 import com.farmily.notification.dto.NotificationCreateRequestDTO;
 import com.farmily.notification.dto.NotificationResponseDTO;
+import com.farmily.notification.model.NotifAnnouncementAudience;
+import com.farmily.notification.model.NotificationAnnouncementRepository;
+import com.farmily.notification.model.NotificationAnnouncementVO;
 import com.farmily.notification.model.NotificationRecipientType;
 import com.farmily.notification.model.NotificationRepository;
 import com.farmily.notification.model.NotificationStatus;
 import com.farmily.notification.model.NotificationTemplateRepository;
 import com.farmily.notification.model.NotificationTemplateVO;
 import com.farmily.notification.model.NotificationVO;
+import com.farmily.user.model.Admin;
+import com.farmily.user.model.Farmer;
+import com.farmily.user.model.User;
+import com.farmily.user.service.AdminFarmerService;
+import com.farmily.user.service.AdminMemberService;
 
 @Service
 public class NotificationService {
 	
 	private static final int PAGE_SIZE = 5;
+	private static final int PAGE_SIZE_ADMIN = 10;
 	
 	@Autowired
 	NotificationRepository repository;
 	
 	@Autowired
 	NotificationTemplateRepository templateRepository;
+	
+	@Autowired
+	NotificationAnnouncementRepository announcementRepo;
+
+	@Autowired
+	AdminMemberService memberSvc;
+	
+	@Autowired
+	AdminFarmerService farmerSvc;
+	
 	
 	// add notification
 //	@Transactional
@@ -129,7 +150,7 @@ public class NotificationService {
 	
 	// send a same notification to multiple/different users (same typeCode, content, targetType, targetId
 	@Transactional
-	public void sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) {
+	public int sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, String typeCode, String targetType, Integer targetId, Map<String, String> variables) {
 		
 		// build a list to store all notifications
 		Set<NotificationVO> set = new HashSet<>();
@@ -146,10 +167,9 @@ public class NotificationService {
 		
 		for (Integer id : recipientId) {
 			NotificationVO notif = new NotificationVO();
-			notif.setRecipientId(id);
-			notif.setTypeCode(typeCode);
 			notif.setRecipientType(recipientType);
 			notif.setRecipientId(id);
+			notif.setTypeCode(typeCode);
 			notif.setTargetType(targetType);
 			notif.setTargetId(targetId);
 			notif.setContent(content);
@@ -157,9 +177,12 @@ public class NotificationService {
 		}
 		
 		// store the list, all notifications, to DB
-		repository.saveAll(set);
+		List<NotificationVO> saved = repository.saveAll(set);
+		
+		return saved.size();  // 回傳總共傳了幾筆
 	}
 	
+
 	
 	// ============== 顯示通知列表 ==============
 	// find notifications by member
@@ -183,8 +206,18 @@ public class NotificationService {
 		return dtoList;
 	}
 	
+	// 管理員通知列表 (NotificationAnnouncementVO)
+	@Transactional(readOnly = true)
+	public Page<NotificationAnnouncementResponseDTO> getAnnouncement(int page){
+		Pageable pageable = PageRequest.of(page, PAGE_SIZE_ADMIN);
+		Page<NotificationAnnouncementVO> list = announcementRepo.findAllWithAdmin(pageable);
+		Page<NotificationAnnouncementResponseDTO> dtoList = list.map(this::toAnnouncementDTO);
+		
+		return dtoList;
+	}
 	
-	// 把 Repository 查回來的 VO 轉成給 Controller 的 DTO
+	
+	// 把 Repository 查回來的 VO 轉成給前端的 DTO
 	private NotificationResponseDTO toDTO(NotificationVO vo) {
 		NotificationResponseDTO dto = new NotificationResponseDTO();
 		dto.setNotificationId(vo.getNotificationId());
@@ -193,6 +226,19 @@ public class NotificationService {
 		dto.setContent(vo.getContent());
 		dto.setCreatedAt(vo.getCreatedAt());
 		dto.setStatus(vo.getStatus().name()); // 把 enum 轉成 String
+		
+		return dto;
+	}
+	
+	// 把 Repository 查回來的 NotificationAnnouncementVO 轉成給前端的 NotificationAnnouncementResponseDTO
+	private NotificationAnnouncementResponseDTO toAnnouncementDTO(NotificationAnnouncementVO vo) {
+		NotificationAnnouncementResponseDTO dto = new NotificationAnnouncementResponseDTO();
+		dto.setAnnouncementId(vo.getAnnouncementId());
+		dto.setAdminName(vo.getAdmin() != null ? vo.getAdmin().getAdminName() : "-");
+		dto.setAudience(vo.getAudience().name());
+		dto.setContent(vo.getContent());
+		dto.setCreatedAt(vo.getCreatedAt());
+		dto.setRecipientCount(vo.getRecipientCount());
 		
 		return dto;
 	}
@@ -212,6 +258,61 @@ public class NotificationService {
 		long count = repository.countByRecipientTypeAndRecipientIdAndStatus(recipientType, recipientId, NotificationStatus.unread);
 		
 		return count;
+	}
+	
+	
+	// ============== 管理員發送通知 ==============
+	@Transactional
+	public void announcement(NotifAnnouncementAudience audience, String message, Admin admin) {
+		// 記錄發送筆數
+		int recipientCount = 0;
+		
+		// 判斷 audience
+		// 發給會員 (user, all)
+		if (audience == NotifAnnouncementAudience.user || audience == NotifAnnouncementAudience.all) {
+			
+			// 取得 userIds
+			List<User.UserStatus> statuses = new ArrayList<>();
+			statuses.add(User.UserStatus.ACTIVE);
+			statuses.add(User.UserStatus.WARNED);
+			Set<Integer> userIds = memberSvc.getIdsByStatuses(statuses);
+			
+			// sendAnnouncement(Set<Integer> recipientIds, NotificationRecipientType recipientType, String message) 
+			recipientCount += sendAnnouncement(userIds, NotificationRecipientType.user, message);
+			
+		}
+		
+		// 發給小農 (farmer, all)
+		if (audience == NotifAnnouncementAudience.farmer || audience == NotifAnnouncementAudience.all) {
+			
+			// 取得 farmerIds
+			List<Farmer.FarmerStatus> statuses = new ArrayList<>();
+			statuses.add(Farmer.FarmerStatus.ACTIVE);
+			Set<Integer> farmerIds = farmerSvc.getIdsByStatuses(statuses);
+			
+			recipientCount += sendAnnouncement(farmerIds, NotificationRecipientType.farmer, message);
+		}
+		
+		// 存一筆公告記錄
+		NotificationAnnouncementVO vo = new NotificationAnnouncementVO();
+		vo.setAdmin(admin);
+		vo.setAudience(audience);
+		vo.setContent(message);
+		vo.setRecipientCount(recipientCount);;
+		
+		announcementRepo.save(vo);
+	}
+	
+
+	// 發送系統通知, 一群會員
+	private int sendAnnouncement(Set<Integer> recipientIds, NotificationRecipientType recipientType, String message) {
+		// sendMultipleNotif(Set<Integer> recipientId, NotificationRecipientType recipientType, 
+		// String typeCode, String targetType, Integer targetId, Map<String, String> variables) 
+		int recipientCount = 0;
+		recipientCount = sendMultipleNotif(recipientIds, recipientType, 
+				"admin_announcement", "system", null, Map.of("message", message));
+		
+		return recipientCount;
 	}
 	
 
