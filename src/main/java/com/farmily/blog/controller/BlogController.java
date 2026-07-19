@@ -76,7 +76,7 @@ public class BlogController {
 
         return blogService.getBlogComments(blogId);
     }
-
+    //取得部落格照片集 photoId
     @GetMapping("/blogs/{blogId}/photos")
     public ResponseEntity<List<BlogPhotoResponse>> getBlogPhotos(@PathVariable Integer blogId) {
 
@@ -84,7 +84,7 @@ public class BlogController {
 
         return ResponseEntity.ok(blogPhotos);
     }
-
+    //用photoId去找圖檔顯示出來
     @GetMapping("/photos/{photoId}/image")
     public void getPhotoImg(HttpServletResponse res, @PathVariable Integer photoId)
             throws IOException {

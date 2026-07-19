@@ -21,10 +21,6 @@ async function loadFarms() {
   }
 }
 
-function hideBrokenImage(event) {
-  event.target.style.display = 'none'
-}
-
 onMounted(loadFarms)
 </script>
 
@@ -47,7 +43,7 @@ onMounted(loadFarms)
 
     <section v-else class="farm-grid">
       <article v-for="farm in farms" :key="farm.farmerId" class="farm-card">
-        <img class="farm-card__img" :src="noImage" :alt="farm.farmName" @error="hideBrokenImage" />
+        <img class="farm-card__img" :src="`/farmily-web/farms/${farm.farmerId}.jpg`" :alt="farm.farmName" @error="$event.target.src = noImage" />
 
         <div class="farm-card__body">
           <h2 class="farm-card__name">{{ farm.farmName }}</h2>
