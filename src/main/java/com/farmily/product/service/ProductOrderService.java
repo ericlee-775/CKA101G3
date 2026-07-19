@@ -405,21 +405,19 @@ public class ProductOrderService {
 		dto.setTotalAmount(totalAmount);
 		
 				
-		// 取得可用的優惠券
-		int total = totalAmount;
-		
-		List<MyCouponDTO> usableCoupons = couponSvc.getMyCoupons(userId).stream()
+		// 取得該會員的優惠券 (前端反灰不可用的優惠券)
+		List<MyCouponDTO> myCoupons = couponSvc.getMyCoupons(userId).stream()
 				.filter(c -> c.getStatus() == CouponStatus.UNUSED)
 				.filter(c -> c.getIssueEndDate() == null || !LocalDateTime.now().isAfter(c.getIssueEndDate()))
-				.filter(c -> total >= c.getMinSpending())
 				.toList();
-		dto.setUsableCoupons(usableCoupons);
+		dto.setMyCoupons(myCoupons);;
 		
 		
 		// 推薦優惠券 (可用優惠券中最大額；若有同樣面額，選快到期的)
 		int max = 0;
 		MyCouponDTO best = null;
-		for (MyCouponDTO c : usableCoupons) {
+		for (MyCouponDTO c : myCoupons) {
+			if (totalAmount < c.getMinSpending()) continue;
 			if (c.getAmount() <= totalAmount && c.getAmount() > max) {
 				max = c.getAmount();
 				best = c;
@@ -457,6 +455,8 @@ public class ProductOrderService {
 		// 新建一張會員訂單
 		ProductOrderVO order = new ProductOrderVO();
 		order.setUserId(userId);
+		order.setRecipientName(orderReq.getRecipientName());
+		order.setRecipientPhone(orderReq.getRecipientPhone());
 		order.setShippingAddress(shippingAddress);
 		order.setPaymentId(1); 		// 金流先給假值
 		order.setCreatedAt(LocalDateTime.now());

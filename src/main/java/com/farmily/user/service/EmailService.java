@@ -30,9 +30,9 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Farmily 帳號 - Email 驗證");
+        message.setSubject("你儂我儂電商平台 - Email 啟用驗證");
         message.setText("您好，\n\n"
-                + "請點擊以下連結完成 Email 驗證（連結 24 小時內有效）：\n"
+                + "請點擊以下連結完成 Email 驗證並啟用（連結 24 小時內有效）：\n"
                 + verifyLink);
 
         mailSender.send(message);
@@ -44,7 +44,7 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Farmily 小農帳號啟用通知");
+        message.setSubject("你儂我儂電商平台 - 小農帳號啟用通知");
         message.setText("您好，\n\n"
                 + "您申請的小農帳號已審核通過！\n"
                 + "請點擊以下連結，驗證並啟用小農帳號（連結 24 小時內有效）：\n"
@@ -59,13 +59,13 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Farmily 小農申請審核結果通知");
+        message.setSubject("你儂我儂電商平台 - 小農申請審核結果通知");
         message.setText("您好，\n\n"
                 + "很抱歉，您申請的小農帳號本次審核未通過。\n"
                 + "退件理由：" + (rejectReason == null || rejectReason.isBlank() ? "(未提供)" : rejectReason) + "\n\n"
                 + "您可以點擊以下連結查看審核進度或重新申請：\n"
                 + applicationLink + "\n\n"
-                + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com\n");
+                + "若有任何疑問，請聯繫客服：supportfarmily@gmail.com");
 
         mailSender.send(message);
     }
@@ -77,7 +77,7 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Farmily - 重設密碼");
+        message.setSubject("你儂我儂電商平台 - 重設密碼");
         message.setText("您好，\n\n"
                 + "請點擊以下連結重設您的密碼（連結 30 分鐘內有效）：\n"
                 + resetLink);
@@ -92,10 +92,24 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Farmily - 密碼變更通知");
+        message.setSubject("你儂我儂電商平台 - 密碼變更通知");
         message.setText("您好，\n\n"
                 + "您的 Farmily 帳號密碼剛剛已被變更，若為本人操作，請忽略此信。\n"
                 + "若非本人操作，您的帳號可能有風險，請立即聯繫客服：supportfarmily@gmail.com\n");
+
+        mailSender.send(message);
+    }
+
+    // 寄出「註銷帳號」純通知信
+    @Async
+    public void sendDeleteAccountNotice(String toEmail) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("你儂我儂電商平台 - 成功註銷帳號");
+        message.setText("您的帳號已成功註銷，感謝您至今為止在我們平台的付出。\n"
+        + "若日後想將帳號恢復，請聯繫客服：supportfarmily@gmail.com");
 
         mailSender.send(message);
     }
@@ -108,10 +122,11 @@ public class EmailService {
         message.setFrom(fromEmail);
         message.setTo(toAdminEmail);
         message.setSubject("Farmily 管理員團隊 - 密碼變更通知");
-        message.setText("您的管理員密碼剛剛已變更，請使用新密碼登入。\n");
+        message.setText("您的管理員密碼剛剛已變更，請使用新密碼登入。");
 
         mailSender.send(message);
     }
+
     //Coupon~~mail
     @Async
     public void sendCouponEmail(String toEmail,String userName,CouponVO coupon) {

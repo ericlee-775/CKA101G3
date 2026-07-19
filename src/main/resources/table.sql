@@ -903,6 +903,8 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE ORDERS (
     order_id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
+    recipient_name VARCHAR(50) NOT NULL,
+    recipient_phone VARCHAR(20) NOT NULL,
     coupon_id VARCHAR(50),
 	shipping_address VARCHAR(100) NOT NULL,
     payment_id INT NOT NULL,
@@ -920,10 +922,10 @@ AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
-VALUES (3, 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
-INSERT INTO ORDERS (user_id, shipping_address, payment_id, total_amount, discount_amount, final_payment)
-VALUES (3, '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, '小蔡', '0912345678', 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, shipping_address, payment_id, total_amount, discount_amount, final_payment)
+VALUES (3, '小蔡', '0912345678', '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
 
 
 -- 3-10. 農場商品 - 訂單明細
@@ -951,6 +953,8 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 參數
 INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
 VALUES (3001, 3, '屏東香蕉', 1, 4, 250, 'delivered', '2026-03-02 10:00:00', '2026-03-03 15:30:00', 'paid');
+INSERT INTO ORDER_ITEM (order_id, product_id, product_name, farmer_id, quantity, price, shipped_status, shipped_at, received_at, payout_status)
+VALUES (3002, 3, '屏東香蕉', 1, 3, 250, 'delivered', '2026-04-02 10:00:00', '2026-04-03 15:30:00', 'paid');
 
 
 -- 4. 團購 - 團購活動表
@@ -1508,7 +1512,8 @@ status ENUM('unread', 'read') NOT NULL DEFAULT 'unread',
 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
 CONSTRAINT PK_NOTIFICATION_NID PRIMARY KEY (notification_id)
 )
-AUTO_INCREMENT = 7001;
+AUTO_INCREMENT = 7001,
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_notif_recipient_status 
 ON notification (recipient_type, recipient_id, status);
@@ -1534,7 +1539,8 @@ CREATE TABLE IF NOT EXISTS notification_template (
 type_code VARCHAR(40) NOT NULL, 
 template_zh VARCHAR(255) NOT NULL, 
 CONSTRAINT PK_NOTIFYTYPE_CODE PRIMARY KEY (type_code)
-);
+)
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO notification_template VALUES ('gb_request_approved', '團購編號 {group_buy_id} 的開團申請已通過，快邀請親朋好友一起參加!');
 INSERT INTO notification_template VALUES ('gb_request_rejected', '團購編號 {group_buy_id} 的開團申請未通過，原因：{reject_reason}。');
@@ -1553,14 +1559,15 @@ INSERT INTO notification_template VALUES ('order_received', '商品訂單編號 
 INSERT INTO notification_template VALUES ('order_farmer_new', '您有一筆新商品訂單 {order_id}，請盡速出貨。');
 INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_id} 買家已確認收貨，貨款已撥款，請查收。');
 
-INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_id} 已通過審核並開放報名，快邀請親朋好友一起參加!');
-INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_id} 審核未通過，原因：{reason}。');
-INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的體驗活動預約 {farm_trip_order_id}，期待您的到來！');
-INSERT INTO notification_template VALUES ('trip_booking_new', '體驗活動 {farm_session_id} 收到一筆新預約！');
-INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_order_id} 的預約，期待您再次參與。');
-INSERT INTO notification_template VALUES ('trip_cancelled', '很抱歉您預約的體驗活動 {farm_session_id} 已取消，期待您再次參與。');
-INSERT INTO notification_template VALUES ('trip_review_invite', '感謝您參加體驗活動 {farm_session_id}！歡迎留下您的評分與心得，給小農鼓勵。');
-INSERT INTO notification_template VALUES ('trip_comment', '體驗活動 {farm_trip_id} 收到一則新評論。');
+INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_title} 已通過審核並開放報名，快邀請親朋好友一起參加!');
+INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_title} 審核未通過，原因：{reason}。');
+INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的體驗活動預約 {farm_trip_title}，期待您的到來！');
+INSERT INTO notification_template VALUES ('trip_booking_new', '體驗活動 {farm_trip_title} 收到一筆新預約！');
+INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_title} 的預約，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_booking_cancelled_farmer', '消費者已取消一筆 {farm_trip_title} 體驗活動預約，請至體驗活動專區查看。');
+INSERT INTO notification_template VALUES ('trip_cancelled', '很抱歉您預約的體驗活動 {farm_trip_title} 已取消，期待您再次參與。');
+INSERT INTO notification_template VALUES ('trip_review_invite', '感謝您參加體驗活動 {farm_trip_title}！歡迎留下您的評分與心得，給小農鼓勵。');
+INSERT INTO notification_template VALUES ('trip_comment', '體驗活動 {farm_trip_title} 收到一則新評論。');
 
 INSERT INTO notification_template VALUES ('blog_report_pending', '專欄文章 {blog_title} 遭檢舉，目前審核中，請留意後續通知。');
 INSERT INTO notification_template VALUES ('blog_report_visible', '專欄文章 {blog_title} 經審核後維持顯示，感謝您的配合。');
@@ -1576,4 +1583,26 @@ INSERT INTO notification_template VALUES ('account_tier', '您本月的會員等
 INSERT INTO notification_template VALUES ('farmer_review', '小農申請編號 {review_id}，請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_report_new', '專欄文章 {blog_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_comment_report_new', '專欄文章 {blog_id} 留言 {comment_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+
+INSERT INTO notification_template VALUES ('admin_announcement', '{message}');
+
+
+-- 7. 通知 - 管理員系統公告
+DROP TABLE IF EXISTS notification_announcement;
+CREATE TABLE IF NOT EXISTS notification_announcement (
+announcement_id INT NOT NULL AUTO_INCREMENT,
+admin_id INT NOT NULL,
+audience ENUM('user', 'farmer', 'all') NOT NULL,
+content VARCHAR(600) NOT NULL, 
+created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+recipient_count INT,
+
+CONSTRAINT PK_NOTIFANNOUNCEMENT_NBID PRIMARY KEY (announcement_id),
+CONSTRAINT FK_NOTIFANNOUNCEMENT_ADMINID FOREIGN KEY (admin_id) REFERENCES admin(admin_id)
+)
+AUTO_INCREMENT 8001,
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 參數
+INSERT INTO notification_announcement (admin_id, audience, content, recipient_count) VALUES (1, 'user', 'test announcement to user member', 5);
 

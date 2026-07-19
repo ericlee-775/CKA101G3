@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 // 網址上的活動 id：/farm-trips/:farmTripId
 const farmTripId = ref(route.params.farmTripId)
 
@@ -95,6 +96,12 @@ async function loadDetail() {
 
 // ========== 報名 ==========
 function startBooking(sessionId) {
+  // 未登入 → 導去會員登入頁；登入成功後用 redirect 自動接回本頁
+  if (!userId.value) {
+        alert('報名體驗活動前，請先登入會員帳號 🌱\n將為你導向登入頁面，登入後即可繼續完成報名。')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   bookingSessionId.value = sessionId
   bookForm.value = { userName: '', adults: 1, children: 0, userPhoneNum: '', note: '' }
   bookMsg.value = ''
