@@ -1512,7 +1512,8 @@ status ENUM('unread', 'read') NOT NULL DEFAULT 'unread',
 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
 CONSTRAINT PK_NOTIFICATION_NID PRIMARY KEY (notification_id)
 )
-AUTO_INCREMENT = 7001;
+AUTO_INCREMENT = 7001,
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_notif_recipient_status 
 ON notification (recipient_type, recipient_id, status);
@@ -1538,7 +1539,8 @@ CREATE TABLE IF NOT EXISTS notification_template (
 type_code VARCHAR(40) NOT NULL, 
 template_zh VARCHAR(255) NOT NULL, 
 CONSTRAINT PK_NOTIFYTYPE_CODE PRIMARY KEY (type_code)
-);
+)
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO notification_template VALUES ('gb_request_approved', '團購編號 {group_buy_id} 的開團申請已通過，快邀請親朋好友一起參加!');
 INSERT INTO notification_template VALUES ('gb_request_rejected', '團購編號 {group_buy_id} 的開團申請未通過，原因：{reject_reason}。');
@@ -1581,4 +1583,26 @@ INSERT INTO notification_template VALUES ('account_tier', '您本月的會員等
 INSERT INTO notification_template VALUES ('farmer_review', '小農申請編號 {review_id}，請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_report_new', '專欄文章 {blog_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
 INSERT INTO notification_template VALUES ('blog_comment_report_new', '專欄文章 {blog_id} 留言 {comment_id} 遭檢舉，檢舉事由: {report_reason} 請盡速審核。');
+
+INSERT INTO notification_template VALUES ('admin_announcement', '{message}');
+
+
+-- 7. 通知 - 管理員系統公告
+DROP TABLE IF EXISTS notification_announcement;
+CREATE TABLE IF NOT EXISTS notification_announcement (
+announcement_id INT NOT NULL AUTO_INCREMENT,
+admin_id INT NOT NULL,
+audience ENUM('user', 'farmer', 'all') NOT NULL,
+content VARCHAR(600) NOT NULL, 
+created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+recipient_count INT,
+
+CONSTRAINT PK_NOTIFANNOUNCEMENT_NBID PRIMARY KEY (announcement_id),
+CONSTRAINT FK_NOTIFANNOUNCEMENT_ADMINID FOREIGN KEY (admin_id) REFERENCES admin(admin_id)
+)
+AUTO_INCREMENT 8001,
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 參數
+INSERT INTO notification_announcement (admin_id, audience, content, recipient_count) VALUES (1, 'user', 'test announcement to user member', 5);
 
