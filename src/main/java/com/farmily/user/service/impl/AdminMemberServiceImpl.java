@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 // 管理員管理一般會員
 @Service
@@ -127,7 +128,16 @@ public class AdminMemberServiceImpl implements AdminMemberService {
         user.setUserStatus(newStatus);
         return UserProfileResponse.from(userRepository.save(user));
     }
-
+    
+    
+    // 取得指定狀態的會員 id (發送系統公告用)
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Integer> getIdsByStatuses(List<User.UserStatus> statuses){
+    	Set<Integer> userIds = userRepository.findIdsByStatusIn(statuses);
+    	
+    	return userIds;
+    }
 
 
 
