@@ -62,9 +62,9 @@ public class AdminTripReviewViewController {
         farmTripService.reviewTrip(farmTripId, req);   // 審核＋上架（交易完成後才發通知）
 
         try {
-            Integer farmerId = farmTripRepository.findById(farmTripId).map(FarmTrip::getFarmerId).orElse(null);
-            if (farmerId != null) notificationSender.sendTripRequestApproved(farmerId, farmTripId);
-        } catch (Exception e) { System.out.println("[通知] 審核通過通知失敗：" + e.getMessage()); }          // 通知小農
+            FarmTrip trip = farmTripRepository.findById(farmTripId).orElse(null);
+            if (trip != null) notificationSender.sendTripRequestApproved(trip.getFarmerId(), farmTripId, trip.getFarmTripTitle());
+        } catch (Exception e) { System.out.println("[通知] 審核通過通知失敗：" + e.getMessage()); }
 
         return backToList(model, "success", "已核准，此活動審核成功並上架！");
     }
@@ -81,9 +81,10 @@ public class AdminTripReviewViewController {
         farmTripService.reviewTrip(farmTripId, req);
 
         try {
-            Integer farmerId = farmTripRepository.findById(farmTripId).map(FarmTrip::getFarmerId).orElse(null);
-            if (farmerId != null) notificationSender.sendTripRequestRejected(farmerId, farmTripId, rejectReason);
+            FarmTrip trip = farmTripRepository.findById(farmTripId).orElse(null);
+            if (trip != null) notificationSender.sendTripRequestRejected(trip.getFarmerId(), farmTripId, rejectReason, trip.getFarmTripTitle());
         } catch (Exception e) { System.out.println("[通知] 審核退回通知失敗：" + e.getMessage()); }
+        
         return backToList(model, "warning", "已退回此活動。");
     }
 
