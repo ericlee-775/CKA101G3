@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{back-end/admin/layout}">
+<head>
+    <title>系統公告管理</title>
+    
+    <style>
+        .announce-content-cell { max-width: 420px; white-space: pre-line; }
+        .seq-col { width: 64px; text-align: right; color: #8a8577; }
+        
+        /* ---------- 確認發送浮窗 --------- */
+        .oc-overlay {
+            display: none; 
+            position: fixed; inset: 0; 
+            z-index: 1100; 
+            padding: 18px;
+            background: rgba(30, 30, 25, .45);
+        }
+        /* 水平垂直置中 */
+        .oc-overlay.is-open { display: grid; place-items: center; }
+
+        .oc-card {
+            width: 100%; max-width: 460px;
+            max-height: 80vh; overflow-y: auto;
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 18px 48px rgba(30, 25, 15, .28);
+            padding: 24px; text-align: left;
+            animation: oc-pop .18s ease;
+        }
+        @keyframes oc-pop { from { transform: scale(.94); opacity: 0; } }
+
+        
+        .oc-title       { margin: 0 0 16px; font-size: 18px; color: var(--ink); text-align: center; }
+        .oc-block       { margin-bottom: 16px; }
+        .oc-block-title { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+        .oc-line        { margin: 0 0 4px; font-size: 14px; color: var(--ink-soft); }
+        
+        .oc-pre         { white-space: pre-line; word-break: break-word; }
+        .oc-warn        { margin: 0 0 20px; font-size: 13px; color: var(--danger); text-align: center; }
+
+        .oc-actions { display: flex; gap: 10px; }
+        .oc-btn     { flex: 1; padding: 11px 16px; border-radius: 10px;
+                      font-size: 15px; cursor: pointer; border: 1px solid transparent; }
+        .oc-cancel  { background: #fff; border-color: var(--line); color: var(--ink-soft); }
+        .oc-cancel:hover { border-color: var(--muted); }
+        .oc-confirm { background: var(--leaf); color: #fff; }
+        .oc-confirm:hover { background: var(--leaf-dark); }
+        .oc-confirm:disabled { opacity: .6; cursor: default; }
+    </style>
+</head>
+<body>
+
+<h1 class="page-title" layout:fragment="pagetitle">系統公告管理</h1>
+
+<div layout:fragment="content">
+
+	<!-- ===== 發送系統公告 ===== -->
+    <div class="table-card mb-4">
+        <h5 class="mb-3">發送系統公告</h5>
+
+        <form id="announceForm" method="post" th:action="@{/admin/notifications}" novalidate>
+
+            <div class="form-group">
+                <label for="audience">發送對象</label>
+                <select id="audience" name="audience" class="form-control" required>
+                    <option value="all">全體會員</option>
+                    <option value="user">一般會員</option>
+                    <option value="farmer">小農會員</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="message">公告內容</label>
+                <textarea id="message" name="message" class="form-control"
+                          rows="4" maxlength="500" required
+                          th:text="${prevMessage} ?: ''"
+                          placeholder="請輸入要發送給會員的公告內容…"></textarea>
+                <div class="invalid-feedback">請輸入公告內容</div>
+
+                <small class="form-text text-muted">
+                    <span id="msgCount">0</span> / 500
+                </small>
+            </div>
+
+            <button id="announceSubmit" type="submit" class="btn btn-success">
+                發送公告
+            </button>
+        </form>
+    </div>
+    
+    <!-- ===== 已發送公告列表 ===== -->
+    <div class="table-card">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">已發送公告</h5>
+<!--             <span class="text-muted" style="font-size:.9rem;"> -->
+<!--                 共 <span th:text="${notifList.totalElements}"></span> 則 -->
+<!--             </span> -->
+        </div>
+
+        <table class="table table-striped table-bordered" style="width:100%">
+            <thead class="thead-light">
+            <tr>
+                <th class="seq-col">序號</th>
+                <th>發送時間</th> 
+                <th>發送對象</th>
+                <th>公告內容</th>
+                <th>送達人數</th>
+                <th>管理員</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            <tr th:each="notif, stat : ${notifList.content}">
+
+                <td class="seq-col"
+                    th:text="${notifList.number * notifList.size + stat.count}"></td>
+                
+                <!-- 發送時間 -->    
+                <td th:text="${#temporals.format(notif.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+				
+				<!-- 發送對象 -->
+                <td>
+                    <span class="badge-status"
+                          th:classappend="${notif.audience == 'all'} ? 'st-active'
+                                        : (${notif.audience == 'user'} ? 'st-neutral' : 'st-pending')"
+                          th:text="${notif.audience == 'all'} ? '全體'
+                                 : (${notif.audience == 'user'} ? '會員' : '小農')"></span>
+                </td>
+
+                <!-- 公告內容 -->
+                <td class="announce-content-cell" th:text="${notif.content}"></td>
+
+                <!-- 送達人數 -->
+                <td th:text="${notif.recipientCount} + ' 人'"></td>
+
+                <!-- 發送管理員 -->
+                <td th:text="${notif.adminName}"></td>
+            </tr>
+
+            <tr th:if="${notifList.empty}">
+                <td colspan="6" class="text-center text-muted">尚未發送過任何系統公告</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== 分頁列 ===== -->
+    <div class="d-flex align-items-center mt-2" th:if="${notifList.totalPages > 0}">
+        <a class="btn btn-sm btn-outline-secondary"
+           th:classappend="${notifList.first} ? 'disabled'"
+           th:href="@{/admin/notifications(page=${notifList.number - 1})}">上一頁</a>
+
+        <span class="mx-2 text-muted">
+            第 <span th:text="${notifList.number + 1}"></span> /
+               <span th:text="${notifList.totalPages}"></span> 頁
+            （共 <span th:text="${notifList.totalElements}"></span> 筆）
+        </span>
+
+        <a class="btn btn-sm btn-outline-secondary"
+           th:classappend="${notifList.last} ? 'disabled'"
+           th:href="@{/admin/notifications(page=${notifList.number + 1})}">下一頁</a>
+    </div>
+
+
+    <!-- ===== 確認發送浮窗（僅本頁使用）===== -->
+    <div class="oc-overlay" id="confirmOverlay">
+        <div class="oc-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+
+            <h3 class="oc-title" id="confirmTitle">請確認公告內容</h3>
+
+            <section class="oc-block">
+                <h4 class="oc-block-title">發送對象</h4>
+                <p class="oc-line" id="previewAudience"></p>
+            </section>
+
+            <section class="oc-block">
+                <h4 class="oc-block-title">公告內容</h4>
+                <p class="oc-line oc-pre" id="previewMessage"></p>
+            </section>
+
+            <p class="oc-warn">公告一旦送出即無法收回</p>
+
+            <div class="oc-actions">
+                <button type="button" class="oc-btn oc-cancel"  id="confirmCancel">返回修改</button>
+                <button type="button" class="oc-btn oc-confirm" id="confirmOk">確認送出</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<th:block layout:fragment="extrascript">
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    var form     = document.getElementById('announceForm');
+    var audience = document.getElementById('audience');
+    var message  = document.getElementById('message');
+    var submit   = document.getElementById('announceSubmit');
+    var counter  = document.getElementById('msgCount');
+
+    function isValid()    { return message.value.trim().length > 0; }
+    function syncButton() { submit.disabled = !isValid(); }
+    function syncCounter(){ counter.textContent = message.value.length; }
+
+    message.addEventListener('blur', function () {
+        message.classList.toggle('is-invalid', !isValid());
+    });
+
+    message.addEventListener('input', function () {
+        if (isValid()) { message.classList.remove('is-invalid'); }
+        syncButton();
+        syncCounter();
+    });
+
+    syncButton();
+    syncCounter();
+
+
+    var overlay   = document.getElementById('confirmOverlay');
+    var okBtn     = document.getElementById('confirmOk');
+    var cancelBtn = document.getElementById('confirmCancel');
+    var pAudience = document.getElementById('previewAudience');
+    var pMessage  = document.getElementById('previewMessage');
+
+    var confirmed = false;
+
+    function openConfirm() {
+
+        pAudience.textContent = audience.options[audience.selectedIndex].text;
+
+        pMessage.textContent  = message.value.trim();
+
+        overlay.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        cancelBtn.focus();
+    }
+
+    function closeConfirm() {
+        overlay.classList.remove('is-open');
+        document.body.style.overflow = '';
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (confirmed) { return; }
+
+        e.preventDefault();
+
+        if (!isValid()) {
+            message.classList.add('is-invalid');
+            return;
+        }
+        openConfirm();
+    });
+
+    okBtn.addEventListener('click', function () {
+        confirmed = true;
+        okBtn.disabled = true; 
+        okBtn.textContent = '公告中…';
+        form.requestSubmit();
+    });
+
+    cancelBtn.addEventListener('click', closeConfirm);
+
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) { closeConfirm(); }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) { closeConfirm(); }
+    });
+    
+    function serverLength() {
+    	return message.value.replace(/\n/g, '\r\n').length;
+    }
+	
+	function syncCounter() {
+	    var len = serverLength();
+	    counter.textContent = len;
+	    counter.style.color = (len > 400) ? 'var(--danger)' : '';
+	}
+});
+</script>
+</th:block>
+</body>
+</html>

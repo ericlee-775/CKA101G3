@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 
 public interface UserRepository extends JpaRepository<User, Integer> {
@@ -46,6 +47,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
                              @Param("status") String status,
                              Pageable pageable);
 
+    
+    // 管理員會員端複合查詢 (系統公告)
+    // 比對多種 statuses, 回傳 List Ids
+    @Query("SELECT u.userId FROM User u WHERE u.userStatus IN :statuses")
+    Set<Integer> findIdsByStatusIn(@Param("statuses") List<User.UserStatus> statuses);
 
 
 
