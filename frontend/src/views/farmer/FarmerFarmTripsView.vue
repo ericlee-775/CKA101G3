@@ -438,20 +438,20 @@ async function sendNotify(sessionId) {
             <form v-else class="edit-form" @submit.prevent="saveEdit(t.farmTripId, s.farmSessionId)">
               
             <label>活動開始
-              <VueDatePicker v-model="newSession.farmTripStart" :teleport="true"
-                format="yyyy/MM/dd HH:mm" locale="zh-TW" :min-date="new Date()" placeholder="選擇日期時間" />
+              <VueDatePicker v-model="editForm.farmTripStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>活動結束
-              <VueDatePicker v-model="newSession.farmTripEnd" :teleport="true"
-                format="yyyy/MM/dd HH:mm" locale="zh-TW" :min-date="new Date()" placeholder="選擇日期時間" />
+              <VueDatePicker v-model="editForm.farmTripEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>報名開始
-              <VueDatePicker v-model="newSession.tripBookStart" :teleport="true"
-                format="yyyy/MM/dd HH:mm" locale="zh-TW" :min-date="new Date()" placeholder="選擇日期時間" />
+              <VueDatePicker v-model="editForm.tripBookStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>報名截止
-              <VueDatePicker v-model="newSession.tripBookEnd" :teleport="true"
-                format="yyyy/MM/dd HH:mm" locale="zh-TW" :min-date="new Date()" placeholder="選擇日期時間" />
+              <VueDatePicker v-model="editForm.tripBookEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
 
               <div class="edit-btns">
@@ -499,19 +499,19 @@ async function sendNotify(sessionId) {
           <div class="form">
             
             <label>活動開始
-              <VueDatePicker v-model="editForm.farmTripStart" :teleport="true"
+              <VueDatePicker v-model="newSession.farmTripStart" :teleport="true"
                 format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>活動結束
-              <VueDatePicker v-model="editForm.farmTripEnd" :teleport="true"
+              <VueDatePicker v-model="newSession.farmTripEnd" :teleport="true"
                 format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>報名開始
-              <VueDatePicker v-model="editForm.tripBookStart" :teleport="true"
+              <VueDatePicker v-model="newSession.tripBookStart" :teleport="true"
                 format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
             <label>報名截止
-              <VueDatePicker v-model="editForm.tripBookEnd" :teleport="true"
+              <VueDatePicker v-model="newSession.tripBookEnd" :teleport="true"
                 format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
             </label>
 
