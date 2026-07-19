@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -174,5 +175,15 @@ public class AdminFarmerServiceImpl implements AdminFarmerService {
             dto.setReviewRound(reviewRound);
         }
         return dto;
+    }
+    
+    
+    // 取得指定狀態的小農 id (發送系統公告用)
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Integer> getIdsByStatuses(List<Farmer.FarmerStatus> statuses){
+    	Set<Integer> farmerIds = farmerRepository.findIdsByStatusIn(statuses);
+    	
+    	return farmerIds;
     }
 }
