@@ -45,11 +45,11 @@ watch(() => authStore.isFarmer, (isFarmer) => {
   else notificationStore.clear()
 })
 
-// 進來先抓一次，之後每 300 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
+// 進來先抓一次，之後每 3 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
 let unreadTimer = null
 onMounted(() => {
   loadUnread()
-  unreadTimer = setInterval(loadUnread, 100000)
+  unreadTimer = setInterval(loadUnread, 3000)
 })
 onBeforeUnmount(() => {
   if (unreadTimer) clearInterval(unreadTimer)
