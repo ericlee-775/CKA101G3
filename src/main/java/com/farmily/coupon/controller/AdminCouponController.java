@@ -29,7 +29,7 @@ public class AdminCouponController {
 	}
 	@PostMapping
     public String create(@RequestParam(defaultValue = "false") boolean sendMail,
-    						 @RequestParam String couponId,
+    					 @RequestParam String couponId,
                          @RequestParam String couponInfo,
                          @RequestParam(required = false)
                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime issueStartDate,
@@ -48,10 +48,18 @@ public class AdminCouponController {
              coupon.setIssueEndDate(issueEndDate);
              try {
                      couponService.createCoupon(coupon,sendMail);
-                     ra.addFlashAttribute("success", "（已新增優惠券）");
+                     ra.addFlashAttribute("success", "已新增優惠券");
+                     return "redirect:/admin/coupons";
              } catch (IllegalArgumentException e) {
-                     ra.addFlashAttribute("error", "（" + e.getMessage() + "）");
+                     // 驗證錯誤（欄位不合法、券代碼重複…）
+                     ra.addFlashAttribute("error", e.getMessage());
+             } catch (Exception e) {
+                     // 其他非預期錯誤（例如寄信失敗）也走同一個 toast，不要跳白頁
+                     ra.addFlashAttribute("error", "發券失敗：" + e.getMessage());
              }
+             // 失敗共用：把剛才填的欄位回填，使用者不用整張重打
+             ra.addFlashAttribute("form", coupon);
+             ra.addFlashAttribute("sendMail", sendMail);
              return "redirect:/admin/coupons";
      }
 }
