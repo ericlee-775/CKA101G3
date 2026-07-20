@@ -1,5 +1,6 @@
 package com.farmily.coupon.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,35 @@ public class CouponServiceImpl implements CouponService{
 	
 	@Override
 	public void createCoupon(CouponVO coupon, boolean sendMail) {
-		// 這兩件事一定會做:檢查代碼重複、存券
-		if(couponRepository.existsById(coupon.getCouponId())) {
-			throw new IllegalArgumentException("優惠卷代碼已存在:"+coupon.getCouponId());
+		
+		List<String> errors = new ArrayList<>();
+		if(coupon.getCouponId() == null || coupon.getCouponId().isBlank()) {
+			errors.add("券代碼不可空白");
+		} else if(couponRepository.existsById(coupon.getCouponId())) {
+			errors.add("優惠券代碼已存在：" + coupon.getCouponId());
+		}
+		if(coupon.getAmount() == null || coupon.getAmount() <= 0) {
+			errors.add("折抵金額必須大於 0");
+		}
+		if(coupon.getMinSpending() == null || coupon.getMinSpending() < 0) {
+			errors.add("滿額門檻不可為負數");
+		}
+		if(coupon.getAmount() != null && coupon.getMinSpending() != null
+				&& coupon.getAmount() >= coupon.getMinSpending()) {
+			errors.add("折抵金額必須低於滿額門檻");
+		}
+		if(coupon.getIssueStartDate() == null) {
+			errors.add("發放開始時間必填");
+		}
+		if(coupon.getIssueEndDate() == null) {
+			errors.add("發放結束時間必填");
+		}
+		if(coupon.getIssueStartDate() != null && coupon.getIssueEndDate() != null
+				&& coupon.getIssueStartDate().isAfter(coupon.getIssueEndDate())) {
+			errors.add("發放開始時間不可晚於發放結束時間");
+		}
+		if(!errors.isEmpty()) {
+			throw new IllegalArgumentException(String.join("；", errors));
 		}
 		couponRepository.save(coupon);
 

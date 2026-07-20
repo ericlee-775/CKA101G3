@@ -17,12 +17,12 @@ const displayName = computed(() => {
 
 // 側邊欄選單：ready:true＝已完成可點；ready:false＝功能開發中，顯示但不可點
 const menu = [
+  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true, badge: 'notification' },
+  { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '商品管理', icon: '📦', to: '/farmer/products', ready: true },
   { label: '團購管理', icon: '🛒', to: '/farmer/group-buys', ready: true },
-  { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '體驗活動管理', icon: '🎪', to: '/farmer/farm-trips', ready: true },
   { label: '產地日記(部落格)', icon: '🌱', to: '/farmer/blog', ready: true },
-  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true, badge: 'notification' },
 ]
 const readyMenu = computed(() => menu.filter((m) => m.ready))
 
