@@ -181,6 +181,12 @@ async function markReceived(orderId, group){
                 <dd>{{ fmm(o.totalAmount) }}</dd>
               </div>
               <div class="order-cell">
+                <dt>運費</dt>
+                <dd :class="{ 'is-free-shipping': o.shippingFee === 0 }">
+                  {{ o.shippingFee === 0 ? '免運' : fmm(o.shippingFee) }}
+                </dd>
+              </div>
+              <div class="order-cell">
                 <dt>折扣</dt>
                 <dd :class="{ 'is-discount': o.discountAmount > 0 }">
                   {{ o.discountAmount > 0 ? fmm(o.discountAmount) : '-' }}
@@ -300,11 +306,12 @@ async function markReceived(orderId, group){
 .badge--gray  { background: #eeeeea; color: #75806f; }
 
 /* 金額格子 */
-.order-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px; margin: 0; }
+.order-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; margin: 0; }
 .order-cell dt { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
 .order-cell dd { margin: 0; font-size: 14px; color: var(--ink-soft); }
 .order-money   { font-weight: 700; color: var(--leaf-dark); font-size: 16px; }
 .is-discount   { color: #b5651d; }
+.order-cell dd.is-free-shipping { font-size: 13px; font-weight: 400; color: var(--leaf-dark); }
 
 .order-foot { display: flex; gap: 8px; justify-content: flex-end; }
 

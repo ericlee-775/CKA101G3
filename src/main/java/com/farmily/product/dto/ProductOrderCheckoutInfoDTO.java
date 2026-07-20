@@ -16,6 +16,7 @@ public class ProductOrderCheckoutInfoDTO {
 	private Integer totalAmount;
 	private List<MyCouponDTO> myCoupons; 	// 可用優惠券
 	private String recommendedCouponId;
+	private Integer shippingFee;
 	
 	public ProductOrderCheckoutInfoDTO() {
 		super();
@@ -83,6 +84,14 @@ public class ProductOrderCheckoutInfoDTO {
 
 	public void setRecommendedCouponId(String recommendedCouponId) {
 		this.recommendedCouponId = recommendedCouponId;
+	}
+
+	public Integer getShippingFee() {
+		return shippingFee;
+	}
+
+	public void setShippingFee(Integer shippingFee) {
+		this.shippingFee = shippingFee;
 	}
 
 
