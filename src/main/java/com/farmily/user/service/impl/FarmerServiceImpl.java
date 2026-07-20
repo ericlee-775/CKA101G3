@@ -2,6 +2,7 @@ package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
 import com.farmily.user.event.PasswordChangedEvent;
+import com.farmily.user.exception.*;
 import com.farmily.user.model.CityDistrict;
 import com.farmily.user.model.Farmer;
 import com.farmily.user.model.FarmerReview;
@@ -11,6 +12,7 @@ import com.farmily.user.repository.FarmerReviewRepository;
 import com.farmily.user.service.EmailUniquenessChecker;
 import com.farmily.user.service.FarmerService;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -59,7 +61,7 @@ public class FarmerServiceImpl implements FarmerService {
 
         // 帳號不為 null = 重複註冊
         if(existingFarmer != null){
-            throw new IllegalStateException("帳號已註冊使用");
+            throw new EmailAlreadyExistsException();
         }
 
         // step2: 若 email = null，跨表檢查 email 全域唯一
@@ -115,14 +117,14 @@ public class FarmerServiceImpl implements FarmerService {
         }
         // step2. 再檢查小農狀態
         if (farmer.getFarmerStatus() == Farmer.FarmerStatus.PENDING) {
-            throw new IllegalStateException("您的小農申請審核中，通過後才能登入");
+            throw new BusinessException("FARMER_REVIEW_PENDING", HttpStatus.FORBIDDEN, "您的小農申請審核中，通過後才能登入");
         }
         if(farmer.getFarmerStatus() == Farmer.FarmerStatus.SUSPENDED){              // 由 Admin 管制 (非審核流程)
-            throw new IllegalStateException("此帳號已遭停權，若有任何疑問請聯繫客服");
+            throw new AccountSuspendedException();
         }
         // step3. 通過審核（ACTIVE）後，仍須點啟用信連結完成 Email 驗證才能登入，未驗證不得自行直接登入
         if (farmer.getEmailVerified() == null || !farmer.getEmailVerified()) {
-            throw new IllegalStateException("您的小農帳號已通過審核，請先點擊啟用信中的連結完成 Email 驗證後再登入");
+            throw new EmailNotVerifiedException();
         }
         // 內含 farmer + 查最新 review
         return toResponse(farmer);
@@ -157,13 +159,13 @@ public class FarmerServiceImpl implements FarmerService {
 
         // latest 防呆（active 小農理論上至少有一筆審核）
         if (latest == null) {
-            throw new IllegalStateException("查無審核紀錄");
+            throw new ReviewNotFoundException();
         }
 
         // 已提交審核（PENDING / REVIEWING）就不能再送審，要等審核完成
         if (latest.getReviewStatus() == FarmerReview.ReviewStatus.PENDING
                 || latest.getReviewStatus() == FarmerReview.ReviewStatus.REVIEWING) {
-            throw new IllegalStateException("您已提交審核變更，請待審核完成後再送出");
+            throw new BusinessException("FARMER_RESUBMIT_PENDING",HttpStatus.CONFLICT,"您已提交審核變更，請待審核完成後再送出");
         }
 
         // 計算重審次數
@@ -228,9 +230,8 @@ public class FarmerServiceImpl implements FarmerService {
     @Transactional(readOnly = true)
     public byte[] getMyCertFile(Integer farmerId, Integer reviewId, String type) {
         FarmerReview review = farmerReviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此審核案件"));
+                .orElseThrow(() -> new ReviewNotFoundException());
 
-        // farmerId 來自已登入者，保證非 null，放在 equals 前面避免 PK 意外為 null 時 NPE
         if (review.getFarmer() == null || !farmerId.equals(review.getFarmer().getFarmerId())) {
             throw new AccessDeniedException("無法檢視他人的證明文件");
         }
@@ -244,11 +245,11 @@ public class FarmerServiceImpl implements FarmerService {
         } else if ("identity".equals(t)) {
             bytes = review.getCertFileIdentity();
         } else {
-            throw new IllegalArgumentException("不支援的文件類型: " + type);
+            throw new BusinessException("UNSUPPORTED_DOC_TYPE", HttpStatus.BAD_REQUEST, "不支援的文件類型:" + type);
         }
 
         if (bytes == null || bytes.length == 0) {
-            throw new IllegalArgumentException("此文件未上傳");
+            throw new BusinessException("DOC_NOT_FOUND", HttpStatus.NOT_FOUND, "此文件未上傳");
         }
         return bytes;
     }
@@ -285,7 +286,7 @@ public class FarmerServiceImpl implements FarmerService {
     // 自定義方法: 依 id 撈小農
     private Farmer findFarmer(Integer farmerId) {
         return farmerRepository.findById(farmerId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此小農"));
+                .orElseThrow(() -> new FarmerNotFoundException());
     }
 
     // 自定義方法: 上傳檔案 → byte[]（沒選檔回 null；讀取失敗轉 RuntimeException，同 ProductVO 做法）
@@ -312,6 +313,7 @@ public class FarmerServiceImpl implements FarmerService {
             return null;
         }
         return cityDistrictRepository.findById(districtId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此區域 districtId=" + districtId));
+                .orElseThrow(() -> new DistrictNotFoundException());
+//                .orElseThrow(DistrictNotFoundException::new);
     }
 }

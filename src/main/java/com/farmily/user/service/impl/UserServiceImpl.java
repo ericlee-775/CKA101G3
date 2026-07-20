@@ -1,6 +1,7 @@
 package com.farmily.user.service.impl;
 
 import com.farmily.user.dto.*;
+import com.farmily.user.event.DeleteAccountEvent;
 import com.farmily.user.event.MemberRegisteredEvent;
 import com.farmily.user.event.PasswordChangedEvent;
 import com.farmily.user.exception.*;
@@ -85,7 +86,8 @@ public class UserServiceImpl implements UserService {
         // 抓 city 物件前先判斷
         if (reg.getDistrictId() != null) {
             CityDistrict city = cityDistrictRepository.findById(reg.getDistrictId())
-                    .orElseThrow(() -> new IllegalArgumentException("查無此區域 districtId=" + reg.getDistrictId()));
+                    .orElseThrow(() -> new DistrictNotFoundException());
+//                    .orElseThrow(DistrictNotFoundException::new);
             newUser.setCityDistrict(city);
         }
 
@@ -158,7 +160,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserProfileResponse getMyProfile(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
 
         // +消費級距 (不同表)
         BigDecimal amount = user.getMonthlySpending() != null ? user.getMonthlySpending() : BigDecimal.ZERO;
@@ -171,7 +174,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserProfileResponse updateMyProfile(Integer userId, UserUpdateRequest update) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
+
 
         if (update.getUserName() != null)
             user.setUserName(update.getUserName());
@@ -185,18 +190,27 @@ public class UserServiceImpl implements UserService {
             user.setBirthday(update.getBirthday());
         if (update.getDistrictId() != null) {
             CityDistrict city = cityDistrictRepository.findById(update.getDistrictId())
-                    .orElseThrow(() -> new IllegalArgumentException("查無此區域"));
+                    .orElseThrow(() -> new DistrictNotFoundException());
+//                    .orElseThrow(DistrictNotFoundException::new);
             user.setCityDistrict(city);
         }
         //  將修改資料存進 DB
-        return UserProfileResponse.from(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+
+        // +消費級距 (不同表)：與 getMyProfile 回傳同樣的欄位，避免前端存檔後級距暫時消失
+        BigDecimal amount = savedUser.getMonthlySpending() != null ? savedUser.getMonthlySpending() : BigDecimal.ZERO;
+        String tierName = spendingTierRepository.findTierNameByAmount(amount);
+
+        return UserProfileResponse.from(savedUser, tierName);
     }
 
     // 修改密碼
     @Override
     public void changePassword(Integer userId, ChangePasswordRequest pw) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("查無此用戶"));
+                .orElseThrow(() -> new UserNotFoundException());
+//                .orElseThrow(UserNotFoundException::new);
+
 
         // 已有本地密碼，必須先驗證舊密碼正確
         if (user.getPassword() != null) {
@@ -214,13 +228,18 @@ public class UserServiceImpl implements UserService {
         eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail()));
     }
 
-    // 刪除資料
+    // 註銷帳號（軟刪除），不能硬刪除：有外鍵都指向 user_id 且為 RESTRICT
+    // 更新狀態 DELETED，登入檢查會擋住後續登入
     @Override
     public void deleteUser(Integer userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException();
-        }
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException());
+
+        user.setUserStatus(User.UserStatus.DELETED);
+        userRepository.save(user);
+
+        // 用事件監聽確保註銷帳號成功 commit 後才寄通知信
+        eventPublisher.publishEvent(new DeleteAccountEvent(user.getEmail()));
     }
 
     // OAuth 2.0 註冊登入

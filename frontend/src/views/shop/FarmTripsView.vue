@@ -9,6 +9,16 @@ const trips = ref([])
 const listLoading = ref(true)
 const listError = ref('')
 function hideImg(e) { e.target.style.display = 'none' }
+// 先試靜態示範圖，失敗改抓資料庫圖，再失敗才隱藏
+function tripImg(e, id) {
+  const el = e.target
+  if (!el.dataset.fallback) {
+    el.dataset.fallback = '1'
+    el.src = `/api/farm-trips/${id}/image`
+  } else {
+    el.style.display = 'none'
+  }
+}
 
 function goFarm(farmerId) {
   if (farmerId == null) return
@@ -26,10 +36,24 @@ const TYPE_TABS = [
   { value: 'FARM_EXPERIENCE', label: '農場體驗營', icon: '🏕️' },
   { value: 'FIELD_VISIT',     label: '產地參訪',   icon: '🚜' },
 ]
+
+// 報名狀態
+const STATUS_LABEL = { OPEN: '開放報名中', CLOSED: '報名已截止', CANCELLED: '報名已取消' }
+function statusLabel(s) { return STATUS_LABEL[s] || '尚無場次' }
+
+const activeStatus = ref(null)   // null = 全部狀態
+const STATUS_TABS = [
+  { value: null,        label: '全部狀態',   icon: '🗂️' },
+  { value: 'OPEN',      label: '開放報名中', icon: '🟢' },
+  { value: 'CLOSED',    label: '報名已截止', icon: '⛔' },
+  { value: 'CANCELLED', label: '報名已取消', icon: '🚫' },
+]
+
 const filteredTrips = computed(() =>
-  activeType.value === null
-    ? trips.value
-    : trips.value.filter(t => t.farmTripType === activeType.value)
+  trips.value.filter(t =>
+    (activeType.value === null || t.farmTripType === activeType.value) &&
+    (activeStatus.value === null || t.registrationStatus === activeStatus.value)
+  )
 )
 
 function formatPrice(p) {
@@ -95,6 +119,19 @@ onMounted(loadTrips)
         </button>
       </div>
 
+      <div class="type-tabs">
+        <button
+          v-for="tab in STATUS_TABS"
+          :key="tab.label"
+          class="type-tab"
+          :class="{ active: activeStatus === tab.value }"
+          @click="activeStatus = tab.value"
+        >
+          <span class="type-icon">{{ tab.icon }}</span>
+          <span>{{ tab.label }}</span>
+        </button>
+      </div>
+
       <!-- 子類別篩選 -->
       <p v-if="listLoading">載入中…</p>
       <p v-else-if="listError" class="error">{{ listError }}</p>
@@ -109,8 +146,14 @@ onMounted(loadTrips)
           class="card"
           :to="{ name: 'farm-trip-detail', params: { farmTripId: t.farmTripId } }"
         >
-          <img class="thumb" :src="`/api/farm-trips/${t.farmTripId}/image`" alt="" @error="hideImg" />
-          <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
+          <img class="thumb" :src="`/farmily-web/trips/${t.farmTripId}.jpg`" alt="" @error="tripImg($event, t.farmTripId)" />          <span class="badge">{{ typeLabel(t.farmTripType) }}</span>
+          
+          <span
+            v-if="t.registrationStatus"
+            class="status-badge"
+            :class="'rs-' + t.registrationStatus"
+          >{{ statusLabel(t.registrationStatus) }}</span>
+          
           <h3>{{ t.farmTripTitle }}</h3>
           <p class="farm-name" v-if="t.farmName">
             🏡 <span class="farm-link" @click.stop.prevent="goFarm(t.farmerId)">{{ t.farmName }}</span>
@@ -125,6 +168,21 @@ onMounted(loadTrips)
 </template>
 
 <style scoped>
+
+.status-badge {
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.status-badge.rs-OPEN { background: var(--leaf); }
+.status-badge.rs-CLOSED { background: #8a8f98; }
+.status-badge.rs-CANCELLED { background: #c0392b; }
 
 .farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
 .farm-link { cursor: pointer; text-decoration: underline; }
@@ -203,6 +261,7 @@ h1 {color: var(--ink); }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; margin-top: 20px; }
 .card {
+  position: relative;              
   display: block; text-decoration: none; color: inherit;
   background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px;
   box-shadow: var(--shadow); cursor: pointer; transition: transform .15s, box-shadow .15s;

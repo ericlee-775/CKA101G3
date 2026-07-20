@@ -16,8 +16,9 @@ public class BlogCardRowMapper implements RowMapper<Blog> {
         Blog blog = new Blog();
         blog.setBlogId(rs.getInt("blog_id"));
         blog.setBlogTitle(rs.getString("blog_title"));
-        blog.setUserId(rs.getInt("user_id"));
-        blog.setFarmerId(rs.getInt("farmer_id"));
+        // 作者二選一：用 getObject 保留 SQL NULL（getInt 會把 NULL 讀成 0，害作者判斷失準）
+        blog.setUserId(rs.getObject("user_id", Integer.class));
+        blog.setFarmerId(rs.getObject("farmer_id", Integer.class));
         blog.setBlogTypeId(rs.getInt("blog_type_id"));
         blog.setBlogContent(rs.getString("blog_content"));
         blog.setBlogImg(rs.getBytes("blog_img"));

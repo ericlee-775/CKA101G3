@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 import authApi from '@/api/auth'
 import { confirm } from '@/composables/useConfirm'
+import notificationStore from '@/stores/farmerNotification'
 
 const router = useRouter()
 
@@ -21,9 +22,38 @@ const menu = [
   { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '體驗活動管理', icon: '🎪', to: '/farmer/farm-trips', ready: true },
   { label: '產地日記(部落格)', icon: '🌱', to: '/farmer/blog', ready: true },
-  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true },
+  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true, badge: 'notification' },
 ]
 const readyMenu = computed(() => menu.filter((m) => m.ready))
+
+// menu item 的 badge 欄位對到這張表的 key，沒有 badge 欄位的項目就不顯示數字
+const badgeCounts = computed(() => ({
+  notification: notificationStore.unreadCount.value,
+}))
+
+// 未讀數由側邊欄自己抓：小農後台沒有像商城 ShopHeader 那樣的鈴鐺在背景更新，
+// 不自己抓的話數字會一直是 0，要等使用者點進通知頁才有，badge 就沒意義了。
+// （會員中心是巢狀在 ShopLayout 底下、header 會抓，所以 MemberLayout 不用寫這段。）
+async function loadUnread() {
+  if (!authStore.isFarmer) return
+  await notificationStore.refresh()
+}
+
+// 硬重整時 auth 狀態可能比元件晚就緒，這時 onMounted 那次會被擋掉，靠這裡補抓；登出則歸零
+watch(() => authStore.isFarmer, (isFarmer) => {
+  if (isFarmer) loadUnread()
+  else notificationStore.clear()
+})
+
+// 進來先抓一次，之後每 300 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
+let unreadTimer = null
+onMounted(() => {
+  loadUnread()
+  unreadTimer = setInterval(loadUnread, 100000)
+})
+onBeforeUnmount(() => {
+  if (unreadTimer) clearInterval(unreadTimer)
+})
 
 async function logout() {
   if (!(await confirm({ title: '登出', message: '確定要登出嗎？', confirmText: '登出' }))) return
@@ -69,6 +99,9 @@ async function logout() {
       >
         <span class="side-icon">{{ item.icon }}</span>
         <span>{{ item.label }}</span>
+        <span v-if="item.badge && badgeCounts[item.badge] > 0" class="side-badge">
+          {{ badgeCounts[item.badge] > 99 ? '99+' : badgeCounts[item.badge] }}
+        </span>
       </router-link>
     </nav>
 
@@ -185,6 +218,31 @@ async function logout() {
   font-size: 16px;
   width: 20px;
   text-align: center;
+}
+
+/* 未讀數：靠 margin-left:auto 推到選單最右側，不用 absolute，
+   所以不需要父層 position:relative，也不會蓋到文字 */
+.side-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+/* 選中時整條是綠底，紅底數字會跟綠色互斥刺眼，改白底綠字 */
+.side-link.router-link-active .side-badge {
+  background: #fff;
+  color: var(--leaf, #6a9a3f);
 }
 
 /* 底部 */

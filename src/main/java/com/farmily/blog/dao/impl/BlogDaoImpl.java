@@ -72,7 +72,7 @@ public class BlogDaoImpl implements BlogDao {
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 
-        //結果用blogRowMapper 轉成 List<Blog>
+        //用blogCardRowMapper 轉成 List<Blog>
         List<Blog> blogList = namedParameterJdbcTemplate.query(sql, map, new BlogCardRowMapper());
         //query執行三個參數 sql：要執行的SQL。 map：SQL裡參數的值。new BlogRowMapper()：把每一列轉成Product物件的工具
 
@@ -136,7 +136,8 @@ public class BlogDaoImpl implements BlogDao {
                 "COALESCE(u.user_nickname, u.user_name) AS author_name " +
                 "FROM blog_comment c " +
                 "LEFT JOIN `USER` u ON c.user_id = u.user_id " +
-                "WHERE c.blog_id = :blogId AND c.comment_status = 'VISIBLE'";
+                "WHERE c.blog_id = :blogId AND c.comment_status = 'VISIBLE' " +
+                "ORDER BY c.comment_time DESC, c.comment_id DESC";
         Map<String, Object> map = new HashMap<>();
         map.put("blogId", blogId);
 

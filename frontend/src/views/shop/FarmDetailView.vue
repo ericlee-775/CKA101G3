@@ -20,7 +20,10 @@ const relatedErrors = ref({
   blogs: '',
 })
 
-const heroImage = computed(() => noImage)
+// 農場封面走靜態檔 /farmily-web/farms/{farmerId}.jpg；沒有就靠 @error 退回佔位圖
+const heroImage = computed(() =>
+  farmerId.value ? `/farmily-web/farms/${farmerId.value}.jpg` : noImage
+)
 
 const farmAddress = computed(() => {
   if (!farm.value) return ''
@@ -69,6 +72,16 @@ function stars(count) {
 
 function onImageError(event) {
   event.target.src = noImage
+}
+
+function tripImg(e, id) {
+  const el = e.target
+  if (!el.dataset.fallback) {
+    el.dataset.fallback = '1'
+    el.src = `/api/farm-trips/${id}/image`
+  } else {
+    el.style.display = 'none'
+  }
 }
 
 async function loadFarmDetail() {
@@ -212,9 +225,9 @@ watch(farmerId, loadFarmDetail)
           >
             <img
               class="trip-card__image"
-              :src="`/api/farm-trips/${trip.farmTripId}/image`"
+              :src="`/farmily-web/trips/${trip.farmTripId}.jpg`"
               :alt="trip.farmTripTitle"
-              @error="$event.target.style.display = 'none'"
+              @error="tripImg($event, trip.farmTripId)"
             />
             <div class="trip-card__body">
               <span>{{ tripTypeLabel(trip.farmTripType) }}</span>

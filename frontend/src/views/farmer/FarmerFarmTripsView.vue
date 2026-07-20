@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'
 import authStore from '@/stores/auth'
+import VueDatePicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 
 const api = {
   create: (fd) => http.post('/api/farmer/farm-trips', fd),
@@ -13,6 +15,7 @@ const api = {
   createSession: (tripId, body) => http.post(`/api/farmer/farm-trips/${tripId}/sessions`, body),
   updateSession: (sessionId, body) => http.put(`/api/farmer/farm-trips/sessions/${sessionId}`, body),
   cancelSession: (sessionId) => http.put(`/api/farmer/farm-trips/sessions/${sessionId}/cancel`),
+  reopenSession: (sessionId) => http.put(`/api/farmer/farm-trips/sessions/${sessionId}/reopen`),
   notifySession: (sessionId, body) => http.post(`/api/farmer/farm-trips/sessions/${sessionId}/notify`, body),
 }
 
@@ -43,7 +46,7 @@ const editTripMsg = ref('')
 const editTripErr = ref('')
 
 // ---- 新增場次 ----
-const newSession = ref({ farmTripStart: '', farmTripEnd: '', tripBookStart: '', tripBookEnd: '' })
+const newSession = ref({ farmTripStart: null, farmTripEnd: null, tripBookStart: null, tripBookEnd: null })
 const sessionMsg = ref('')
 
 // ---- 編輯場次 ----
@@ -124,7 +127,7 @@ async function toggleExpand(tripId) {
   expandedId.value = tripId
   editingId.value = null
   sessionMsg.value = ''
-  newSession.value = { farmTripStart: '', farmTripEnd: '', tripBookStart: '', tripBookEnd: '' }
+  newSession.value = { farmTripStart: null, farmTripEnd: null, tripBookStart: null, tripBookEnd: null }
   if (!sessionsMap.value[tripId]) await loadSessions(tripId)
 }
 
@@ -230,7 +233,7 @@ async function addSession(tripId) {
       tripBookStart: toMillis(newSession.value.tripBookStart),
       tripBookEnd: toMillis(newSession.value.tripBookEnd),
     })
-    newSession.value = { farmTripStart: '', farmTripEnd: '', tripBookStart: '', tripBookEnd: '' }
+    newSession.value = { farmTripStart: null, farmTripEnd: null, tripBookStart: null, tripBookEnd: null }
     sessionMsg.value = '場次已新增。'
     await loadSessions(tripId)
   } catch (e) {
@@ -242,10 +245,10 @@ async function addSession(tripId) {
 function startEdit(s) {
   editingId.value = s.farmSessionId
   editForm.value = {
-    farmTripStart: toLocalInput(s.farmTripStart),
-    farmTripEnd: toLocalInput(s.farmTripEnd),
-    tripBookStart: toLocalInput(s.tripBookStart),
-    tripBookEnd: toLocalInput(s.tripBookEnd),
+    farmTripStart: s.farmTripStart ? new Date(s.farmTripStart) : null,
+    farmTripEnd: s.farmTripEnd ? new Date(s.farmTripEnd) : null,
+    tripBookStart: s.tripBookStart ? new Date(s.tripBookStart) : null,
+    tripBookEnd: s.tripBookEnd ? new Date(s.tripBookEnd) : null,
   }
 }
 async function saveEdit(tripId, sessionId) {
@@ -271,6 +274,16 @@ async function cancelSess(tripId, sessionId) {
     await loadSessions(tripId)
   } catch (e) {
     sessionMsg.value = '取消失敗：' + (e.message || '請稍後再試')
+  }
+}
+
+async function reopenSess(tripId, sessionId) {
+  if (!confirm('確定要重啟這個場次嗎？（開放重新報名，之前已取消的報名不會恢復）')) return
+  try {
+    await api.reopenSession(sessionId)
+    await loadSessions(tripId)
+  } catch (e) {
+    sessionMsg.value = '重啟失敗：' + (e.message || '請稍後再試')
   }
 }
 
@@ -358,10 +371,18 @@ async function sendNotify(sessionId) {
             <div class="muted">{{ typeLabel(t.farmTripType) }}｜📍 {{ t.location }}｜{{ formatPrice(t.referPrice) }}</div>
           </div>
           <div class="trip-ops" @click.stop>
-            <button class="btn-sm" @click="startEditTrip(t)">改活動</button>
+            <button class="btn-sm" @click="startEditTrip(t)">修改活動資訊</button>
             <button class="btn-sm danger" @click="removeTrip(t)">刪除</button>
           </div>
-          <span class="chev">{{ expandedId === t.farmTripId ? '▲' : '▼' }}</span>
+
+          <button
+            type="button"
+            class="session-toggle"
+            @click.stop="toggleExpand(t.farmTripId)"
+          >
+            {{ expandedId === t.farmTripId ? '收合場次 ▲' : '管理場次 ▼' }}
+          </button>
+
         </div>
 
         <!-- 修改活動 -->
@@ -403,17 +424,36 @@ async function sendNotify(sessionId) {
                 <div class="muted">已報名 {{ s.attendance || 0 }} 人｜{{ sessionStatus(s.sessionStatus) }}</div>
               </div>
               <div class="session-actions" v-if="s.sessionStatus !== 'CANCELLED'">
-                <button class="btn-sm" @click="startEdit(s)">改時間</button>
+                <button class="btn-sm" @click="startEdit(s)">修改活動時間</button>
                 <button class="btn-sm danger" @click="cancelSess(t.farmTripId, s.farmSessionId)">取消場次</button>
               </div>
+
+              <div class="session-actions" v-else>
+                <button class="btn-sm" @click="reopenSess(t.farmTripId, s.farmSessionId)">重啟場次</button>
+              </div>
+
             </template>
 
             <!-- 編輯模式 -->
             <form v-else class="edit-form" @submit.prevent="saveEdit(t.farmTripId, s.farmSessionId)">
-              <label>活動開始<input type="datetime-local" v-model="editForm.farmTripStart" /></label>
-              <label>活動結束<input type="datetime-local" v-model="editForm.farmTripEnd" /></label>
-              <label>報名開始<input type="datetime-local" v-model="editForm.tripBookStart" /></label>
-              <label>報名截止<input type="datetime-local" v-model="editForm.tripBookEnd" /></label>
+              
+            <label>活動開始
+              <VueDatePicker v-model="editForm.farmTripStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>活動結束
+              <VueDatePicker v-model="editForm.farmTripEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>報名開始
+              <VueDatePicker v-model="editForm.tripBookStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>報名截止
+              <VueDatePicker v-model="editForm.tripBookEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+
               <div class="edit-btns">
                 <button class="btn-sm" type="submit">儲存</button>
                 <button class="btn-sm ghost" type="button" @click="editingId = null">取消</button>
@@ -457,10 +497,24 @@ async function sendNotify(sessionId) {
           <!-- 新增場次 -->
           <h3 class="mt">新增場次</h3>
           <div class="form">
-            <label>活動開始<input type="datetime-local" v-model="newSession.farmTripStart" /></label>
-            <label>活動結束<input type="datetime-local" v-model="newSession.farmTripEnd" /></label>
-            <label>報名開始<input type="datetime-local" v-model="newSession.tripBookStart" /></label>
-            <label>報名截止<input type="datetime-local" v-model="newSession.tripBookEnd" /></label>
+            
+            <label>活動開始
+              <VueDatePicker v-model="newSession.farmTripStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>活動結束
+              <VueDatePicker v-model="newSession.farmTripEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>報名開始
+              <VueDatePicker v-model="newSession.tripBookStart" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+            <label>報名截止
+              <VueDatePicker v-model="newSession.tripBookEnd" :teleport="true"
+                format="yyyy/MM/dd HH:mm" locale="zh-TW" placeholder="選擇日期時間" />
+            </label>
+
           </div>
           <button class="btn" @click="addSession(t.farmTripId)">新增場次</button>
           <p v-if="sessionMsg" class="msg">{{ sessionMsg }}</p>
@@ -502,6 +556,21 @@ input, select, textarea { padding: 8px 10px; border: 1px solid var(--line); bord
 .trip-title { display: flex; align-items: center; gap: 10px; }
 .muted { color: var(--muted); font-size: 13px; }
 .chev { color: var(--muted); }
+
+.session-toggle {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--leaf);
+  border-radius: 999px;
+  background: var(--leaf);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.session-toggle:hover { background: var(--leaf-dark); }
+
 .badge { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--leaf-soft); color: var(--leaf-dark); }
 .badge.st-PENDING { background: #fff3cd; color: #8a6d00; }
 .badge.st-REJECTED { background: #f8d7da; color: #a12622; }

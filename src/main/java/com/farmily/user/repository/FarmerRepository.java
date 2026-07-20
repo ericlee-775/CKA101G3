@@ -1,13 +1,16 @@
 package com.farmily.user.repository;
 
 import com.farmily.user.model.Farmer;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface FarmerRepository extends JpaRepository<Farmer, Integer> {
 
@@ -36,5 +39,11 @@ public interface FarmerRepository extends JpaRepository<Farmer, Integer> {
     Page<Farmer> searchFarmers(@Param("keyword") String keyword,
                                @Param("status") String status,
                                Pageable pageable);
+    
+    
+    // 管理員小農端複合查詢 (系統公告)
+    // 比對多種 statuses, 回傳 List Ids
+    @Query("SELECT f.farmerId FROM Farmer f WHERE f.farmerStatus IN :statuses")
+    Set<Integer> findIdsByStatusIn(@Param("statuses") List<Farmer.FarmerStatus> statuses);
 
 }

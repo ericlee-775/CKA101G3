@@ -45,6 +45,8 @@ import com.farmily.trip.dto.SessionNotifyRequest;
 import com.farmily.trip.dto.TripUpdateRequest;
 import com.farmily.user.model.User;
 
+import com.farmily.notification.service.NotificationSender;
+
 @Service
 public class FarmTripServiceImpl implements FarmTripService {
 
@@ -56,13 +58,15 @@ public class FarmTripServiceImpl implements FarmTripService {
 	private final FarmerRepository farmerRepository;
 	private final UserRepository userRepository;
 	private final EmailService emailService;
-
+	private final NotificationSender notificationSender;
+	
 	@Autowired
 	public FarmTripServiceImpl(FarmTripRepository farmTripRepository,
 			FarmTripSessionRepository farmTripSessionRepository, FarmTripAuditsRepository farmTripAuditsRepository,
 			FarmTripOrderRepository farmTripOrderRepository, FarmTripCommentRepository farmTripCommentRepository,
-			FarmerRepository farmerRepository, UserRepository userRepository, EmailService emailService) {
-
+			FarmerRepository farmerRepository, UserRepository userRepository, EmailService emailService,
+			NotificationSender notificationSender) {
+		
 		this.farmTripRepository = farmTripRepository;
 		this.farmTripSessionRepository = farmTripSessionRepository;
 		this.farmTripAuditsRepository = farmTripAuditsRepository;
@@ -71,6 +75,7 @@ public class FarmTripServiceImpl implements FarmTripService {
 		this.farmerRepository = farmerRepository;
 		this.userRepository = userRepository;
 		this.emailService = emailService;
+		this.notificationSender = notificationSender;
 	}
 
 	@Override
@@ -122,7 +127,34 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setFarmName(farmName);
 		dto.setFarmerId(trip.getFarmerId());
 
+		dto.setRegistrationStatus(computeRegistrationStatus(trip.getFarmTripId()));
+
 		return dto;
+	}
+
+	// 依場次計算活動的報名狀態：
+	// 有任一可報名場次 → OPEN；否則有已截止場次 → CLOSED；否則 → CANCELLED；無場次 → null
+	private String computeRegistrationStatus(Integer farmTripId) {
+		List<FarmTripSession> sessions = farmTripSessionRepository.findByFarmTripId(farmTripId);
+		if (sessions.isEmpty())
+			return null;
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		boolean anyOpen = false, anyClosed = false;
+		for (FarmTripSession s : sessions) {
+			if (s.getSessionStatus() == SessionStatus.CANCELLED) {
+				continue;
+			}
+			if (s.getTripBookEnd() != null && s.getTripBookEnd().before(now)) {
+				anyClosed = true;
+			} else {
+				anyOpen = true;
+			}
+		}
+		if (anyOpen)
+			return "OPEN";
+		if (anyClosed)
+			return "CLOSED";
+		return "CANCELLED";
 	}
 
 	@Override
@@ -243,6 +275,15 @@ public class FarmTripServiceImpl implements FarmTripService {
 		session.setAttendance(attendance + request.getNumPeople());
 		farmTripSessionRepository.save(session);
 
+		FarmTrip bookTrip = farmTripRepository.findById(session.getFarmerTripId()).orElse(null);
+		Integer bookFarmerId = bookTrip == null ? null : bookTrip.getFarmerId();
+		String bookTitle = bookTrip == null ? "" : bookTrip.getFarmTripTitle();
+		try {
+			notificationSender.sendTripBookConfirmed(saved.getUserId(), bookFarmerId, saved.getFarmTripOrderId(), bookTitle);
+		} catch (Exception e) {
+			System.out.println("[通知] 報名通知失敗：" + e.getMessage());
+		}
+		
 		return toOrderResponse(saved);
 	}
 
@@ -257,6 +298,15 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setUserName(order.getUserName());
 		dto.setUserPhoneNum(order.getUserPhoneNum());
 		dto.setNote(order.getNote());
+
+		farmTripSessionRepository.findById(order.getFarmSessionId()).ifPresent(session -> {
+			dto.setFarmTripEnd(session.getFarmTripEnd());
+			dto.setFarmTripStart(session.getFarmTripStart());
+			Integer tripId = session.getFarmerTripId();
+			dto.setFarmTripId(tripId);
+			farmTripRepository.findById(tripId).ifPresent(t -> dto.setFarmTripTitle(t.getFarmTripTitle()));
+		});
+
 		return dto;
 	}
 
@@ -287,6 +337,15 @@ public class FarmTripServiceImpl implements FarmTripService {
 		session.setAttendance(Math.max(0, attendance - cancelled));
 		farmTripSessionRepository.save(session);
 
+		FarmTrip cancelTrip = farmTripRepository.findById(session.getFarmerTripId()).orElse(null);
+		Integer cancelFarmerId = cancelTrip == null ? null : cancelTrip.getFarmerId();
+		String cancelTitle = cancelTrip == null ? "" : cancelTrip.getFarmTripTitle();
+		try {
+			notificationSender.sendTripBookCancelled(order.getUserId(), cancelFarmerId, order.getFarmTripOrderId(), cancelTitle);
+		} catch (Exception e) {
+			System.out.println("[通知] 取消預約通知失敗：" + e.getMessage());
+		}
+		
 		return toOrderResponse(order);
 	}
 
@@ -328,6 +387,10 @@ public class FarmTripServiceImpl implements FarmTripService {
 		String sessionTime = session.getFarmTripStart() == null ? "" : session.getFarmTripStart().toString();
 
 		List<FarmTripOrder> orders = farmTripOrderRepository.findByFarmSessionId(farmSessionId);
+
+		java.util.Set<Integer> affectedUserIds = new java.util.HashSet<>();   // ★新增①：準備一個集合裝被取消的報名者
+		Integer anyOrderId = null;                                            // ★新增②：記一筆訂單 id 給通知用
+
 		for (FarmTripOrder order : orders) {
 			if (order.getOrderStatus() == OrderStatus.CANCELLED) {
 				continue;
@@ -336,12 +399,23 @@ public class FarmTripServiceImpl implements FarmTripService {
 			order.setCancelledAt(new Timestamp(System.currentTimeMillis()));
 			farmTripOrderRepository.save(order);
 
+			if (order.getUserId() != null) {                                  // ★新增③：把這個報名者收集起來
+				affectedUserIds.add(order.getUserId());
+				anyOrderId = order.getFarmTripOrderId();
+			}
+
 			userRepository.findById(order.getUserId()).ifPresent(user -> {
 				if (user.getEmail() != null && !user.getEmail().isBlank()) {
-					emailService.sendTripSessionCancelledEmail(user.getEmail(), order.getUserName(), tripTitle,
-							sessionTime);
+					emailService.sendTripSessionCancelledEmail(user.getEmail(), order.getUserName(), tripTitle, sessionTime);
 				}
 			});
+		}
+
+		if (!affectedUserIds.isEmpty()) {                                     // ★新增④：迴圈跑完後，一次通知所有被取消的報名者
+			try {
+				notificationSender.sendTripCancelled(affectedUserIds, anyOrderId, tripTitle);			} catch (Exception e) {
+				System.out.println("[通知] 場次取消通知失敗：" + e.getMessage());
+			}
 		}
 
 		session.setAttendance(0);
@@ -529,14 +603,17 @@ public class FarmTripServiceImpl implements FarmTripService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "評分需為 1~5 星");
 		}
 
-		// 只有「參加過此活動」的會員才能評論：
-		// 參加過 = 在此活動的任一場次，有一筆「未取消」的報名訂單
-		List<Integer> sessionIds = farmTripSessionRepository.findByFarmTripId(farmTripId).stream()
+		// 只有「報名且參加完畢」的會員才能評論：
+		// 參加完畢 = 在此活動「已結束(活動結束時間 < 現在)」的場次，有一筆未取消的報名
+		Timestamp nowTs = new Timestamp(System.currentTimeMillis());
+		List<Integer> endedSessionIds = farmTripSessionRepository.findByFarmTripId(farmTripId).stream()
+				.filter(s -> s.getFarmTripEnd() != null && s.getFarmTripEnd().before(nowTs))
 				.map(FarmTripSession::getFarmSessionId).toList();
-		boolean joined = farmTripOrderRepository.findByUserIdOrderByBookedAtDesc(request.getUserId()).stream().anyMatch(
-				o -> sessionIds.contains(o.getFarmSessionId()) && o.getOrderStatus() != OrderStatus.CANCELLED);
-		if (!joined) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有參加過此活動的會員才能評論");
+		boolean completed = farmTripOrderRepository.findByUserIdOrderByBookedAtDesc(request.getUserId()).stream()
+				.anyMatch(o -> endedSessionIds.contains(o.getFarmSessionId())
+						&& o.getOrderStatus() != OrderStatus.CANCELLED);
+		if (!completed) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有報名並參加完畢（活動已結束）的會員才能評論");
 		}
 
 		FarmTripComment comment = new FarmTripComment();
@@ -559,6 +636,12 @@ public class FarmTripServiceImpl implements FarmTripService {
 		trip.setStarNumbers(avg);
 		farmTripRepository.save(trip);
 
+		try {
+			notificationSender.sendTripComment(trip.getFarmerId(), farmTripId, trip.getFarmTripTitle());
+		} catch (Exception e) {
+			System.out.println("[通知] 評論通知失敗：" + e.getMessage());
+		}
+		
 		return toCommentResponse(saved);
 	}
 
@@ -570,7 +653,24 @@ public class FarmTripServiceImpl implements FarmTripService {
 		dto.setStar(comment.getStar());
 		dto.setContent(comment.getReason());
 		dto.setCreatedAt(comment.getCreatedAt());
+
+		String email = userRepository.findById(comment.getUserId()).map(User::getEmail).orElse(null);
+		dto.setMaskedAccount(maskEmail(email));
+
 		return dto;
+	}
+
+	// 把 email 遮罩成「前 2 碼 + XXX + @網域」，例如 user1@gmail.com → usXXX@gmail.com
+	private String maskEmail(String email) {
+		if (email == null || email.isBlank())
+			return "匿名會員";
+		int at = email.indexOf('@');
+		if (at <= 0)
+			return "匿名會員";
+		String local = email.substring(0, at);
+		String domain = email.substring(at); // 含 @
+		String head = local.length() >= 2 ? local.substring(0, 2) : local;
+		return head + "XXX" + domain;
 	}
 
 	// ================= 會員修改預約 =================
@@ -646,5 +746,23 @@ public class FarmTripServiceImpl implements FarmTripService {
 	public List<TripListResponse> getActiveTripListByFarmer(Integer farmerId) {
 		return farmTripRepository.findByFarmerId(farmerId).stream().filter(t -> t.getTripStatus() == TripStatus.ACTIVE)
 				.map(this::toListResponse).toList();
+	}
+
+	// 小農重啟已取消的場次：狀態改回 ACTIVE 開放重新報名
+	// （之前取消時的舊報名維持已取消、不自動恢復；報名人數歸零）
+	@Override
+	@Transactional
+	public SessionResponse reopenSession(Integer farmSessionId) {
+		FarmTripSession session = farmTripSessionRepository.findById(farmSessionId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "查無此場次"));
+
+		if (session.getSessionStatus() != SessionStatus.CANCELLED) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "只有『已取消』的場次才能重啟");
+		}
+
+		session.setSessionStatus(SessionStatus.ACTIVE);
+		session.setAttendance(0);
+		FarmTripSession saved = farmTripSessionRepository.save(session);
+		return toSessionResponse(saved);
 	}
 }

@@ -24,22 +24,26 @@ import com.farmily.trip.model.FarmTrip;
 import com.farmily.trip.repository.FarmTripRepository;
 import com.farmily.trip.service.FarmTripService;
 import com.farmily.user.security.AdminUserDetails;
+import com.farmily.notification.service.NotificationSender;
 
 // 管理後台－活動審核頁（Thymeleaf）
 @Controller
 @RequestMapping("/admin/farm-trips")
 public class AdminTripReviewViewController {
 
-    private final FarmTripService farmTripService;
+	private final FarmTripService farmTripService;
     private final FarmTripRepository farmTripRepository;
     private final NotificationService notificationService;
+    private final NotificationSender notificationSender;
 
     public AdminTripReviewViewController(FarmTripService farmTripService,
                                          FarmTripRepository farmTripRepository,
-                                         NotificationService notificationService) {
+                                         NotificationService notificationService,
+                                         NotificationSender notificationSender) {
         this.farmTripService = farmTripService;
         this.farmTripRepository = farmTripRepository;
         this.notificationService = notificationService;
+        this.notificationSender = notificationSender;
     }
 
     // 審核頁：列出所有待審核活動
@@ -57,7 +61,10 @@ public class AdminTripReviewViewController {
         req.setAdminId(me.getAdminId());
         farmTripService.reviewTrip(farmTripId, req);   // 審核＋上架（交易完成後才發通知）
 
-        notifyFarmer(farmTripId, true, null);          // 通知小農
+        try {
+            FarmTrip trip = farmTripRepository.findById(farmTripId).orElse(null);
+            if (trip != null) notificationSender.sendTripRequestApproved(trip.getFarmerId(), farmTripId, trip.getFarmTripTitle());
+        } catch (Exception e) { System.out.println("[通知] 審核通過通知失敗：" + e.getMessage()); }
 
         return backToList(model, "success", "已核准，此活動審核成功並上架！");
     }
@@ -73,8 +80,11 @@ public class AdminTripReviewViewController {
         req.setAdminId(me.getAdminId());
         farmTripService.reviewTrip(farmTripId, req);
 
-        notifyFarmer(farmTripId, false, rejectReason);
-
+        try {
+            FarmTrip trip = farmTripRepository.findById(farmTripId).orElse(null);
+            if (trip != null) notificationSender.sendTripRequestRejected(trip.getFarmerId(), farmTripId, rejectReason, trip.getFarmTripTitle());
+        } catch (Exception e) { System.out.println("[通知] 審核退回通知失敗：" + e.getMessage()); }
+        
         return backToList(model, "warning", "已退回此活動。");
     }
 

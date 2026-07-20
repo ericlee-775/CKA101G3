@@ -61,10 +61,13 @@ async function loadOrders(){
   }
 }
 
-function goPage(p){
+async function changePage(p){
   if (p < 0 || p >= totalPages.value) { return }
+  
+  window.scrollTo({ top: 0})
   page.value = p
-  loadOrders()
+  await loadOrders()
+
 }
 
 async function markShipped(order){
@@ -72,7 +75,7 @@ async function markShipped(order){
 
   const ok = await confirm({
     title: '確認出貨',
-    message: `請確認已完成訂單 #${order.orderId} 出貨?`,
+    message: `確認已完成訂單 #${order.orderId} 出貨?`,
     confirmText: '確認出貨',
     danger: true
   })
@@ -98,78 +101,83 @@ async function markShipped(order){
       <h1>🧾 訂單管理</h1>
     </header>
 
-    <p v-if="loading" class="state-box">載入中...</p>
-    <div v-else-if="loadError" class="state-box">
-      <span class="state-icon">😵</span>
-      <p>{{ loadError }}</p>
-      <button class="btn-ghost" @click="loadOrders">重新載入</button>
-    </div>
-    <div v-else-if="orders.length === 0" class="state-box">
-      <span class="state-icon">🧾</span>
-      <p>您還沒有任何訂單</p>
-    </div>
-    <div v-else class="order-list">
-      <article v-for="o in orders" :key="o.orderId" class="order-card">
-        <header class="order-head">
-          <div>
-            <span class="order-id">訂單編號 #{{ o.orderId }}</span>
-            <time class="order-date" :datetime="o.createdAt">{{ fmdt(o.createdAt) }}</time>
-          </div>
-          <div class="order-status">
-            <span class="badge" :class="`badge--${badgeOf(o.shippedStatus).tone}`">
-              {{ badgeOf(o.shippedStatus).label }}
-            </span>
-            <time v-if="o.shippedAt" class="order-date order-shipped-at" :datetime="o.shippedAt">
-              {{ fmdt(o.shippedAt) }}
-            </time> 
-          </div>
-        </header>
+    <Transition name="tab-fade" mode="out-in">
+      <div :key="page">
+        <p v-if="loading" class="state-box">載入中...</p>
+        <div v-else-if="loadError" class="state-box">
+          <span class="state-icon">😵</span>
+          <p>{{ loadError }}</p>
+          <button class="btn-ghost" @click="loadOrders">重新載入</button>
+        </div>
+        <div v-else-if="orders.length === 0" class="state-box">
+          <span class="state-icon">🧾</span>
+          <p>您還沒有任何訂單</p>
+        </div>
+        <div v-else class="order-list">
+          <article v-for="o in orders" :key="o.orderId" class="order-card">
+            <header class="order-head">
+              <div>
+                <span class="order-id">訂單編號 #{{ o.orderId }}</span>
+                <time class="order-date" :datetime="o.createdAt">{{ fmdt(o.createdAt) }}</time>
+              </div>
+              <div class="order-status">
+                <span class="badge" :class="`badge--${badgeOf(o.shippedStatus).tone}`">
+                  {{ badgeOf(o.shippedStatus).label }}
+                </span>
+                <time v-if="o.shippedAt" class="order-date order-shipped-at" :datetime="o.shippedAt">
+                  {{ fmdt(o.shippedAt) }}
+                </time> 
+              </div>
+            </header>
+    
+            <p class="order-address">📍 {{ o.shippingAddress }}</p>
+    
+            <table class="item-table">
+              <colgroup>
+                <col style="width: 50%" />
+                <col style="width: 20%" />
+                <col style="width: 12%" />
+                <col style="width: 18%" />
+              </colgroup>
+              <thead>
+                <tr><th>商品</th><th>單價</th><th>數量</th><th>小計</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="it in o.items" :key="it.productId">
+                  <td class="item-name">
+                    <img :src="`/api/products/${it.productId}/image`" @error="onImagError" alt="" class="item-img" />
+                    <span>{{ it.productName }}</span>
+                  </td>
+                  <td>{{ fmm(it.price) }}</td>
+                  <td>{{ it.quantity }}</td>
+                  <td>{{ fmm(it.price * it.quantity) }}</td>
+                </tr>
+              </tbody>
+            </table>
+    
+            <footer class="order-foot">
+              <span class="order-subtotal">訂單小計 {{ fmm(o.subtotal) }}</span>
+    
+              <div class="order-foot-right">
+                <button v-if="o.shippedStatus === 'pending'" class="btn-primary" :disabled="shippingId === o.orderId" @click="markShipped(o)">
+                  {{ shippingId === o.orderId ? '處理中...' : '確認出貨' }}
+                </button>
+                <span v-if="o.shippedStatus !== 'pending'" class="payout" :class="`payout--${payoutOf(o.payoutStatus).tone}`">
+                  {{ payoutOf(o.payoutStatus).label }}
+                </span>
+              </div>
+            </footer>
+          </article>
+        </div>
+    
+        <div v-if="totalPages > 1" class="pager">
+          <button class="btn-ghost" :disabled="page === 0" @click="changePage(page - 1)">上一頁</button>
+          <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
+          <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="changePage(page + 1)">下一頁</button>
+        </div>
 
-        <p class="order-address">📍 {{ o.shippingAddress }}</p>
-
-        <table class="item-table">
-          <colgroup>
-            <col style="width: 50%" />
-            <col style="width: 20%" />
-            <col style="width: 12%" />
-            <col style="width: 18%" />
-          </colgroup>
-          <thead>
-            <tr><th>商品</th><th>單價</th><th>數量</th><th>小計</th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="it in o.items" :key="it.productId">
-              <td class="item-name">
-                <img :src="`/api/products/${it.productId}/image`" @error="onImagError" alt="" class="item-img" />
-                <span>{{ it.productName }}</span>
-              </td>
-              <td>{{ fmm(it.price) }}</td>
-              <td>{{ it.quantity }}</td>
-              <td>{{ fmm(it.price * it.quantity) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <footer class="order-foot">
-          <span class="order-subtotal">訂單小計 {{ fmm(o.subtotal) }}</span>
-
-          <div class="order-foot-right">
-            <button v-if="o.shippedStatus === 'pending'" class="btn-primary" :disabled="shippingId === o.orderId" @click="markShipped(o)">
-              {{ shippingId === o.orderId ? '處理中...' : '確認出貨' }}
-            </button>
-            <span v-if="o.shippedStatus !== 'pending'" class="payout" :class="`payout--${payoutOf(o.payoutStatus).tone}`">
-              {{ payoutOf(o.payoutStatus).label }}
-            </span>
-          </div>
-        </footer>
-      </article>
-    </div>
-
-    <div v-if="totalPages > 1" class="pager">
-      <button class="btn-ghost" :disabled="page === 0" @click="goPage(page - 1)">上一頁</button>
-      <span class="pager-info">第 {{ page + 1 }} / {{ totalPages }} 頁</span>
-      <button class="btn-ghost" :disabled="page + 1 >= totalPages" @click="goPage(page + 1)">下一頁</button>
-    </div>
+      </div>
+    </Transition>
   </main>
 </template>
 
@@ -221,6 +229,15 @@ async function markShipped(order){
 /* footer 右側：撥款狀態 + 出貨鈕，靠右並排 */
 .order-foot-right { display: flex; align-items: center; gap: 12px; }
 
+/* 列表淡入轉場 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tab-fade-enter-from { opacity: 0; transform: translateY(8px); }   /* 進場: 從下淡入 (translateY 淡入幅度) */
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-8px); }  /* 離場: 往上淡出 */
+
+
 /* 撥款狀態文字 */
 .payout { font-size: 13px; font-weight: 500; }
 .payout--muted { color: var(--muted); }
@@ -231,6 +248,7 @@ async function markShipped(order){
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 .btn-ghost { padding: 7px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink-soft); cursor: pointer; font-size: 14px; }
 .btn-ghost:hover:not(:disabled) { border-color: var(--leaf); color: var(--leaf); }
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
 
 .state-box { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 24px; background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); color: var(--muted); text-align: center; }
 .state-icon { font-size: 40px; }

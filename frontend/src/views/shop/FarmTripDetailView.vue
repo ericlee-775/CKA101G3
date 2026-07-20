@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import authStore from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 // 網址上的活動 id：/farm-trips/:farmTripId
 const farmTripId = ref(route.params.farmTripId)
 
@@ -17,10 +18,19 @@ const comments = ref([])
 const detailLoading = ref(true)
 const detailError = ref('')
 function hideImg(e) { e.target.style.display = 'none' }
+function tripImg(e, id) {
+  const el = e.target
+  if (!el.dataset.fallback) {
+    el.dataset.fallback = '1'
+    el.src = `/api/farm-trips/${id}/image`
+  } else {
+    el.style.display = 'none'
+  }
+}
 
 // ---- 報名表單 ----
 const bookingSessionId = ref(null)   // 正在報名哪個場次；null = 沒有展開表單
-const bookForm = ref({ numPeople: 1, userName: '', userPhoneNum: '', note: '' })
+const bookForm = ref({ userName: '', adults: 1, children: 0, userPhoneNum: '', note: '' })
 const bookMsg = ref('')
 
 // ---- 評論表單 ----
@@ -86,34 +96,51 @@ async function loadDetail() {
 
 // ========== 報名 ==========
 function startBooking(sessionId) {
+  // 未登入 → 導去會員登入頁；登入成功後用 redirect 自動接回本頁
+  if (!userId.value) {
+        alert('報名體驗活動前，請先登入會員帳號 🌱\n將為你導向登入頁面，登入後即可繼續完成報名。')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   bookingSessionId.value = sessionId
-  bookForm.value = { numPeople: 1, userName: '', userPhoneNum: '', note: '' }
+  bookForm.value = { userName: '', adults: 1, children: 0, userPhoneNum: '', note: '' }
   bookMsg.value = ''
 }
 
 async function submitBooking(sessionId) {
   bookMsg.value = ''
   // 未登入擋下：沒有 userId 就別送，避免報名綁到 null 或錯的帳號
-  if (!userId.value) {
-    bookMsg.value = '請先登入會員再報名。'
+   if (!bookForm.value.userName || !bookForm.value.userPhoneNum) {
+    bookMsg.value = '請填寫報名人與聯絡手機。'
     return
-  }
-  if (!bookForm.value.userName || !bookForm.value.userPhoneNum) {
-    bookMsg.value = '請填寫聯絡人姓名與電話。'
+    }
+    if (!/^09\d{8}$/.test(bookForm.value.userPhoneNum)) {
+    bookMsg.value = '手機格式需為 09 開頭、共 10 碼，例如 0912345678。'
     return
-  }
-  try {
-    const res = await fetch(`/api/farm-trips/sessions/${sessionId}/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: userId.value,
-        numPeople: bookForm.value.numPeople,
-        userName: bookForm.value.userName,
-        userPhoneNum: bookForm.value.userPhoneNum,
-        note: bookForm.value.note,
-      }),
-    })
+    }
+    const adults = Number(bookForm.value.adults) || 0
+    const children = Number(bookForm.value.children) || 0
+    const totalPeople = adults + children
+    if (totalPeople < 1) {
+      bookMsg.value = '報名人數至少 1 人（大人或小孩）。'
+      return
+    }
+    // 大人／小孩明細併進備註，讓小農後台看得到
+    const noteWithBreakdown =
+      `大人 ${adults} 人、小孩 ${children} 人` +
+      (bookForm.value.note.trim() ? `；${bookForm.value.note.trim()}` : '')
+    try {
+      const res = await fetch(`/api/farm-trips/sessions/${sessionId}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId.value,
+          numPeople: totalPeople,
+          userName: bookForm.value.userName,
+          userPhoneNum: bookForm.value.userPhoneNum,
+          note: noteWithBreakdown,
+        }),
+      })
     if (!res.ok) {
       const msg = await res.text()
       throw new Error(msg || `伺服器回應 ${res.status}`)
@@ -169,8 +196,7 @@ onMounted(loadDetail)
     <template v-else-if="detail">
       <span class="badge">{{ typeLabel(detail.farmTripType) }}</span>
       <h2>{{ detail.farmTripTitle }}</h2>
-      <img class="detail-img" :src="`/api/farm-trips/${detail.farmTripId}/image`" alt="" @error="hideImg" />
-      <p class="farm-name" v-if="detail.farmName">🏡 {{ detail.farmName }}</p>
+      <img class="detail-img" :src="`/farmily-web/trips/${detail.farmTripId}.jpg`" alt="" @error="tripImg($event, detail.farmTripId)" />      <p class="farm-name" v-if="detail.farmName">🏡 {{ detail.farmName }}</p>
       <p class="muted">📍 {{ detail.location }}</p>
       <p class="star">{{ stars(detail.starNumbers) }}（{{ detail.commentNumbers || 0 }} 則評論）</p>
       <p class="price">參考價 {{ formatPrice(detail.referPrice) }}</p>
@@ -197,34 +223,26 @@ onMounted(loadDetail)
           class="book-form"
           @submit.prevent="submitBooking(s.farmSessionId)"
         >
-          <label>人數 <input type="number" v-model.number="bookForm.numPeople" min="1" /></label>
-          <label>姓名 <input v-model="bookForm.userName" /></label>
-          <label>電話 <input v-model="bookForm.userPhoneNum" /></label>
-          <label>備註 <input v-model="bookForm.note" /></label>
+          <label><span class="lbl">報名人</span><input v-model="bookForm.userName" placeholder="聯絡人姓名" /></label>
+          <label><span class="lbl">大人</span><input type="number" v-model.number="bookForm.adults" min="0" /><span class="unit">位</span></label>
+          <label><span class="lbl">小孩</span><input type="number" v-model.number="bookForm.children" min="0" /><span class="unit">位</span></label>
+          <label><span class="lbl">聯絡手機</span><input v-model="bookForm.userPhoneNum" type="tel" inputmode="numeric" maxlength="10" placeholder="09XXXXXXXX" /></label>
+          <label><span class="lbl">備註</span><input v-model="bookForm.note" placeholder="有什麼話想跟小農說的可以在這邊說唷~" /></label>
           <button class="btn" type="submit">送出報名</button>
-        </form>
+        </form>   
+      
       </div>
       <p v-if="bookMsg" class="msg">{{ bookMsg }}</p>
 
       <!-- 評論 -->
       <h3>評論</h3>
-      <form class="comment-form" @submit.prevent="submitComment">
-        <label>
-          評分
-          <select v-model.number="commentForm.star">
-            <option v-for="n in 5" :key="n" :value="n">{{ n }} 星</option>
-          </select>
-        </label>
-        <label class="grow">
-          留言 <input v-model="commentForm.content" placeholder="分享你的體驗…" />
-        </label>
-        <button class="btn" type="submit">送出</button>
-      </form>
-      <p v-if="commentMsg" class="msg">{{ commentMsg }}</p>
+      
+      <p class="muted small">參加完活動後，可到會員中心「已報名活動」對此活動評分留言。</p>
 
       <ul class="comment-list">
         <li v-for="c in comments" :key="c.commentId">
           <span class="star">{{ stars(c.star) }}</span>
+          <span class="masked">{{ c.maskedAccount }}</span>
           <span>{{ c.content }}</span>
           <span class="muted small">{{ formatDateTime(c.createdAt) }}</span>
         </li>
@@ -234,6 +252,8 @@ onMounted(loadDetail)
 </template>
 
 <style scoped>
+
+.masked { color: var(--leaf-dark); font-weight: 600; }
 
 .farm-name { color: var(--leaf-dark); font-weight: 600; margin: 2px 0; }
 
@@ -289,4 +309,33 @@ h2 { color: var(--ink); }
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
   padding: 10px 0; border-bottom: 1px solid var(--line);
 }
+
+.book-form {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.book-form label {
+  width: 100%;
+  gap: 10px;
+  align-items: center;
+}
+/* 固定標題寬度，讓所有輸入框齊頭對齊 */
+.book-form .lbl {
+  flex: 0 0 72px;
+  text-align: left;
+  color: var(--ink);
+}
+/* 輸入框不要那麼長 */
+.book-form label input {
+  flex: 0 1 320px;
+  max-width: 320px;
+}
+.book-form .unit {
+  color: var(--muted);
+}
+.book-form button[type="submit"] {
+  align-self: flex-start;
+}
+
 </style>

@@ -12,6 +12,7 @@ import com.farmily.blog.repository.BlogCommentRepository;
 import com.farmily.blog.repository.BlogReportRepository;
 import com.farmily.blog.repository.BlogRepository;
 import com.farmily.blog.service.AdminBlogReportService;
+import com.farmily.notification.service.NotificationSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -34,16 +35,19 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
     private final BlogRepository blogRepository;
     private final BlogCommentReportRepository blogCommentReportRepository;
     private final BlogCommentRepository blogCommentRepository;
+    private final NotificationSender notificationSender;
 
     @Autowired
     public AdminBlogReportServiceImpl(BlogReportRepository blogReportRepository,
                                       BlogRepository blogRepository,
                                       BlogCommentReportRepository blogCommentReportRepository,
-                                      BlogCommentRepository blogCommentRepository) {
+                                      BlogCommentRepository blogCommentRepository,
+                                      NotificationSender notificationSender) {
         this.blogReportRepository = blogReportRepository;
         this.blogRepository = blogRepository;
         this.blogCommentReportRepository = blogCommentReportRepository;
         this.blogCommentRepository = blogCommentRepository;
+        this.notificationSender = notificationSender;
     }
 
     @Override
@@ -76,15 +80,35 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         Blog blog = blogRepository.findById(report.getBlogId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文章不存在: " + report.getBlogId()));
 
+        // 通知收件人＝文章作者：會員作者走會員版、小農作者走小農版
+        Integer authorUserId = blog.getUserId();
+        Integer authorFarmerId = blog.getFarmerId();
+        Integer blogId = blog.getBlogId();
+        String title = blog.getBlogTitle() != null ? blog.getBlogTitle() : "";  // sender 的 Map.of 不吃 null
+
         if (approve) {
             report.setReportStatus(BlogReportStatus.APPROVED_VISIBLE);
             blog.setBlogStatus(BlogStatus.VISIBLE);
+            // 維持顯示：通知作者「檢舉未成立、文章維持顯示」
+            if (authorUserId != null) {
+                notificationSender.sendBlogReportVisible(authorUserId, blogId, title);
+            } else if (authorFarmerId != null) {
+                notificationSender.sendFarmerBlogReportVisible(authorFarmerId, blogId, title);
+            }
         } else {
             report.setReportStatus(BlogReportStatus.REJECTED_HIDDEN);
             blog.setBlogStatus(BlogStatus.HIDDEN);
+            // 隱藏：通知作者「文章因檢舉被隱藏」，附上檢舉原因
+            String reason = report.getReportReason() != null ? report.getReportReason() : "";
+            if (authorUserId != null) {
+                notificationSender.sendBlogReportHidden(authorUserId, blogId, reason, title);
+            } else if (authorFarmerId != null) {
+                notificationSender.sendFarmerBlogReportHidden(authorFarmerId, blogId, reason, title);
+            }
         }
         report.setAdminId(adminId);
-        return report; // 改完欄位即可，交易結束 JPA 自動 UPDATE（不用 save）
+        // 通知與審核在同一交易一起 commit（可靠送達）；改完欄位交易結束 JPA 自動 UPDATE
+        return report;
     }
 
     @Override
@@ -119,12 +143,27 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         BlogComment comment = blogCommentRepository.findById(report.getCommentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "留言不存在: " + report.getCommentId()));
 
+        // 通知收件人＝留言作者（留言一定是會員），不是檢舉人(report.getUserId())
+        Integer commentAuthorUserId = comment.getUserId();
+        Integer blogId = report.getBlogId();
+        // 標題取「留言所在文章」的標題（文章可能已刪則給空字串，sender 的 Map.of 不吃 null）
+        String title = blogRepository.findById(blogId).map(Blog::getBlogTitle).orElse("");
+
         if (approve) {
             report.setReportStatus(BlogReportStatus.APPROVED_VISIBLE);
             comment.setCommentStatus(BlogStatus.VISIBLE);
+            // 維持顯示：通知留言作者「檢舉未成立、留言維持顯示」
+            if (commentAuthorUserId != null) {
+                notificationSender.sendBlogCommentReportVisible(commentAuthorUserId, blogId, title);
+            }
         } else {
             report.setReportStatus(BlogReportStatus.REJECTED_HIDDEN);
             comment.setCommentStatus(BlogStatus.HIDDEN);
+            // 隱藏：通知留言作者「留言因檢舉被隱藏」，附上檢舉原因
+            if (commentAuthorUserId != null) {
+                String reason = report.getReportReason() != null ? report.getReportReason() : "";
+                notificationSender.sendBlogCommentReportHidden(commentAuthorUserId, blogId, reason, title);
+            }
         }
         report.setAdminId(adminId);
         return report;
@@ -165,9 +204,17 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         v.setReportTime(r.getReportTime());
         if (blog != null) {
             v.setBlogTitle(blog.getBlogTitle());
-            v.setBlogContent(blog.getBlogContent());
+            v.setBlogContent(stripHtml(blog.getBlogContent()));   // 內容可能是編輯器產的 HTML，後台只看純文字
         }
         return v;
+    }
+
+    // 去掉 HTML 標籤：新文章內容是 RichTextEditor 產的 HTML(<p>…</p>)，後台審核顯示純文字即可、也避免 XSS
+    private static String stripHtml(String html) {
+        if (html == null) return null;
+        return html.replaceAll("<[^>]+>", " ")   // 每個標籤換成一個空白（避免 </p><p> 把字黏在一起）
+                   .replaceAll("\\s+", " ")       // 多個空白收成一個
+                   .trim();
     }
 
     // BlogCommentReport → DTO（comment / blog 都可能為 null）

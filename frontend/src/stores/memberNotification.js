@@ -19,9 +19,9 @@ async function refresh(){
     try {
         const [count, preview] = await Promise.all([
             notificationApi.getNotifUnreadCount(),
-            notificationApi.getNotifPreview(),
+            notificationApi.getNotifPreview()
         ])
-        state.unreadCount = count,
+        state.unreadCount = count
         state.preview = preview
     } catch {
     }
@@ -31,6 +31,10 @@ function markRead(notifId){
     const item = state.preview.find(n => n.notificationId === notifId)
     if (item && item.status === 'unread'){
         item.status = 'read'
+        state.unreadCount = Math.max(0, state.unreadCount - 1)
+    }
+
+    if (!item) {
         state.unreadCount = Math.max(0, state.unreadCount - 1)
     }
 }

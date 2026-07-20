@@ -63,12 +63,21 @@ const unreadCount = notificationStore.unreadCount
 
 // 小鈴鐺分類 icon (targetType)
 const ICON_BY_TYPE = {
-  account: '👤', order: '📦', groupbuy: '👥', trip: '🌱', blog: '✍️'
+  account: '👤', order: '📦', groupbuy: '👥', trip: '🌱', blog: '✍️', system: '📢'
 }
 
 // 分類對應中文標題 (title)
 const TITLE_BY_TYPE = {
-  account : '帳號異動', order: '訂單狀態', groupbuy: '團購動態', trip: '體驗活動', blog: '文章評論'
+  account : '帳號', order: '訂單', groupbuy: '團購', trip: '體驗活動', blog: '部落格', system: '系統公告'
+}
+
+// 跳轉頁面路徑
+const TARGET_ROUTE = {
+  account: '/member/me',
+  order: '/member/orders',
+  groupbuy: '/member/group-buys',
+  trip: '/member/farm-trips', 
+  blog: '/member/blogs',
 }
 
 // 轉換時間 (N 分鐘前)
@@ -92,20 +101,46 @@ async function loadBell(){
   await notificationStore.refresh()
 }
 
+async function routeBell(n) {
+  if (n.status === 'unread'){
+    try {
+      await notificationApi.markOneAsRead(n.notificationId)
+      notificationStore.markRead(n.notificationId)
+      n.status = 'read'
+    } catch { }
+  }
+
+  // blog 通知導到「那篇文章」；其他類型導到對應區塊清單
+  if (n.targetType === 'blog' && n.targetId != null) {
+    router.push({ name: 'member-blogs-detail', params: { id: n.targetId } })
+    return
+  }
+
+  const path = TARGET_ROUTE[n.targetType]
+  if (path) {
+    router.push(path)
+  }
+  else {
+    router.push('/member/notifications')
+  }
+}
+
 // 登入後重載鈴鐺
 watch(() => authStore.isMember, (isMember) => {
   if (isMember){
     loadBell()
-  } else {
+  }
+  else {
     notificationStore.clear()
   }
 })
 
-// 載入小鈴鐺，每 {300} 秒自動更新一次未讀數
+// 載入小鈴鐺，每 {30} 秒自動更新一次未讀數
 let BellTimer = null
 onMounted(() => {
   loadBell()
   BellTimer = setInterval(loadBell, 300000)
+  
 })
 onBeforeUnmount(() => {
   if (BellTimer) clearInterval(BellTimer)
@@ -201,7 +236,7 @@ async function logout() {
                 <span v-if="unreadCount > 0" class="notify-unread">{{ unreadCount }} 則未讀</span>
               </div>
               <ul class="notify-list">
-                <li v-for="n in notifications" :key="n.id" class="notify-item" :class="{ unread: (n.status === 'unread') }">
+                <li v-for="n in notifications" :key="n.notificationId" class="notify-item" :class="{ unread: (n.status === 'unread') }" @click="routeBell(n)">
                   <span class="notify-icon">{{ ICON_BY_TYPE[n.targetType] }}</span>
                   <div class="notify-body">
                     <p class="notify-title">{{ TITLE_BY_TYPE[n.targetType] }}</p>
@@ -690,6 +725,7 @@ async function logout() {
   display: flex;
   gap: 10px;
   padding: 10px 16px;
+  cursor: pointer;
   transition: background 0.15s ease;
 }
 .notify-item:hover {
