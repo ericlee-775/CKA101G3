@@ -146,14 +146,14 @@ class ProductRepositoryTest {
 	@Test
 	public void testUpdateProductPrice_Owner() {
 		ProductUpdatedDTO productDTO = new ProductUpdatedDTO();
-		productDTO.setRetailPrice(100);
-		productDTO.setGroupPrice(200);
+		productDTO.setRetailPrice(200);
+		productDTO.setGroupPrice(100); // 團購價要低於零售價才合法，原本兩數寫反了
 		ProductVO existingProduct = productRepository.findById(1).orElse(null);
 		Integer ownerId = existingProduct.getFarmerId();
 		assertTrue(productServiceImpl.updateProduct(1, productDTO, ownerId));
 		ProductVO updateProduct = productRepository.findById(1).orElse(null);
-		assertEquals(100, updateProduct.getRetailPrice());
-		assertEquals(200, updateProduct.getGroupPrice());
+		assertEquals(200, updateProduct.getRetailPrice());
+		assertEquals(100, updateProduct.getGroupPrice());
 
 	}
 
