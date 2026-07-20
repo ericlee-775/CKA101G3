@@ -61,7 +61,18 @@ async function loadOrders(){
   }
 }
 
-onMounted(loadOrders)
+// 進入頁面時自動展開最新一張訂單明細
+async function openLatestOrder(){
+  const latest = orders.value[0]
+  if (!latest){ return }
+  await toggleOrderItems(latest.orderId)
+}
+
+
+onMounted(async () => {
+  await loadOrders()
+  await openLatestOrder()
+})
 
 // 展開 / 收合訂單明細
 async function toggleOrderItems(orderId){
@@ -105,6 +116,7 @@ async function changePage(p){
 }
 
 
+// 確認收貨 (先跳確認彈窗)
 async function markReceived(orderId, group){
 
   if (group.shippedStatus !== 'shipping') { return }
@@ -167,6 +179,12 @@ async function markReceived(orderId, group){
               <div class="order-cell">
                 <dt>商品小計</dt>
                 <dd>{{ fmm(o.totalAmount) }}</dd>
+              </div>
+              <div class="order-cell">
+                <dt>運費</dt>
+                <dd :class="{ 'is-free-shipping': o.shippingFee === 0 }">
+                  {{ o.shippingFee === 0 ? '免運' : fmm(o.shippingFee) }}
+                </dd>
               </div>
               <div class="order-cell">
                 <dt>折扣</dt>
@@ -288,11 +306,12 @@ async function markReceived(orderId, group){
 .badge--gray  { background: #eeeeea; color: #75806f; }
 
 /* 金額格子 */
-.order-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px; margin: 0; }
+.order-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; margin: 0; }
 .order-cell dt { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
 .order-cell dd { margin: 0; font-size: 14px; color: var(--ink-soft); }
 .order-money   { font-weight: 700; color: var(--leaf-dark); font-size: 16px; }
 .is-discount   { color: #b5651d; }
+.order-cell dd.is-free-shipping { font-size: 13px; font-weight: 400; color: var(--leaf-dark); }
 
 .order-foot { display: flex; gap: 8px; justify-content: flex-end; }
 

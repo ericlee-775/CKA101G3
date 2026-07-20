@@ -12,6 +12,7 @@ import com.farmily.product.dto.ProductInsertDTO;
 import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.ProductUpdatedDTO;
+import com.farmily.product.dto.SubCategoryOptionDTO;
 import com.farmily.product.model.ProductVO;
 
 
@@ -42,6 +43,8 @@ public interface ProductService {
 	boolean deleteWishList(Integer productId, Integer userId);
 
 	List<ProductSummaryDTO> getAllWishLists(Integer userId);
+	
+	List<SubCategoryOptionDTO> getSubCategoryOptions();
 	//熱銷產品（原始結算結果，可能為空——管理員後台用）
 	List<ProductSummaryDTO> getHotProducts();
 

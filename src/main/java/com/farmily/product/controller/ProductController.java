@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.farmily.product.dto.ProductDetailDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 import com.farmily.product.dto.SubCategoryOptionDTO;
-import com.farmily.product.model.SubCategoryRepository;
 import com.farmily.product.service.ProductClickService;
 import com.farmily.product.service.ProductService;
 
@@ -30,8 +29,6 @@ public class ProductController {
 
 	@Autowired
 	private ProductService productService;
-	@Autowired
-	private SubCategoryRepository subCategoryRepository;
 	@Autowired
 	private ProductClickService productClickService;
 
@@ -113,7 +110,7 @@ public class ProductController {
 	// 找出所有類別
 	@GetMapping("/categories")
 	public ResponseEntity<List<SubCategoryOptionDTO>> getCategoryOptions() {
-		List<SubCategoryOptionDTO> subCategoryOptions = subCategoryRepository.findAllOptions();
+		List<SubCategoryOptionDTO> subCategoryOptions = productService.getSubCategoryOptions();
 		return ResponseEntity.ok(subCategoryOptions);
 	}
 

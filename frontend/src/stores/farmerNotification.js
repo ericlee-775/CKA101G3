@@ -28,9 +28,13 @@ async function refresh(){
 }
 
 function markRead(notifId){
-    const item = state.preview.find(n => n.notifId === notifId)
+    const item = state.preview.find(n => n.notificationId === notifId)
     if (item && item.status === 'unread'){
         item.status = 'read'
+        state.unreadCount = Math.max(0, state.unreadCount - 1)
+    }
+
+    if (!item) {
         state.unreadCount = Math.max(0, state.unreadCount - 1)
     }
 }

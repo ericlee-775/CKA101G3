@@ -54,6 +54,9 @@ public class ProductOrderVO implements Serializable {
 	@Column (name = "discount_amount")
 	private Integer discountAmount;
 	
+	@Column (name = "shipping_fee")
+	private Integer shippingFee;
+	
 	@Column (name = "final_payment")
 	private Integer finalPayment;
 
@@ -151,6 +154,14 @@ public class ProductOrderVO implements Serializable {
 		this.discountAmount = discountAmount;
 	}
 
+	public Integer getShippingFee() {
+		return shippingFee;
+	}
+
+	public void setShippingFee(Integer shippingFee) {
+		this.shippingFee = shippingFee;
+	}
+
 	public Integer getFinalPayment() {
 		return finalPayment;
 	}
@@ -193,6 +204,9 @@ public class ProductOrderVO implements Serializable {
 		}
 		if (discountAmount == null) {
 			discountAmount = 0;
+		}
+		if (shippingFee == null) {
+			shippingFee = 0;
 		}
 	}
 	

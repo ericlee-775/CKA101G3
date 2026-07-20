@@ -165,10 +165,13 @@ async function addProduct() {
     && (!Number.isInteger(Number(newProduct.value.groupPrice)) || Number(newProduct.value.groupPrice) < 0)) {
     errors.push('團購價不可為負數，請輸入0以上的整數')
   }
-  // 團購價不得高於零售價：後端 service 也會擋（雙保險）
+  if (newProduct.value.isGroupBuy && newProduct.value.groupPrice === '') {
+    errors.push('開放團購時必須填寫團購價')
+  }
+  // 團購價不得高於或等於零售價：後端 service 也會擋（雙保險）
   if (newProduct.value.groupPrice !== '' && newProduct.value.retailPrice !== ''
-    && Number(newProduct.value.groupPrice) > Number(newProduct.value.retailPrice)) {
-    errors.push('團購價不得高於零售價')
+    && Number(newProduct.value.groupPrice) >= Number(newProduct.value.retailPrice)) {
+    errors.push('團購價不得高於或等於零售價')
   }
   if (!newProduct.value.unitPricingMeasure.trim()) errors.push('計價單位不可為空，例如：包/300g')
 
@@ -321,8 +324,7 @@ onMounted(loadCategories)
                  「上架」用實心主要按鈕：它是灰列上唯一可用的動作，要夠顯眼 -->
             <button v-if="product.status === 'ACTIVE'" type="button" class="btn-ghost"
               @click="changeStatus(product, 'INACTIVE')">下架</button>
-            <button v-else type="button" class="btn"
-              @click="changeStatus(product, 'ACTIVE')">上架</button>
+            <button v-else type="button" class="btn" @click="changeStatus(product, 'ACTIVE')">上架</button>
           </div>
         </article>
 
@@ -361,7 +363,8 @@ onMounted(loadCategories)
                   <select v-model="selectedMainCat">
                     <option value="">請選擇大分類</option>
                     <!-- 大分類前掛 icon（emoji），對照表在 constants/categoryIcons.js -->
-                    <option v-for="[id, name] in mainCategories" :key="id" :value="id">{{ categoryIcon(name) }} {{ name }}</option>
+                    <option v-for="[id, name] in mainCategories" :key="id" :value="id">{{ categoryIcon(name) }} {{ name
+                      }}</option>
                   </select>
                 </label>
                 <label>
@@ -467,11 +470,13 @@ onMounted(loadCategories)
   padding: 24px;
   border-top: 3px solid var(--leaf);
 }
+
 .card h2 {
   margin: 0 0 16px;
   font-size: 18px;
   color: var(--ink);
 }
+
 /* 卡片標題那一行：文字靠左、「新增商品」按鈕靠右，兩端對齊 */
 .card-head {
   display: flex;
@@ -479,6 +484,7 @@ onMounted(loadCategories)
   justify-content: space-between;
   margin-bottom: 16px;
 }
+
 .card-head h2 {
   margin: 0;
 }
@@ -489,6 +495,7 @@ onMounted(loadCategories)
   color: var(--muted);
   padding: 24px 0;
 }
+
 .state-error {
   padding: 0;
 }
@@ -499,11 +506,13 @@ onMounted(loadCategories)
   color: var(--leaf);
   font-size: 13px;
 }
+
 .msg-err {
   margin: 0;
   color: #c0392b;
   font-size: 13px;
-  white-space: pre-line; /* 讓訊息裡的 \n 真的換行：多個錯誤各佔一行 */
+  white-space: pre-line;
+  /* 讓訊息裡的 \n 真的換行：多個錯誤各佔一行 */
 }
 
 /* 訊息容器：min-height 抓「合併好幾則錯誤」時大概會佔的高度，
@@ -527,12 +536,16 @@ onMounted(loadCategories)
   border-radius: 12px;
   padding: 14px 16px;
 }
+
 /* 已下架的商品：灰底＋標題文字變淡。
    刻意不用 opacity 蓋整列——那樣唯一要讓人按的「上架」鈕也會跟著變淡 */
 .product-row--inactive {
   background: #f6f6f3;
 }
-.product-row--inactive h3,
+
+/* .product-row__head h3 也設了 color，優先權跟這裡打平；
+   多疊一層 .product-row__head 提高優先權，才不會被後面那條蓋掉 */
+.product-row--inactive .product-row__head h3,
 .product-row--inactive .product-row__unit {
   color: var(--muted);
 }
@@ -551,16 +564,19 @@ onMounted(loadCategories)
   justify-content: space-between;
   gap: 8px;
 }
+
 .product-row__head h3 {
   margin: 0;
   font-size: 16px;
   color: var(--ink);
 }
+
 .product-row__unit {
   margin: 4px 0 12px;
   font-size: 13px;
   color: var(--muted);
 }
+
 /* 價格輸入框＋三顆按鈕排一列，螢幕太窄時自動換行（flex-wrap） */
 .product-row__actions {
   display: flex;
@@ -579,6 +595,7 @@ onMounted(loadCategories)
   background: var(--leaf-soft);
   color: var(--leaf-dark);
 }
+
 .tag-warn {
   background: #fdecc8;
   color: #9a6a00;
@@ -592,6 +609,7 @@ onMounted(loadCategories)
   gap: 12px;
   margin-top: 4px;
 }
+
 /* 頁碼下拉選單：跟其他小型輸入框同一種尺寸感，選了哪頁 v-model 直接跳過去 */
 .page-select {
   padding: 6px 10px;
@@ -602,6 +620,7 @@ onMounted(loadCategories)
   font-size: 13px;
   outline: none;
 }
+
 .page-select:focus {
   border-color: var(--leaf);
 }
@@ -614,6 +633,7 @@ onMounted(loadCategories)
   border-radius: 8px;
   font-size: 14px;
 }
+
 .price-input:focus {
   outline: none;
   border-color: var(--leaf);
@@ -627,6 +647,7 @@ onMounted(loadCategories)
   flex-direction: column;
   gap: 14px;
 }
+
 /* 每個欄位是「標籤文字 + 輸入框」上下排列 */
 .form label {
   display: flex;
@@ -635,6 +656,7 @@ onMounted(loadCategories)
   font-size: 14px;
   color: var(--ink-soft);
 }
+
 .form input,
 .form select {
   padding: 10px 13px;
@@ -644,6 +666,7 @@ onMounted(loadCategories)
   outline: none;
   font-family: inherit;
 }
+
 .form input:focus,
 .form select:focus {
   border-color: var(--leaf);
@@ -664,6 +687,7 @@ onMounted(loadCategories)
   align-items: center;
   gap: 8px;
 }
+
 .checkbox-row input {
   width: auto;
 }
@@ -676,12 +700,14 @@ onMounted(loadCategories)
   border-radius: 10px;
   border: 1px solid var(--line);
 }
+
 /* 內圖預覽：一排小縮圖，太多時自動換行 */
 .thumb-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
+
 .thumb-list img {
   width: 72px;
   height: 72px;
@@ -700,9 +726,13 @@ onMounted(loadCategories)
   font-size: 15px;
   cursor: pointer;
 }
-.btn:hover {
+
+/* :not(:disabled) 排除停用按鈕：disabled 元素仍會觸發 :hover，
+   不排除的話「存價格」下架時滑過去照樣變深色，讓人以為還能點 */
+.btn:not(:disabled):hover {
   background: var(--leaf-dark);
 }
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -718,6 +748,7 @@ onMounted(loadCategories)
   font-size: 14px;
   cursor: pointer;
 }
+
 .btn-ghost:hover {
   border-color: var(--leaf);
   color: var(--leaf);
@@ -766,11 +797,13 @@ onMounted(loadCategories)
   justify-content: space-between;
   margin-bottom: 16px;
 }
+
 .modal-head h2 {
   margin: 0;
   font-size: 18px;
   color: var(--ink);
 }
+
 .modal-close {
   border: none;
   background: transparent;
@@ -780,6 +813,7 @@ onMounted(loadCategories)
   cursor: pointer;
   padding: 4px;
 }
+
 .modal-close:hover {
   color: var(--ink);
 }
@@ -789,14 +823,17 @@ onMounted(loadCategories)
 .modal-fade-leave-active {
   transition: opacity 0.18s ease;
 }
+
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
 }
+
 .modal-fade-enter-active .modal-card,
 .modal-fade-leave-active .modal-card {
   transition: transform 0.18s ease;
 }
+
 .modal-fade-enter-from .modal-card,
 .modal-fade-leave-to .modal-card {
   transform: scale(0.94);
