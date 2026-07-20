@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.farmily.product.dto.ProductDetailDTO;
@@ -83,8 +82,8 @@ public class ProductServiceImpl implements ProductService {
 		if (!subCategoryRepository.existsById(dto.getSubCatClassId())) {
 			throw new IllegalArgumentException("查無此分類");
 		}
-		if (dto.getGroupPrice() != null && dto.getRetailPrice() != null && dto.getGroupPrice() > dto.getRetailPrice()) {
-			throw new IllegalArgumentException("團購價不得高於原價");
+		if (dto.getGroupPrice() != null && dto.getRetailPrice() != null && dto.getGroupPrice() >= dto.getRetailPrice()) {
+			throw new IllegalArgumentException("團購價不得高於或等於原價");
 		}
 
 		if (Boolean.TRUE.equals(dto.getIsGroupBuy()) && dto.getGroupPrice() == null) {
@@ -143,8 +142,8 @@ public class ProductServiceImpl implements ProductService {
 		// PATCH 可能只帶其中一個價格：沒帶的用商品現有的值，驗證的是「改完之後」的最終狀態
 		Integer newRetailPrice = (dto.getRetailPrice() != null) ? dto.getRetailPrice() : product.getRetailPrice();
 		Integer newGroupPrice = (dto.getGroupPrice() != null) ? dto.getGroupPrice() : product.getGroupPrice();
-		if (newGroupPrice != null && newRetailPrice != null && newGroupPrice > newRetailPrice) {
-			throw new IllegalArgumentException("團購價不得高於原價");
+		if (newGroupPrice != null && newRetailPrice != null && newGroupPrice >= newRetailPrice) {
+			throw new IllegalArgumentException("團購價不得高於或等於原價");
 		}
 		
 

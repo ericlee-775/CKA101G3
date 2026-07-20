@@ -168,10 +168,10 @@ async function addProduct() {
   if (newProduct.value.isGroupBuy && newProduct.value.groupPrice === '') {
     errors.push('開放團購時必須填寫團購價')
   }
-  // 團購價不得高於零售價：後端 service 也會擋（雙保險）
+  // 團購價不得高於或等於零售價：後端 service 也會擋（雙保險）
   if (newProduct.value.groupPrice !== '' && newProduct.value.retailPrice !== ''
-    && Number(newProduct.value.groupPrice) > Number(newProduct.value.retailPrice)) {
-    errors.push('團購價不得高於零售價')
+    && Number(newProduct.value.groupPrice) >= Number(newProduct.value.retailPrice)) {
+    errors.push('團購價不得高於或等於零售價')
   }
   if (!newProduct.value.unitPricingMeasure.trim()) errors.push('計價單位不可為空，例如：包/300g')
 
