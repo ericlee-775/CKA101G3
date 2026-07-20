@@ -1520,7 +1520,7 @@ CREATE INDEX idx_notif_recipient_status
 ON notification (recipient_type, recipient_id, status);
 
 -- 參數
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '1', '團購編號 17 已成團，訂單編號 90002，將盡速為您安排出貨。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '90002', '團購編號 17 已成團，訂單編號 90002，將盡速為您安排出貨。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9015', '您的文章 南瓜濃湯簡單食譜 收到一則新留言。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 高山茶採摘製茶體驗，期待您的到來！');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '5004', '感謝您參加體驗活動 高山茶採摘製茶體驗！歡迎留下您的評分與心得，給小農鼓勵。');
