@@ -97,7 +97,7 @@ public class UserSecurityConfig {
                         .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
 						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
 
-						.requestMatchers("/admin/news/**").hasAuthority("PERM_NEWS")
+						.requestMatchers("/admin/news/**","/admin/notifications").hasAuthority("PERM_NEWS")
 						.requestMatchers("/admin/blog-reports/**", "/admin/comment-reports/**").hasAuthority("PERM_BLOG")
 						.requestMatchers("/admin/coupons/**").hasAuthority("PERM_SHOP")
 						.requestMatchers("/admin/farm-trips/**", "/api/admin/farm-trips/**").hasAuthority("PERM_EVENT")
