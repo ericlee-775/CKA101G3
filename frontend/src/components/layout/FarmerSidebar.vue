@@ -42,14 +42,14 @@ async function loadUnread() {
 // 硬重整時 auth 狀態可能比元件晚就緒，這時 onMounted 那次會被擋掉，靠這裡補抓；登出則歸零
 watch(() => authStore.isFarmer, (isFarmer) => {
   if (isFarmer) loadUnread()
-  else notificationStore.reset()
+  else notificationStore.clear()
 })
 
 // 進來先抓一次，之後每 300 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
 let unreadTimer = null
 onMounted(() => {
   loadUnread()
-  unreadTimer = setInterval(loadUnread, 300000)
+  unreadTimer = setInterval(loadUnread, 100000)
 })
 onBeforeUnmount(() => {
   if (unreadTimer) clearInterval(unreadTimer)
