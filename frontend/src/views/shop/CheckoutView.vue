@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import memberOrdersApi from '@/api/memberOrders'
 import cityDistrictApi from '@/api/cityDistrict'
@@ -179,8 +179,6 @@ const selectedDistrictText = computed(() => {
 
 async function submitCheckout(){
   
-  showConfirm.value = false   // 關浮窗
-
   const request = {
     recipientName: form.recipientName.trim(),
     recipientPhone: form.recipientPhone.trim(),
@@ -188,20 +186,51 @@ async function submitCheckout(){
     detailAddress: form.detailAddress.trim(),
     coupon: form.coupon || null,     // 空字串轉 null（沒用券）
   }
-
+  
   submitting.value = true
   try {
     await memberOrdersApi.checkout(request)
+    showConfirm.value = false   // 關浮窗
     // 後端下單時已 clearCart，前端要重讀才不會停在結帳前的舊資料
     await cartStore.reload()
     router.replace('/member/orders')
   } catch (e) {
+    showConfirm.value = false   // 關浮窗
     formError.value = e.message || '結帳失敗，請稍後再試'
   } finally {
     submitting.value = false
   }
 }
 
+// 浮窗相關操作
+const cancelBtn = ref(null)   // 設定返回按鈕為預設焦點
+function onKeyDown(e){
+  if (e.key === 'Escape'){
+    closeConfirm()
+  }
+}
+
+function closeConfirm(){
+  showConfirm.value = false
+}
+
+watch(showConfirm, async (open) => {
+  if (open) {
+    window.addEventListener('keydown', onKeyDown)
+    // document.body.style.overflow = 'hidden'  // 鎖住背景捲動
+    await nextTick()
+    cancelBtn.value?.focus()
+  }
+  else {
+    window.removeEventListener('keydown', onKeyDown)
+    // document.body.style.overflow = ''
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
+  // document.body.style.overflow =''
+})
 
 
 // 金額轉換
@@ -412,18 +441,18 @@ function onImgError(e){
         <span v-if="!isFormValid" class="hint-warn">請完整填寫上方欄位</span>
         <button
           class="btn-primary btn-lg"
-          :disabled="submitting || !isFormValid"
+          :disabled="submitting || showConfirm || !isFormValid"
           @click="openConfirm">
-          {{ submitting ? '處理中…' : '確認結帳' }}
+          {{ showConfirm || submitting ? '確認中…' : '確認結帳' }}
         </button>
       </footer>
     </template>
 
     <Teleport to="body">
       <Transition name="oc-fade">
-        <div v-if="showConfirm" class="oc-overlay" @click.self="showConfirm = false">
-          <div class="oc-card" role="dialog" aria-modal="true">
-            <h3 class="oc-title">請確認訂單內容</h3>
+        <div v-if="showConfirm" class="oc-overlay" @click.self="closeConfirm">
+          <div class="oc-card" role="dialog" aria-modal="true" aria-labelledby="ocTitle">
+            <h3 class="oc-title" id="ocTitle">請確認訂單內容</h3>
 
             <section class="oc-block">
               <h4 class="oc-block-title">收件資訊</h4>
@@ -453,10 +482,12 @@ function onImgError(e){
                 <span>應付金額</span><span>{{ fmm(finalPayment) }}</span>
               </p>
             </section>
-
+            <p class="oc-warn">訂單送出後無法修改</p>
             <div class="oc-actions">
-              <button class="oc-btn oc-cancel" @click="showConfirm = false">返回修改</button>
-              <button class="oc-btn oc-confirm" @click="submitCheckout">確認送出</button>
+              <button ref="cancelBtn" type="button" class="oc-btn oc-cancel" @click="closeConfirm">返回修改</button>
+              <button type="button" class="oc-btn oc-confirm" :disabled="submitting" @click="submitCheckout">
+                {{ submitting ? '處理中' : '確認送出' }}
+              </button>
             </div>
           </div>
         </div>
@@ -587,5 +618,9 @@ function onImgError(e){
 .oc-fade-enter-from, .oc-fade-leave-to { opacity: 0; }
 .oc-fade-enter-active .oc-card, .oc-fade-leave-active .oc-card { transition: transform 0.18s ease; }
 .oc-fade-enter-from .oc-card, .oc-fade-leave-to .oc-card { transform: scale(0.94); }
+
+.oc-btn:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+.oc-confirm:disabled { opacity: .6; cursor: default; }
+.oc-warn { margin: 0 0 20px; font-size: 13px; color: #c0392b; text-align: center; }
 
 </style>

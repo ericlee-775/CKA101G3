@@ -80,6 +80,16 @@
                 </span>
             </a>
         </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_NEWS')">
+            <a class="card stat-card h-100" th:href="@{/admin/notifications}">
+                <span class="stat-ico">🔔</span>
+                <span>
+                    <span class="stat-label d-block">公告管理 | 發佈公告</span>
+                    <span class="stat-link">系統公告管理 →</span>
+                </span>
+            </a>
+        </div>
 
         <div class="col-md-6 col-lg-4 mb-4" sec:authorize="hasAuthority('PERM_BLOG')">
             <a class="card stat-card h-100" th:href="@{/admin/blog-reports}">
