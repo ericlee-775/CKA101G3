@@ -9,6 +9,25 @@ import { confirm } from '@/composables/useConfirm'
 const route = useRoute()
 const router = useRouter()
 
+// 上傳大小限制（對齊後端 multipart：單檔 5MB、整包 10MB；總和抓 9.5MB 留餘裕）
+const MAX_FILE_BYTES = 5 * 1024 * 1024
+const MAX_TOTAL_BYTES = 9.5 * 1024 * 1024
+const humanMB = (bytes) => (bytes / 1024 / 1024).toFixed(1)
+// 送出前檢查檔案大小；回傳錯誤字串，沒問題回 ''
+function checkFiles(files) {
+  const list = files.filter(Boolean)
+  const tooBig = list.find((f) => f.size > MAX_FILE_BYTES)
+  if (tooBig) return `「${tooBig.name}」約 ${humanMB(tooBig.size)}MB，超過單張上限 5MB，請縮小或換一張。`
+  const total = list.reduce((sum, f) => sum + f.size, 0)
+  if (total > MAX_TOTAL_BYTES) return `圖片總大小約 ${humanMB(total)}MB，超過上限(約 10MB)，請縮小或減少張數。`
+  return ''
+}
+// 把底層網路錯誤(如 Failed to fetch)轉成人話
+function friendlyError(e) {
+  if (e && e.message === 'Failed to fetch') return '連線失敗，可能是圖片太大或網路問題，請縮小圖片後再試。'
+  return (e && e.message) || '儲存失敗'
+}
+
 const blogId = computed(() => (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => blogId.value !== null)
 
@@ -65,12 +84,14 @@ function onAlbumChange(e) {
 
 // 編輯模式：立即上傳新增的照片
 async function uploadMore(files) {
+  const sizeErr = checkFiles(files)
+  if (sizeErr) { alert(sizeErr); return }
   photoBusy.value = true
   try {
     await blogApi.addPhotos(blogId.value, files)
     await loadPhotos()
   } catch (e) {
-    alert(e.message || '照片上傳失敗')
+    alert(friendlyError(e))
   } finally {
     photoBusy.value = false
   }
@@ -104,6 +125,10 @@ async function save() {
     formError.value = '標題與內容為必填'
     return
   }
+  // 送出前先檢查圖片大小，避免超過 max-request-size 造成連線中斷(Failed to fetch)
+  const sizeErr = checkFiles(isEdit.value ? [form.blogImg] : [form.blogImg, ...newPhotos.value])
+  if (sizeErr) { formError.value = sizeErr; return }
+
   saving.value = true
   try {
     if (isEdit.value) {
@@ -115,7 +140,7 @@ async function save() {
       router.push(`/farmer/blog/${created.blogId}`)
     }
   } catch (e) {
-    formError.value = e.message || '儲存失敗'
+    formError.value = friendlyError(e)
   } finally {
     saving.value = false
   }
