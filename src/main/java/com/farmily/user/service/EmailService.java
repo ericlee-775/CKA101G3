@@ -135,7 +135,12 @@ public class EmailService {
     		message.setFrom(fromEmail);
     		message.setTo(toEmail);
     		message.setSubject("優惠卷通知");
-    		message.setText(userName+"有新的優惠卷"+"券號是:"+coupon.getCouponId()+"折抵金額：" + coupon.getAmount()+ "最低消費：" + coupon.getMinSpending());
+    		message.setText(userName + " 有新的優惠券\n\n"
+    				+ "券代號是：" + coupon.getCouponId() + "\n"
+    				+ "折抵金額：" + coupon.getAmount() + "\n"
+    				+ "最低消費：" + coupon.getMinSpending() + "\n"
+    				+ "優惠券啟用時間是：" + coupon.getIssueStartDate() + "\n"
+    				+ "優惠券結束時間是：" + coupon.getIssueEndDate());
     		mailSender.send(message);
     	}
     
