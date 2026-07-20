@@ -607,7 +607,7 @@ VALUES
 -- ====================================================================
 CREATE TABLE FARMER_REVIEW (
                                review_id             INT           AUTO_INCREMENT PRIMARY KEY,
-                               farmer_id             INT           NULL,
+                               farmer_id             INT,
                                admin_id              INT,
                                review_round          INT           NOT NULL DEFAULT 1,
                                review_status         ENUM('PENDING', 'REVIEWING', 'APPROVED', 'REJECTED') NOT NULL,  -- 管理員視角
