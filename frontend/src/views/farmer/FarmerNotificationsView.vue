@@ -23,7 +23,8 @@ const TYPE_OPTIONS = [
   { value: 'order', label: '訂單' },
   { value: 'groupbuy', label: '團購' },
   { value: 'trip', label: '體驗活動' },
-  { value: 'blog', label: '專欄文章' }
+  { value: 'blog', label: '部落格' },
+  { value: 'system', label: '系統公告' }
 ]
 
 // 通知列表代碼
@@ -32,7 +33,8 @@ const TYPE_LABEL = {
   order: '訂單',
   groupbuy: '團購',
   trip: '體驗活動',
-  blog: '專欄文章'
+  blog: '部落格',
+  system: '系統公告'
 }
 
 // 跳轉頁面路徑 (會員端)
@@ -281,7 +283,8 @@ function formateDateTime(dt) {
 .tag-order    { background: #fdeede; color: #b5651d; }  /* 訂單:橘 */
 .tag-groupbuy { background: #e3eefb; color: #2f5fa5; }  /* 團購:藍 */
 .tag-trip     { background: #f7f59f; color: #8f8d05; }  /* 體驗活動:黃 */
-.tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 專欄文章:紫*/
+.tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 部落格:紫*/
+.tag-system   { background: #eff3ea; color: #49553c; }  /* 系統公告:墨綠*/
 
 /* 中間內容 (min-width:0 讓長文字正常收合) */
 .notif-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }

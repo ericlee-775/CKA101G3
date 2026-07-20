@@ -61,7 +61,18 @@ async function loadOrders(){
   }
 }
 
-onMounted(loadOrders)
+// 進入頁面時自動展開最新一張訂單明細
+async function openLatestOrder(){
+  const latest = orders.value[0]
+  if (!latest){ return }
+  await toggleOrderItems(latest.orderId)
+}
+
+
+onMounted(async () => {
+  await loadOrders()
+  await openLatestOrder()
+})
 
 // 展開 / 收合訂單明細
 async function toggleOrderItems(orderId){
@@ -105,6 +116,7 @@ async function changePage(p){
 }
 
 
+// 確認收貨 (先跳確認彈窗)
 async function markReceived(orderId, group){
 
   if (group.shippedStatus !== 'shipping') { return }
