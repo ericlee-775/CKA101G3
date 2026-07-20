@@ -9,6 +9,7 @@ public class ProductOrderResponseDTO {
 	private Integer orderId;			// 訂單編號
 	private Integer totalAmount;		// 總金額
 	private Integer discountAmount; 	// 折扣金額
+	private Integer shippingFee;		// 運費
 	private Integer finalPayment;		// 實付金額
 
 	public ProductOrderResponseDTO() {
@@ -47,6 +48,14 @@ public class ProductOrderResponseDTO {
 		this.discountAmount = discountAmount;
 	}
 	
+	public Integer getShippingFee() {
+		return shippingFee;
+	}
+
+	public void setShippingFee(Integer shippingFee) {
+		this.shippingFee = shippingFee;
+	}
+
 	public Integer getFinalPayment() {
 		return finalPayment;
 	}

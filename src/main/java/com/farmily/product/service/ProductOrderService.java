@@ -46,6 +46,13 @@ import com.farmily.user.repository.FarmerRepository;
 public class ProductOrderService {
 
 	private static final int PAGE_SIZE = 5;
+	private static final int FREE_SHIPPING = 800;
+	private static final int OFFSHORE_FREE_SHIPPING = 2500;
+	private static final int BASE_SHIPPING = 100;
+	private static final int OFFSHORE_SHIPPING = 300;
+	
+	private static final Set<String> OFFSHORE_CITY = Set.of("連江縣", "澎湖縣", "金門縣");
+	private static final Set<String> OFFSHORE_DISTRICT = Set.of("綠島鄉", "蘭嶼鄉", "琉球鄉");
 	
 	@Autowired
 	private ProductOrderRepository orderRepo;
@@ -237,6 +244,7 @@ public class ProductOrderService {
 		dto.setOrderId(vo.getOrderId());
 		dto.setTotalAmount(vo.getTotalAmount());
 		dto.setDiscountAmount(vo.getDiscountAmount());
+		dto.setShippingFee(vo.getShippingFee());
 		dto.setFinalPayment(vo.getFinalPayment());
 
 		return dto;
@@ -404,7 +412,10 @@ public class ProductOrderService {
 		dto.setFarmerGroup(farmerGroup);
 		dto.setTotalAmount(totalAmount);
 		
-				
+		// 計算運費
+		int shippingFee = shippingFeeCalc(u.getCityDistrict(), totalAmount);
+		dto.setShippingFee(shippingFee);
+						
 		// 取得該會員的優惠券 (前端反灰不可用的優惠券)
 		List<MyCouponDTO> myCoupons = couponSvc.getMyCoupons(userId).stream()
 				.filter(c -> c.getStatus() == CouponStatus.UNUSED)
@@ -432,7 +443,23 @@ public class ProductOrderService {
 		return dto;
 	}
 	
-
+	// 當消費者更改收件地址時, 重新計算運費預覽
+	@Transactional (readOnly = true)
+	public int getPreviewShippingFee(Integer userId, Integer districtId) {
+		CityDistrict district = cityDistrictRepo.findById(districtId)
+				.orElseThrow(() -> new IllegalArgumentException("查無此區域"));
+		List<ShoppingcartDTO> cartItems = loadCart(userId);
+		Map<Integer, ProductVO> prodMap = loadProducts(cartItems);
+		
+		int totalAmount = 0;
+		for (ShoppingcartDTO ci : cartItems) {
+			totalAmount += prodMap.get(ci.getProductId()).getRetailPrice() * ci.getQuantity();
+		}
+		
+		int fee = shippingFeeCalc(district, totalAmount);
+		return fee;
+	}
+	
 	
 	// 結帳，新增訂單們
 	@Transactional
@@ -500,7 +527,12 @@ public class ProductOrderService {
 		}
 	
 		order.setDiscountAmount(discountAmount);
-		finalPayment = totalAmount - discountAmount;
+		
+		// 計算運費
+		int shippingFee = shippingFeeCalc(district, totalAmount);
+		
+		finalPayment = totalAmount + shippingFee - discountAmount;
+		order.setShippingFee(shippingFee);
 		order.setFinalPayment(finalPayment);
 
 		
@@ -514,4 +546,28 @@ public class ProductOrderService {
 		// 清除購物車商品
 		cartSvc.clearCart(userId);
 	}
+	
+	
+	// 運費計算
+	private int shippingFeeCalc(CityDistrict destCity, int totalAmount) {
+		
+		// 消費者沒留預設地址
+		if (destCity == null) {
+			return totalAmount < FREE_SHIPPING ? BASE_SHIPPING : 0;
+		}
+		
+		// 跨海離島運費滿 2500 免運, 未滿一律 300
+		if (OFFSHORE_CITY.contains(destCity.getCityName()) || OFFSHORE_DISTRICT.contains(destCity.getDistName())) {
+			return totalAmount < OFFSHORE_FREE_SHIPPING ? OFFSHORE_SHIPPING : 0;
+		}
+		
+		// 滿 800 免運, 未滿 800 運費 100
+		return totalAmount < FREE_SHIPPING ? BASE_SHIPPING : 0;
+
+	}
+	
+	
+	
+	
+	
 }

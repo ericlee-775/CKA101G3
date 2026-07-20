@@ -44,6 +44,21 @@ const formError = ref('')
 
 onMounted(loadCheckout)
 
+// 取得即時運費預覽
+const shippingFee = ref(0);
+const shippingError = ref('')
+watch(() => form.districtId, async (newDistrictId) => {
+  if(!newDistrictId) { return }
+  shippingError.value = ''
+  try {
+    const res = await memberOrdersApi.shippingFee(newDistrictId)
+    shippingFee.value = res
+  } catch {
+    shippingError.value = '運費試算失敗，將於結帳時重新計算'
+  }
+})
+
+
 async function loadCheckout(){
   loading.value = true
   loadError.value = ''
@@ -62,6 +77,9 @@ async function loadCheckout(){
     form.districtId    = checkoutInfo.district?.districtId ?? null
     form.detailAddress = checkoutInfo.detailAddress ?? ''
     form.coupon        = checkoutInfo.recommendedCouponId ?? ''
+
+    // 後端預先算好的運費
+    shippingFee.value = checkoutInfo.shippingFee ?? 0
   } catch (e) {
     loadError.value = e.message || '載入資料失敗'
   } finally {
@@ -77,7 +95,7 @@ const selectedCoupon = computed(() =>
 const discount = computed(() => selectedCoupon.value?.amount ?? 0)
 // 實付 = 總額 − 折抵 (不會小於 0)
 const finalPayment = computed(() =>
-  Math.max(0, (info.value?.totalAmount ?? 0) - discount.value)
+  Math.max(0, (info.value?.totalAmount ?? 0) + shippingFee.value - discount.value)
 )
 
 
@@ -430,6 +448,13 @@ function onImgError(e){
 
         <dl class="sum-grid">
           <div class="sum-row"><dt>訂單總額</dt><dd>{{ fmm(info.totalAmount) }}</dd></div>
+          <div class="sum-row">
+            <dt>運費<span class="ship-note"> （臺灣本島地區滿 NT$ 800 免運，離島地區滿 NT$ 2500 免運）</span></dt>
+            <dd :class="{ 'is-free-shipping': shippingFee === 0 }">
+              {{ shippingFee === 0 ? '免運' : fmm(shippingFee) }}
+            </dd>
+          </div>
+          <p v-if="shippingError" class="hint-warn">{{ shippingError }}</p>
           <div class="sum-row"><dt>優惠折抵</dt><dd class="is-discount">– {{ fmm(discount) }}</dd></div>
           <div class="sum-row sum-row--total"><dt>應付金額</dt><dd>{{ fmm(finalPayment) }}</dd></div>
         </dl>
@@ -474,6 +499,9 @@ function onImgError(e){
             <section class="oc-block oc-sum">
               <p class="oc-line oc-line--row">
                 <span>訂單總額</span><span>{{ fmm(info.totalAmount) }}</span>
+              </p>
+              <p class="oc-line oc-line--row">
+                <span>運費</span><span>{{ shippingFee === 0 ? '免運' : fmm(shippingFee) }}</span>
               </p>
               <p v-if="discount > 0" class="oc-line oc-line--row is-discount">
                 <span>優惠折抵</span><span>− {{ fmm(discount) }}</span>
@@ -622,5 +650,10 @@ function onImgError(e){
 .oc-btn:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
 .oc-confirm:disabled { opacity: .6; cursor: default; }
 .oc-warn { margin: 0 0 20px; font-size: 13px; color: #c0392b; text-align: center; }
+
+/* 免運文字強調 */
+.is-free-shipping { color: var(--leaf-dark); font-weight: 600; }
+/* 運費說明小字 */
+.ship-note { font-size: 12px; font-weight: 400; color: var(--leaf-dark); }
 
 </style>
