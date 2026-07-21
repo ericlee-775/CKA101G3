@@ -137,6 +137,7 @@ public class EmailService {
     		message.setSubject("優惠卷通知");
     		message.setText(userName + " 有新的優惠券\n\n"
     				+ "券代號是：" + coupon.getCouponId() + "\n"
+    				+ "券描述：" + coupon.getCouponInfo() + "\n"
     				+ "折抵金額：" + coupon.getAmount() + "\n"
     				+ "最低消費：" + coupon.getMinSpending() + "\n"
     				+ "優惠券啟用時間是：" + coupon.getIssueStartDate() + "\n"
