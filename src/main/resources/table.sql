@@ -1519,17 +1519,11 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE INDEX idx_notif_recipient_status 
 ON notification (recipient_type, recipient_id, status);
 
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '1', '團購編號 1 已成團，訂單編號 90001，將盡速為您安排出貨。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('farmer', 1, 'order_farmer_new', 'order', 1, '您有一筆新商品訂單 1，請盡速出貨。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 9001, '專欄文章 一根香蕉的產地旅程 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
-
 -- 參數
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '90002', '團購編號 17 已成團，訂單編號 90002，將盡速為您安排出貨。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9015', '您的文章 南瓜濃湯簡單食譜 收到一則新留言。');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 高山茶採摘製茶體驗，期待您的到來！');
 INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '5004', '感謝您參加體驗活動 高山茶採摘製茶體驗！歡迎留下您的評分與心得，給小農鼓勵。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'order_created', 'order', '1', '已收到您的商品訂單 1，將盡速為您安排出貨');
-
 
 
 -- 7. 通知 - 通知類型文字模板

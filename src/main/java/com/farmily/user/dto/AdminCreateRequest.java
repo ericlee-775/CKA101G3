@@ -2,6 +2,7 @@ package com.farmily.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -22,7 +23,8 @@ public class AdminCreateRequest {
     @Size(max = 50, message = "名稱最多 50 字")
     private String name;
 
-    // 要指派給他的權限代碼
+    // 要指派給他的權限代碼（新增管理員時必須至少指派一項）
+    @NotEmpty(message = "至少需指派一項權限")
     private List<String> permissionCodes;
 
 

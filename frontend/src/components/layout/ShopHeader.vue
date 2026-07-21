@@ -135,11 +135,11 @@ watch(() => authStore.isMember, (isMember) => {
   }
 })
 
-// 載入小鈴鐺，每 {30} 秒自動更新一次未讀數
+// 載入小鈴鐺，每 {3} 秒自動更新一次未讀數
 let BellTimer = null
 onMounted(() => {
   loadBell()
-  BellTimer = setInterval(loadBell, 300000)
+  BellTimer = setInterval(loadBell, 3000)
   
 })
 onBeforeUnmount(() => {
