@@ -93,6 +93,8 @@ public class UserSecurityConfig {
 
 						// 管理員需要有對應權限才能請求成功 "PERM_XXX"
                         .requestMatchers("/admin/login").permitAll()
+                        // 權限不足導向頁：accessDeniedPage forward 過來要放行，避免又被授權擋成迴圈
+                        .requestMatchers("/admin/access-denied").permitAll()
                         .requestMatchers("/admin/admins/**").hasAuthority("PERM_ADMIN")
                         .requestMatchers("/admin/farmers/**", "/admin/reviews/**").hasAuthority("PERM_FARMER")
 						.requestMatchers("/admin/members/**").hasAuthority("PERM_MEMBER")
@@ -107,6 +109,9 @@ public class UserSecurityConfig {
 
 						// 沒特別指定的（/admin/dashboard、/admin/profile）任何登入管理員都能進
 						.anyRequest().hasRole("ADMIN"))
+
+				// 已登入但權限不足（授權層 403）：forward 到後台皮膚的權限不足頁，取代預設 Whitelabel
+				.exceptionHandling(ex -> ex.accessDeniedPage("/admin/access-denied"))
 
 
 				// formLogin：未登入自動導到 /admin/login；POST /admin/login 由 Spring 幫我們處理
