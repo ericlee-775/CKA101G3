@@ -30,6 +30,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: "123456"
       APP_REDIS_HOST: "redis"
       SPRING_AI_OLLAMA_INIT_PULL_MODEL_STRATEGY: "https://farmily.duckdns.org/farmily-web"
+      APP_FRONTEND_BASE_URL: "https://farmily.duckdns.org/farmily-web"
     depends_on:
       mysql:
         condition: service_healthy      # ← 等 mysql 回報 healthy
