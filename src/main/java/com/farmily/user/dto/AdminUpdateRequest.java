@@ -9,9 +9,13 @@ public class AdminUpdateRequest {
 
     @Size(max = 50, message = "名稱最多 50 字")
     private String updateName;
+
     // 選填；有填才驗，須為 DB ENUM 允許值
     @Pattern(regexp = "^(ACTIVE|SUSPENDED|DELETED)?$", message = "狀態值不合法")
     private String updateStatus;
+
+    // 選填；不送=不變更，但一旦要改就不能清成零權限，須保留至少一項
+    @Size(min = 1, message = "至少需保留一項權限")
     private List<String> updatePermissionCodes;
 
 
