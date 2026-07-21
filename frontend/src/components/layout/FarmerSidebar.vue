@@ -17,12 +17,12 @@ const displayName = computed(() => {
 
 // 側邊欄選單：ready:true＝已完成可點；ready:false＝功能開發中，顯示但不可點
 const menu = [
+  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true, badge: 'notification' },
+  { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '商品管理', icon: '📦', to: '/farmer/products', ready: true },
   { label: '團購管理', icon: '🛒', to: '/farmer/group-buys', ready: true },
-  { label: '訂單', icon: '🧾', to: '/farmer/orders', ready: true },
   { label: '體驗活動管理', icon: '🎪', to: '/farmer/farm-trips', ready: true },
   { label: '產地日記(部落格)', icon: '🌱', to: '/farmer/blog', ready: true },
-  { label: '通知', icon: '🔔', to: '/farmer/notifications', ready: true, badge: 'notification' },
 ]
 const readyMenu = computed(() => menu.filter((m) => m.ready))
 
@@ -42,14 +42,14 @@ async function loadUnread() {
 // 硬重整時 auth 狀態可能比元件晚就緒，這時 onMounted 那次會被擋掉，靠這裡補抓；登出則歸零
 watch(() => authStore.isFarmer, (isFarmer) => {
   if (isFarmer) loadUnread()
-  else notificationStore.reset()
+  else notificationStore.clear()
 })
 
-// 進來先抓一次，之後每 300 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
+// 進來先抓一次，之後每 3 秒更新一次（對齊 ShopHeader 鈴鐺的頻率）
 let unreadTimer = null
 onMounted(() => {
   loadUnread()
-  unreadTimer = setInterval(loadUnread, 300000)
+  unreadTimer = setInterval(loadUnread, 3000)
 })
 onBeforeUnmount(() => {
   if (unreadTimer) clearInterval(unreadTimer)

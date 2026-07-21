@@ -15,6 +15,7 @@ export const memberOrdersApi = {
     
     checkout: (req) => http.post(`${BASE}/checkout`, req),
 
+    shippingFee: (districtId) => http.get(`${BASE}/shipping-fee?districtId=${districtId}`), 
 
 }
 

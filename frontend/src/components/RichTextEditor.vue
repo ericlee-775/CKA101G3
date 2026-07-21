@@ -1,5 +1,5 @@
 <script setup>
-// 零依賴富文本編輯器（contenteditable + 工具列）
+// 零依賴編輯器（contenteditable + 工具列）
 // v-model 綁 HTML 字串。刻意不做內嵌圖片，避免 base64 撐爆 TEXT(64KB)。
 import { ref, onMounted, watch } from 'vue'
 

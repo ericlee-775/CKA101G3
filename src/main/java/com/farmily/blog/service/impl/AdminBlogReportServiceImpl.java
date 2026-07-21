@@ -204,9 +204,17 @@ public class AdminBlogReportServiceImpl implements AdminBlogReportService {
         v.setReportTime(r.getReportTime());
         if (blog != null) {
             v.setBlogTitle(blog.getBlogTitle());
-            v.setBlogContent(blog.getBlogContent());
+            v.setBlogContent(stripHtml(blog.getBlogContent()));   // 內容可能是編輯器產的 HTML，後台只看純文字
         }
         return v;
+    }
+
+    // 去掉 HTML 標籤：新文章內容是 RichTextEditor 產的 HTML(<p>…</p>)，後台審核顯示純文字即可、也避免 XSS
+    private static String stripHtml(String html) {
+        if (html == null) return null;
+        return html.replaceAll("<[^>]+>", " ")   // 每個標籤換成一個空白（避免 </p><p> 把字黏在一起）
+                   .replaceAll("\\s+", " ")       // 多個空白收成一個
+                   .trim();
     }
 
     // BlogCommentReport → DTO（comment / blog 都可能為 null）

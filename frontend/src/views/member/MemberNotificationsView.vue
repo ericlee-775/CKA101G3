@@ -16,7 +16,7 @@ const router = useRouter()
 const activeIndex = computed(() => TYPE_OPTIONS.findIndex(o => o.value === targetType.value))
 
 
-// 分類開選的選項
+// 分類標籤選項
 // targetType: account, order, groupbuy, trip, blog,...
 const TYPE_OPTIONS = [
   { value: '', label: '全部' },
@@ -24,7 +24,8 @@ const TYPE_OPTIONS = [
   { value: 'order', label: '訂單' },
   { value: 'groupbuy', label: '團購' },
   { value: 'trip', label: '體驗活動' },
-  { value: 'blog', label: '專欄文章' }
+  { value: 'blog', label: '部落格' },
+  { value: 'system', label: '系統公告' }
 ]
 
 // 通知列表代碼
@@ -33,7 +34,8 @@ const TYPE_LABEL = {
   order: '訂單',
   groupbuy: '團購',
   trip: '體驗活動', 
-  blog: '專欄文章'
+  blog: '部落格',
+  system: '系統公告'
 }
 
 // 跳轉頁面路徑 (會員端)
@@ -123,11 +125,13 @@ async function markOne(n) {
       return
     }
   }
+
   // blog 通知導到「那篇文章」；其他類型導到對應區塊清單
   if (n.targetType === 'blog' && n.targetId != null) {
     router.push({ name: 'member-blogs-detail', params: { id: n.targetId } })
     return
   }
+
   const path = TARGET_ROUTE[n.targetType]
   if (path) {
     router.push(path)
@@ -153,7 +157,7 @@ function formateDateTime(dt) {
       </header>
 
       <div class="notif-toolbar">
-        <div class="seg" role="tablist">
+        <div class="seg" role="tablist" :style="{ '--seg-count': TYPE_OPTIONS.length }">
           <span class="seg-pill" :style="{ transform: `translateX(${activeIndex * 100}%)` }"></span>
 
           <button v-for="opt in TYPE_OPTIONS" :key="opt.value" type="button"
@@ -237,7 +241,7 @@ function formateDateTime(dt) {
 .seg {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(var(--seg-count), 1fr);
   padding: 4px;
   background: #fff;
   border: 1px solid var(--line);
@@ -249,7 +253,7 @@ function formateDateTime(dt) {
 .seg-pill {
   position: absolute;
   top: 4px; bottom: 4px; left: 4px;
-  width: calc((100% - 8px) / 6);           /* 內容區寬度 ÷ 6 = 一格 */
+  width: calc((100% - 8px) / var(--seg-count));           /* 內容區寬度 ÷ 6 = 一格 */
   border-radius: 999px;
   background: linear-gradient(135deg, var(--leaf), var(--leaf-dark));
   box-shadow: 0 3px 10px rgba(59, 138, 87, 0.35);
@@ -266,7 +270,7 @@ function formateDateTime(dt) {
   border-radius: 999px;
   background: transparent;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -340,7 +344,6 @@ function formateDateTime(dt) {
 
 .notif-tag {
   flex-shrink: 0;              /* 不被壓縮, 維持固定寬 */
-  align-self: flex-start;      /* 貼齊頂端, 和第一行文字對齊 */
   width: 72px;
   box-sizing: border-box;
   text-align: center;
@@ -371,7 +374,8 @@ function formateDateTime(dt) {
 .tag-order    { background: #fdeede; color: #b5651d; }  /* 訂單:橘 */
 .tag-groupbuy { background: #e3eefb; color: #2f5fa5; }  /* 團購:藍 */
 .tag-trip     { background: #f7f59f; color: #8f8d05; }  /* 體驗活動:黃 */
-.tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 專欄文章:紫*/
+.tag-blog     { background: #f1e0ff; color: #790ac4; }  /* 部落格:紫*/
+.tag-system   { background: #eff3ea; color: #49553c; }  /* 系統公告:墨綠*/
 /* ...沒對到的就用預設綠色 */
 
 /* 分頁 */

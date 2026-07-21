@@ -38,6 +38,15 @@ public class MemberProductOrderController {
 		return ResponseEntity.ok(dto);
 	}
 	
+	// 取得運費計算預覽
+	@GetMapping("/shipping-fee")
+	public ResponseEntity<Integer> shippingFee(
+			@AuthenticationPrincipal MemberUserDetails me,
+			@RequestParam Integer districtId){
+		Integer fee = oSvc.getPreviewShippingFee(me.getUserId(), districtId);
+		return ResponseEntity.ok(fee);
+	}
+	
 	
 	// 購物車結帳
 	@PostMapping("/checkout")

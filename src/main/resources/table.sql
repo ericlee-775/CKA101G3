@@ -592,14 +592,14 @@ CREATE TABLE FARMER (
 --  farmer04 管理員停權     -> SUSPENDED
 --  farmer05 審核 PENDING   -> PENDING
 
--- 密碼都是: farmer
+-- 密碼都是: farmer1234
 INSERT INTO FARMER (email, email_verified, district_id, uploaded_at, password, farm_address, farm_name, loc_lat, loc_long, farm_desc, farmer_created_at, farmer_phone_num, farmer_status)
 VALUES
-    ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
-    ('farmer02@gmail.com', TRUE, 2, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '大同街200號', '綠野農場', 25.06321000, 121.51234000, '自然農法種植，提供當季新鮮蔬果', '2024-03-22 15:00:00', '0922222222', 'ACTIVE'),
-    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'PENDING'),
-    ('farmer04@gmail.com', TRUE, 4, '2024-03-10 09:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '仁愛路88號',  '海風農場', 25.12345000, 121.73456000, '靠海農場，專售海鹽與特色農產品', '2024-03-10 09:00:00', '0944444444', 'SUSPENDED'),
-    ('farmer05@gmail.com', TRUE, 5, '2024-06-01 13:00:00', '$2a$12$lVBrPeTNgXO3YecDS6eh2O0.yFKD8on95ekcUanvypsNDVGpZvj/y', '板橋路77號',  '稻香農場', 24.87654000, 121.45678000, '傳統水稻種植，提供在地新鮮稻米', '2024-06-01 13:00:00', '0955555555', 'PENDING');
+    ('farmer01@gmail.com', TRUE, 1, '2024-02-01 10:00:00', '$2a$12$nrUvcDLzS.AMY3hppatbuuaq0UwL9/2aXj8YS8oCNThL22oPpXVcm', '中正路500號', '陽光農場', 25.04776000, 121.53185000, '專注有機蔬菜栽培，堅持無農藥',   '2024-02-03 14:00:00', '0911111111', 'ACTIVE'),
+    ('farmer02@gmail.com', TRUE, 2, '2024-03-10 09:00:00', '$2a$12$nrUvcDLzS.AMY3hppatbuuaq0UwL9/2aXj8YS8oCNThL22oPpXVcm', '大同街200號', '綠野農場', 25.06321000, 121.51234000, '自然農法種植，提供當季新鮮蔬果', '2024-03-22 15:00:00', '0922222222', 'ACTIVE'),
+    ('farmer03@gmail.com', TRUE, 3, '2024-05-15 08:00:00', '$2a$12$nrUvcDLzS.AMY3hppatbuuaq0UwL9/2aXj8YS8oCNThL22oPpXVcm', '中山路333號', '山間農場', 24.98765000, 121.54321000, '山區有機農場，專售高山茶與蔬菜', '2024-05-15 08:00:00', '0933333333', 'PENDING'),
+    ('farmer04@gmail.com', TRUE, 4, '2024-03-10 09:00:00', '$2a$12$nrUvcDLzS.AMY3hppatbuuaq0UwL9/2aXj8YS8oCNThL22oPpXVcm', '仁愛路88號',  '海風農場', 25.12345000, 121.73456000, '靠海農場，專售海鹽與特色農產品', '2024-03-10 09:00:00', '0944444444', 'SUSPENDED'),
+    ('farmer05@gmail.com', TRUE, 5, '2024-06-01 13:00:00', '$2a$12$nrUvcDLzS.AMY3hppatbuuaq0UwL9/2aXj8YS8oCNThL22oPpXVcm', '板橋路77號',  '稻香農場', 24.87654000, 121.45678000, '傳統水稻種植，提供在地新鮮稻米', '2024-06-01 13:00:00', '0955555555', 'PENDING');
 
 
 -- ====================================================================
@@ -607,7 +607,7 @@ VALUES
 -- ====================================================================
 CREATE TABLE FARMER_REVIEW (
                                review_id             INT           AUTO_INCREMENT PRIMARY KEY,
-                               farmer_id             INT           NULL,
+                               farmer_id             INT,
                                admin_id              INT,
                                review_round          INT           NOT NULL DEFAULT 1,
                                review_status         ENUM('PENDING', 'REVIEWING', 'APPROVED', 'REJECTED') NOT NULL,  -- 管理員視角
@@ -911,6 +911,7 @@ CREATE TABLE ORDERS (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     total_amount INT NOT NULL,
     discount_amount INT NOT NULL DEFAULT 0,
+    shipping_fee INT NOT NULL DEFAULT 0,
     final_payment INT NOT NULL,
     order_status ENUM('pending', 'completed') DEFAULT 'pending',
     completed_at DATETIME,
@@ -922,8 +923,8 @@ AUTO_INCREMENT = 3001
 ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
 -- 參數
-INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, coupon_id, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
-VALUES (3, '小蔡', '0912345678', 'WELCOME100', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 500, 100, 400, 'completed', '2026-03-11 15:30:00');
+INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, shipping_address, payment_id, created_at, total_amount, discount_amount, final_payment, order_status, completed_at)
+VALUES (3, '小蔡', '0912345678', '臺北市中正區重慶南路一段122號', 8888, '2026-03-01 14:05:00', 1000, 0, 1000, 'completed', '2026-03-11 15:30:00');
 INSERT INTO ORDERS (user_id, recipient_name, recipient_phone, shipping_address, payment_id, total_amount, discount_amount, final_payment)
 VALUES (3, '小蔡', '0912345678', '臺北市中正區重慶南路一段122號', 8881, 880, 0, 880);
 
@@ -1518,18 +1519,11 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE INDEX idx_notif_recipient_status 
 ON notification (recipient_type, recipient_id, status);
 
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '1', '團購編號 1 已成團，訂單編號 90001，將盡速為您安排出貨。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('farmer', 1, 'order_farmer_new', 'order', 1, '您有一筆新商品訂單 1，請盡速出貨。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 1, 'farmer_review', 'account', 5 , '小農申請編號 5，請盡速審核。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('admin', 3, 'blog_report_new', 'blog', 12001 , '專欄文章 9001 遭檢舉，檢舉事由: 內容疑似與商品資訊不符，請平台確認。請盡速審核。');
-
 -- 參數
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9001', '您的文章 9001 收到一則新留言。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'account_tier', 'account', '3', '您本月的會員等級已更新為 銀級會員');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 8004，期待您的到來！');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '6004', '感謝您參加體驗活動 6004！歡迎留下您的評分與心得，給小農鼓勵。');
-INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'order_created', 'order', '1', '已收到您的商品訂單 1，將盡速為您安排出貨');
-
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'gb_success', 'groupbuy', '90002', '團購編號 17 已成團，訂單編號 90002，將盡速為您安排出貨。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'blog_comment', 'blog', '9015', '您的文章 南瓜濃湯簡單食譜 收到一則新留言。');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_booking_confirmed', 'trip', '8004', '已收到您的體驗活動預約 高山茶採摘製茶體驗，期待您的到來！');
+INSERT INTO notification (recipient_type, recipient_id, type_code, target_type, target_id, content) VALUES ('user', 3, 'trip_review_invite', 'trip', '5004', '感謝您參加體驗活動 高山茶採摘製茶體驗！歡迎留下您的評分與心得，給小農鼓勵。');
 
 
 -- 7. 通知 - 通知類型文字模板
@@ -1561,7 +1555,7 @@ INSERT INTO notification_template VALUES ('order_payout', '商品訂單 {order_i
 
 INSERT INTO notification_template VALUES ('trip_request_approved', '體驗活動 {farm_trip_title} 已通過審核並開放報名，快邀請親朋好友一起參加!');
 INSERT INTO notification_template VALUES ('trip_request_rejected', '體驗活動 {farm_trip_title} 審核未通過，原因：{reason}。');
-INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的體驗活動預約 {farm_trip_title}，期待您的到來！');
+INSERT INTO notification_template VALUES ('trip_booking_confirmed', '已收到您的 {farm_trip_title} 體驗活動預約，期待您的到來！');
 INSERT INTO notification_template VALUES ('trip_booking_new', '體驗活動 {farm_trip_title} 收到一筆新預約！');
 INSERT INTO notification_template VALUES ('trip_booking_cancelled', '您已取消體驗活動 {farm_trip_title} 的預約，期待您再次參與。');
 INSERT INTO notification_template VALUES ('trip_booking_cancelled_farmer', '消費者已取消一筆 {farm_trip_title} 體驗活動預約，請至體驗活動專區查看。');
@@ -1605,4 +1599,5 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 參數
 INSERT INTO notification_announcement (admin_id, audience, content, recipient_count) VALUES (1, 'user', 'test announcement to user member', 5);
+
 

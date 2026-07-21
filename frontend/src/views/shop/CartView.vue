@@ -186,6 +186,17 @@ onUnmounted(() => {
         <button class="summary__clear" type="button" @click="clearCart">
           清空購物車
         </button>
+        <div class="summary__shipping">
+          <p class="summary__shipping-title">🚚 運費說明</p>
+          <div class="summary__shipping-row">
+            <span>本島地區（未滿 $800）</span>
+            <span>$100元</span>
+          </div>
+          <div class="summary__shipping-row">
+            <span>離島地區（未滿 $2500）</span>
+            <span>$300元</span>
+          </div>
+        </div>
       </aside>
     </div>
   </main>
@@ -408,6 +419,32 @@ onUnmounted(() => {
 .summary__clear:hover {
   border-color: #c0392b;
   color: #c0392b;
+}
+.summary__shipping {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #f7faf5;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.summary__shipping-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.summary__shipping-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.summary__shipping-row span:last-child {
+  font-weight: 600;
+  color: var(--leaf-dark);
+  white-space: nowrap;
 }
 
 /* ---------- 響應式 ---------- */

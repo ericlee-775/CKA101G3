@@ -13,7 +13,7 @@ import com.farmily.product.dto.ProductGroupBuyDTO;
 import com.farmily.product.dto.ProductManageDTO;
 import com.farmily.product.dto.ProductSummaryDTO;
 
-import groovyjarjarpicocli.CommandLine.Parameters;
+
 
 public interface ProductRepository extends JpaRepository<ProductVO, Integer> {
 

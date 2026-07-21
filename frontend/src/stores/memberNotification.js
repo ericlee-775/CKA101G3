@@ -33,6 +33,10 @@ function markRead(notifId){
         item.status = 'read'
         state.unreadCount = Math.max(0, state.unreadCount - 1)
     }
+
+    if (!item) {
+        state.unreadCount = Math.max(0, state.unreadCount - 1)
+    }
 }
 
 function markAllRead(){

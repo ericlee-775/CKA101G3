@@ -8,17 +8,7 @@
     <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css"/>
     <script>
-        $(document).ready(function () {
-            $('#couponTable').DataTable({
-                "lengthMenu": [10, 20, 50, 100],
-                "order": [],
-                "language": {
-                    "search": "搜尋:", "lengthMenu": "顯示 _MENU_ 筆",
-                    "info": "第 _START_ 至 _END_ 筆，共 _TOTAL_ 筆", "zeroRecords": "沒有符合的資料",
-                    "paginate": { "first": "第一頁", "previous": "上一頁", "next": "下一頁", "last": "最後一頁" }
-                }
-            });
-        });
+       
     </script>
 </head>
 <body>
@@ -34,34 +24,43 @@
         <div class="card-header">發券（新增優惠券）</div>
         <div class="card-body">
             <!-- th:action 會讓 Spring Security 自動塞 CSRF token（後台 CSRF 是開的） -->
+            <!-- 發券失敗時，controller 會用 flash 回填 ${form}/${sendMail}，讓欄位不用重打 -->
             <form method="post" th:action="@{/admin/coupons}" class="form-row">
                 <div class="form-group col-md-3">
                     <label>券代碼</label>
-                    <input type="text" name="couponId" class="form-control" required placeholder="WELCOME100">
+                    <input type="text" name="couponId" class="form-control" required placeholder="WELCOME100"
+                           th:value="${form != null ? form.couponId : ''}">
                 </div>
                 <div class="form-group col-md-3">
                     <label>券說明</label>
-                    <input type="text" name="couponInfo" class="form-control" required placeholder="新戶折 100">
+                    <input type="text" name="couponInfo" class="form-control" required placeholder="新戶折 100"
+                           th:value="${form != null ? form.couponInfo : ''}">
                 </div>
                 <div class="form-group col-md-2">
                     <label>折抵金額</label>
-                    <input type="number" name="amount" class="form-control" min="1" required>
+                    <input type="number" name="amount" class="form-control" min="1" required
+                           th:value="${form != null ? form.amount : ''}">
                 </div>
                 <div class="form-group col-md-2">
                     <label>滿額門檻</label>
-                    <input type="number" name="minSpending" class="form-control" min="0" required>
+                    <input type="number" name="minSpending" class="form-control" min="0" required
+                           th:value="${form != null ? form.minSpending : ''}">
                 </div>
                 <div class="form-group col-md-3">
                     <label>發放開始</label>
-                    <input type="datetime-local" name="issueStartDate" class="form-control">
+                    <!-- datetime-local 需要 yyyy-MM-ddTHH:mm 格式 -->
+                    <input type="datetime-local" name="issueStartDate" class="form-control" required
+                           th:value="${form != null and form.issueStartDate != null ? #temporals.format(form.issueStartDate, 'yyyy-MM-dd''T''HH:mm') : ''}">
                 </div>
                 <div class="form-group col-md-3">
                     <label>發放結束</label>
-                    <input type="datetime-local" name="issueEndDate" class="form-control">
+                    <input type="datetime-local" name="issueEndDate" class="form-control" required
+                           th:value="${form != null and form.issueEndDate != null ? #temporals.format(form.issueEndDate, 'yyyy-MM-dd''T''HH:mm') : ''}">
                 </div>
                 <div class="form-group col-md-3 d-flex align-items-end">
                     <div class="form-check">
-                        <input type="checkbox" name="sendMail" value="true" class="form-check-input" id="sendMail">
+                        <input type="checkbox" name="sendMail" value="true" class="form-check-input" id="sendMail"
+                               th:checked="${sendMail != null and sendMail}">
                         <label class="form-check-label" for="sendMail">發送通知信給會員</label>
                     </div>
                 </div>

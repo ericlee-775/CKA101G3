@@ -75,7 +75,7 @@ async function markShipped(order){
 
   const ok = await confirm({
     title: '確認出貨',
-    message: `請確認已完成訂單 #${order.orderId} 出貨?`,
+    message: `確認已完成訂單 #${order.orderId} 出貨?`,
     confirmText: '確認出貨',
     danger: true
   })

@@ -63,12 +63,12 @@ const unreadCount = notificationStore.unreadCount
 
 // 小鈴鐺分類 icon (targetType)
 const ICON_BY_TYPE = {
-  account: '👤', order: '📦', groupbuy: '👥', trip: '🌱', blog: '✍️'
+  account: '👤', order: '📦', groupbuy: '👥', trip: '🌱', blog: '✍️', system: '📢'
 }
 
 // 分類對應中文標題 (title)
 const TITLE_BY_TYPE = {
-  account : '帳號異動', order: '訂單狀態', groupbuy: '團購動態', trip: '體驗活動', blog: '文章評論'
+  account : '帳號', order: '訂單', groupbuy: '團購', trip: '體驗活動', blog: '部落格', system: '系統公告'
 }
 
 // 跳轉頁面路徑
@@ -109,9 +109,19 @@ async function routeBell(n) {
       n.status = 'read'
     } catch { }
   }
+
+  // blog 通知導到「那篇文章」；其他類型導到對應區塊清單
+  if (n.targetType === 'blog' && n.targetId != null) {
+    router.push({ name: 'member-blogs-detail', params: { id: n.targetId } })
+    return
+  }
+
   const path = TARGET_ROUTE[n.targetType]
   if (path) {
     router.push(path)
+  }
+  else {
+    router.push('/member/notifications')
   }
 }
 
@@ -119,16 +129,17 @@ async function routeBell(n) {
 watch(() => authStore.isMember, (isMember) => {
   if (isMember){
     loadBell()
-  } else {
+  }
+  else {
     notificationStore.clear()
   }
 })
 
-// 載入小鈴鐺，每 {300} 秒自動更新一次未讀數
+// 載入小鈴鐺，每 {3} 秒自動更新一次未讀數
 let BellTimer = null
 onMounted(() => {
   loadBell()
-  BellTimer = setInterval(loadBell, 300000)
+  BellTimer = setInterval(loadBell, 3000)
   
 })
 onBeforeUnmount(() => {

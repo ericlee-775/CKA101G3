@@ -203,7 +203,11 @@ onBeforeUnmount(() => { if (map) { map.remove(); map = null } })
           <div v-if="selectedFarm" class="farm-card">
             <button class="farm-card__close" type="button" @click="closeCard" aria-label="關閉">✕</button>
             <div class="farm-card__banner">
-              <img :src="noImage" :alt="selectedFarm.farmName" />
+              <img
+                :src="`/farmily-web/farms/${selectedFarm.farmerId}.jpg`"
+                :alt="selectedFarm.farmName"
+                @error="$event.target.src = noImage"
+              />
             </div>
             <div class="farm-card__body">
               <h3>{{ selectedFarm.farmName }}</h3>
