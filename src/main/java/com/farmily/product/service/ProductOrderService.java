@@ -41,6 +41,7 @@ import com.farmily.user.model.Farmer;
 import com.farmily.user.model.User;
 import com.farmily.user.repository.CityDistrictRepository;
 import com.farmily.user.repository.FarmerRepository;
+import com.farmily.user.repository.UserRepository;
 
 @Service
 public class ProductOrderService {
@@ -52,7 +53,7 @@ public class ProductOrderService {
 	private static final int OFFSHORE_SHIPPING = 300;
 	
 	private static final Set<String> OFFSHORE_CITY = Set.of("連江縣", "澎湖縣", "金門縣");
-	private static final Set<String> OFFSHORE_DISTRICT = Set.of("綠島鄉", "蘭嶼鄉", "琉球鄉");
+	private static final Set<String> OFFSHORE_DISTRICT = Set.of("綠島鄉", "蘭嶼鄉", "琉球鄉", "釣魚臺", "東沙群島", "南沙群島");
 	
 	@Autowired
 	private ProductOrderRepository orderRepo;
@@ -77,6 +78,9 @@ public class ProductOrderService {
 
 	@Autowired
 	private FarmerRepository farmerRepo;
+	
+	@Autowired
+	private UserRepository userRepo;
 
 
 	// 小農更新訂單出貨狀態
@@ -342,8 +346,8 @@ public class ProductOrderService {
 
 	// 取得 checkout-info 訂單預覽頁
 	@Transactional
-	public ProductOrderCheckoutInfoDTO getCheckoutInfo(User u) {
-		Integer userId = u.getUserId();
+	public ProductOrderCheckoutInfoDTO getCheckoutInfo(Integer userId) {
+		User u = userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("查無此會員"));
 		ProductOrderCheckoutInfoDTO dto = new ProductOrderCheckoutInfoDTO();
 		
 		// 取得訂購資訊
