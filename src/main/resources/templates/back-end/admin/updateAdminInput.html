@@ -29,6 +29,8 @@
             margin:.2rem 0 .7rem; font-size:.8rem; color:#98a0aa; }
         .perm-divider::before, .perm-divider::after { content:"";
             flex:1; height:1px; background:#e6e9ed; }
+        /* 權限被清空時的前端錯誤提示 */
+        .perm-error { color:#c0392b; font-size:.85rem; margin:.4rem 0 0; font-weight:600; }
     </style>
 </head>
 <body>
@@ -40,7 +42,7 @@
 
     <div class="card" style="max-width: 560px;">
         <div class="card-body">
-            <form method="post" th:action="@{/admin/admins/{id}/update(id=${admin.adminId})}">
+            <form id="updateAdminForm" method="post" th:action="@{/admin/admins/{id}/update(id=${admin.adminId})}">
                 <div class="form-group">
                     <label>Email（不可改）</label>
                     <input type="text" class="form-control" th:value="${admin.adminEmail}" disabled/>
@@ -89,6 +91,7 @@
                             </span>
                         </label>
                     </div>
+                    <p id="updatePermError" class="perm-error" style="display:none;">⚠ 至少需保留一項權限</p>
                 </div>
                 <button type="submit" class="btn btn-success">儲存</button>
                 <a class="btn btn-outline-secondary ml-2" th:href="@{/admin/admins}">取消</a>
@@ -96,5 +99,22 @@
         </div>
     </div>
 </div>
+
+<th:block layout:fragment="extrascript">
+    <script>
+        // 修改管理員：至少需保留一項權限，否則不送出、留在本頁，直接提示（避免清空卻誤報「修改成功」）
+        document.getElementById('updateAdminForm').addEventListener('submit', function (e) {
+            var checked = this.querySelectorAll('input[name="updatePermissionCodes"]:checked').length;
+            var err = document.getElementById('updatePermError');
+            if (checked === 0) {
+                e.preventDefault();
+                err.style.display = 'block';
+                err.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            } else {
+                err.style.display = 'none';
+            }
+        });
+    </script>
+</th:block>
 </body>
 </html>

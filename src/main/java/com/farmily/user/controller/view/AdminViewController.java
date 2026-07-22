@@ -42,6 +42,13 @@ public class AdminViewController {
         return "back-end/admin/dashboard";
     }
 
+    // 權限不足頁：Security 授權層擋下的 403 會 forward 到這裡，套後台皮膚顯示，取代預設 Whitelabel
+    @GetMapping("/admin/access-denied")
+    public String accessDenied(ModelMap model) {
+        model.addAttribute("errorMessage", "您沒有存取此功能的權限，如需開通請聯繫超級管理員");
+        return "back-end/admin/opError";
+    }
+
     // 個人資料頁（任何登入的管理員都能進）；資料直接由 AdminService 撈
     @GetMapping("/admin/profile")
     public String profile(@AuthenticationPrincipal AdminUserDetails me, ModelMap model) {

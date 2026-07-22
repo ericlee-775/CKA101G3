@@ -31,11 +31,20 @@ public class MemberProductOrderController {
 	@Autowired
 	private ProductOrderService oSvc;
 	
-	// 訂單資料確認 (取得預設的消費者資料預填訂單頁: 地址)
+	// 訂單資料確認 (取得預設的消費者資料預填訂單頁)
 	@GetMapping("/checkout-info")
 	public ResponseEntity<ProductOrderCheckoutInfoDTO> checkOutInfo(@AuthenticationPrincipal MemberUserDetails me){
-		ProductOrderCheckoutInfoDTO dto = oSvc.getCheckoutInfo(me.getUser());
+		ProductOrderCheckoutInfoDTO dto = oSvc.getCheckoutInfo(me.getUserId());
 		return ResponseEntity.ok(dto);
+	}
+	
+	// 取得運費計算預覽
+	@GetMapping("/shipping-fee")
+	public ResponseEntity<Integer> shippingFee(
+			@AuthenticationPrincipal MemberUserDetails me,
+			@RequestParam Integer districtId){
+		Integer fee = oSvc.getPreviewShippingFee(me.getUserId(), districtId);
+		return ResponseEntity.ok(fee);
 	}
 	
 	
