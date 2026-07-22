@@ -9,6 +9,7 @@ services:
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --skip-character-set-client-handshake --lower-case-table-names=1
     environment:
       MYSQL_ROOT_PASSWORD: "123456"           # 設密碼(配合 app)
+      TZ: "Asia/Taipei"
     ports:
       - "3307:3306"                           # 開門
     volumes:
@@ -25,6 +26,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      TZ: "Asia/Taipei"
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/Farmily?serverTimezone=Asia/Taipei"
       SPRING_DATASOURCE_USERNAME: "root"
       SPRING_DATASOURCE_PASSWORD: "123456"
