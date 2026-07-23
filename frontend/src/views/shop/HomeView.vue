@@ -73,7 +73,7 @@ async function loadFarms() {
   const farms = (await listFarms()).map(normalizeFarm).slice(0, LIMIT)
   farmCards.value = farms.map((f) => ({
     key: 'farm-' + f.farmerId,
-    image: noImage,                      // 農場無專屬圖片端點，統一用佔位圖
+    image: `/farmily-web/farms/${f.farmerId}.jpg`,                    
     badge: f.region || '合作農場',
     title: f.farmName,
     desc: f.farmDesc,
@@ -104,7 +104,7 @@ async function loadTrips() {
   const arr = await res.json()
   tripCards.value = (arr || []).slice(0, LIMIT).map((t) => ({
     key: 'trip-' + t.farmTripId,
-    image: `/api/farm-trips/${t.farmTripId}/image`,
+    image: `/farmily-web/trips/${t.farmTripId}.jpg`,
     badge: '體驗活動',
     title: t.farmTripTitle,
     desc: t.farmName ? '🏡 ' + t.farmName : '',
