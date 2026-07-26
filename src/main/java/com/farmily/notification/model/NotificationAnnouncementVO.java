@@ -1,5 +1,6 @@
 package com.farmily.notification.model;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.farmily.user.model.Admin;
@@ -19,7 +20,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table (name = "notification_announcement")
-public class NotificationAnnouncementVO {
+public class NotificationAnnouncementVO implements Serializable{
 	
 	private static final long serialVersionUID = 1L;
 	
